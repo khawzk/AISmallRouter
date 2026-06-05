@@ -152,6 +152,7 @@ Included in the prototype:
 - Basic production readiness report
 - Basic incident playbook
 - Basic support policy
+- Basic pilot checklist
 - Basic capability routing control
 - Basic provider create, update, and disable workflow
 - Basic provider contract matrix

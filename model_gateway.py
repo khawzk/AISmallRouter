@@ -87,6 +87,7 @@ ADMIN_PATHS = {
     "/v1/gateway/production-readiness",
     "/v1/gateway/incident-playbook",
     "/v1/gateway/support-policy",
+    "/v1/gateway/pilot-checklist",
     "/v1/gateway/request-activity",
     "/v1/gateway/model-catalog",
     "/v1/gateway/route-preview",
@@ -3101,6 +3102,117 @@ def support_policy(server):
     }
 
 
+def pilot_checklist(server):
+    readiness = production_readiness(server)
+    support = support_policy(server)
+    return {
+        "object": "gateway.pilot_checklist",
+        "mode": "mock" if server.mock_mode else "live",
+        "pilot_stage": "pre_pilot",
+        "plain_english": "Use this checklist before inviting a customer to test the gateway.",
+        "recommended_scope": {
+            "duration": "1 to 2 weeks for a first technical pilot",
+            "customers": "1 small customer team or internal champion",
+            "models": ["smart-fast"],
+            "traffic": "low-volume test traffic first",
+            "mode": "mock first, live Qwen only when a real provider test is needed",
+        },
+        "roles": [
+            {
+                "role": "Business owner",
+                "responsibility": "Confirms pilot goal, customer success criteria, and commercial boundaries.",
+            },
+            {
+                "role": "Technical owner",
+                "responsibility": "Runs gateway, checks provider readiness, and handles route or adapter issues.",
+            },
+            {
+                "role": "Customer technical contact",
+                "responsibility": "Tests API calls using OpenAPI, Postman, or integration guide examples.",
+            },
+            {
+                "role": "Support contact",
+                "responsibility": "Collects request_id, checks incident playbook, and shares customer-safe updates.",
+            },
+        ],
+        "phases": [
+            {
+                "phase": "Before pilot",
+                "goal": "Make sure the customer can test safely.",
+                "checks": [
+                    "Confirm pilot goal and success criteria.",
+                    "Issue or confirm customer gateway key.",
+                    "Confirm allowed models and default policy.",
+                    "Confirm request, token, and cost limits.",
+                    "Share integration guide, OpenAPI, and Postman collection.",
+                    "Run production readiness and explain prototype-only gaps.",
+                    "Confirm support policy and escalation contact.",
+                ],
+                "evidence": [
+                    "/v1/gateway/integration-guide",
+                    "/openapi.json",
+                    "/postman_collection.json",
+                    "/v1/gateway/production-readiness",
+                    "/v1/gateway/support-policy",
+                ],
+            },
+            {
+                "phase": "During pilot",
+                "goal": "Observe usage and handle issues with traceable evidence.",
+                "checks": [
+                    "Use request_id for every reported issue.",
+                    "Review request activity and request detail.",
+                    "Watch customer usage, budget state, and provider health.",
+                    "Use route preview before changing routing controls.",
+                    "Use incident playbook for customer-safe wording.",
+                ],
+                "evidence": [
+                    "/v1/gateway/request-activity",
+                    "/v1/gateway/request-detail?request_id=...",
+                    "/v1/gateway/customer-reports",
+                    "/v1/gateway/provider-health",
+                    "/v1/gateway/incident-playbook",
+                ],
+            },
+            {
+                "phase": "After pilot",
+                "goal": "Decide whether to stop, extend, or productionize.",
+                "checks": [
+                    "Review request count, errors, latency, tokens, and estimated cost.",
+                    "Review which models and providers were used.",
+                    "Confirm whether fallback, BYOK, billing, and support expectations were clear.",
+                    "List production blockers and owner for each blocker.",
+                    "Decide next action: stop, extend pilot, or plan production hardening.",
+                ],
+                "evidence": [
+                    "/v1/gateway/customer-reports",
+                    "/v1/gateway/invoice-preview",
+                    "/v1/gateway/model-usage",
+                    "/v1/gateway/provider-contracts",
+                    "/v1/gateway/production-readiness",
+                ],
+            },
+        ],
+        "success_criteria": [
+            "Customer can list models and send a chat request.",
+            "Customer understands public model names versus upstream provider models.",
+            "Support can trace a request using gateway.request_id.",
+            "Usage and budget reports are understandable.",
+            "Production gaps are documented before live customer traffic.",
+        ],
+        "exit_decision": {
+            "stop": "Customer value is unclear or provider contract risk is too high.",
+            "extend_pilot": "Customer value is clear but usage, routing, or support questions need more testing.",
+            "productionize": "Customer value is clear and production readiness gaps have named owners.",
+        },
+        "current_context": {
+            "readiness_status": readiness.get("overall_status"),
+            "support_policy_status": support.get("policy_status"),
+            "demo_bundle": "/v1/gateway/demo-bundle",
+        },
+    }
+
+
 def read_jsonl_tail(path, limit=50):
     if not os.path.exists(path):
         return []
@@ -3583,6 +3695,7 @@ def openapi_spec(server):
         "/v1/gateway/production-readiness": "Production readiness report",
         "/v1/gateway/incident-playbook": "Incident response playbook",
         "/v1/gateway/support-policy": "Support policy and SLA stage guide",
+        "/v1/gateway/pilot-checklist": "Customer pilot checklist",
     }.items():
         paths[path] = {
             "get": {
@@ -3684,6 +3797,7 @@ def postman_collection(server):
         request_item("Production Readiness", "GET", "/v1/gateway/production-readiness", "admin_api_key"),
         request_item("Incident Playbook", "GET", "/v1/gateway/incident-playbook", "admin_api_key"),
         request_item("Support Policy", "GET", "/v1/gateway/support-policy", "admin_api_key"),
+        request_item("Pilot Checklist", "GET", "/v1/gateway/pilot-checklist", "admin_api_key"),
         request_item("Model Catalog", "GET", "/v1/gateway/model-catalog", "admin_api_key"),
         request_item("Audit Events", "GET", "/v1/gateway/audit-events", "admin_api_key"),
         request_item("Customer Reports", "GET", "/v1/gateway/customer-reports", "admin_api_key"),
@@ -3853,6 +3967,13 @@ def demo_bundle(server):
                 "auth": "adminBearerAuth",
             },
             {
+                "name": "Pilot checklist",
+                "url": f"{base_url}/v1/gateway/pilot-checklist",
+                "audience": "business and technical",
+                "purpose": "Show what to prepare before, during, and after a customer pilot.",
+                "auth": "adminBearerAuth",
+            },
+            {
                 "name": "Postman collection",
                 "url": f"{base_url}/postman_collection.json",
                 "audience": "customer technical",
@@ -3943,6 +4064,10 @@ def demo_bundle(server):
             {
                 "name": "Support policy",
                 "command": f"curl {base_url}/v1/gateway/support-policy -H 'Authorization: Bearer {server.admin_api_key or DEFAULT_ADMIN_API_KEY}'",
+            },
+            {
+                "name": "Pilot checklist",
+                "command": f"curl {base_url}/v1/gateway/pilot-checklist -H 'Authorization: Bearer {server.admin_api_key or DEFAULT_ADMIN_API_KEY}'",
             },
         ],
         "production_notes": [
@@ -4681,6 +4806,9 @@ class GatewayHandler(BaseHTTPRequestHandler):
             return
         if path == "/v1/gateway/support-policy":
             make_json_response(self, 200, support_policy(self.server))
+            return
+        if path == "/v1/gateway/pilot-checklist":
+            make_json_response(self, 200, pilot_checklist(self.server))
             return
         if path == "/v1/gateway/requests":
             make_json_response(self, 200, {"data": db_tail(self.server.db_path, "requests", 100)})

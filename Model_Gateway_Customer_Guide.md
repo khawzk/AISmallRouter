@@ -61,6 +61,7 @@ The prototype supports:
 - Operational alerts
 - Incident playbook
 - Support policy
+- Pilot checklist
 - Access matrix
 - OpenAI-compatible chat endpoint
 - Customer API key check
@@ -420,6 +421,24 @@ It also explains:
 It is not a legal production SLA.
 
 It helps the customer understand what can be promised now and what needs a real production contract later.
+
+## What The Pilot Checklist Shows
+
+The prototype includes `/v1/gateway/pilot-checklist`.
+
+This endpoint helps prepare a small customer trial.
+
+It explains:
+
+- recommended pilot scope
+- business, technical, customer, and support roles
+- before pilot checks
+- during pilot checks
+- after pilot review
+- success criteria
+- stop, extend, or productionize decision
+
+It helps keep the pilot small, honest, and measurable.
 
 ## What The Access Matrix Shows
 
