@@ -224,6 +224,7 @@ def build():
     story.append(Paragraph("What The Current Prototype Includes", styles["H1Custom"]))
     for item in [
         "Visual dashboard at the gateway root URL.",
+        "OpenAPI contract at /openapi.json for customer technical handoff.",
         "OpenAI-compatible /v1/chat/completions endpoint.",
         "Customer API key authentication with Bearer token.",
         "Basic in-memory request limit.",
@@ -270,6 +271,7 @@ def build():
         [
             ["Difficulty", "Why It Matters", "Prototype Status"],
             ["Provider format differences", "Each provider may use different request and response details.", "Handled first for DashScope-compatible chat"],
+            ["API handoff", "Customer technical teams need a clear API contract.", "OpenAPI contract endpoint"],
             ["Streaming", "Chat UIs and agents often need incremental tokens.", "Mock streaming included; live provider differences still need work"],
             ["Tool calling", "OpenAI, Claude, and Qwen may differ in tool format.", "Mock tool_calls plus basic normalization"],
             ["Token usage", "Billing and quota require reliable usage data.", "Stored in SQLite"],
@@ -309,6 +311,14 @@ def build():
     story.append(
         Paragraph(
             "The repository includes test_gateway.py. It starts the gateway in mock mode and checks API keys, model listing, route tracing, fallback, model access rules, token budget blocking, SQLite logs, and status output without leaking provider keys.",
+            styles["BodyCustom"],
+        )
+    )
+
+    story.append(Paragraph("API Contract", styles["H1Custom"]))
+    story.append(
+        Paragraph(
+            "/openapi.json exposes an OpenAPI contract for the prototype. It describes the customer API, admin control-plane API, bearer key security schemes, and the main endpoint groups. This helps a customer technical team import the prototype into Postman, Swagger tools, or SDK generators.",
             styles["BodyCustom"],
         )
     )

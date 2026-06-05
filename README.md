@@ -164,6 +164,7 @@ It should support:
 The current version also supports:
 
 - `GET /admin`
+- `GET /openapi.json`
 - `GET /v1/gateway/status`
 - `GET /v1/gateway/audit-events`
 - `GET /v1/gateway/alerts`
@@ -227,6 +228,27 @@ The current version also supports:
 - customer plans with request limits, token budgets, and cost budgets
 - SQLite persistence for request and usage records
 - disabled example provider configs for OpenAI and Anthropic
+- OpenAPI contract at `/openapi.json`
+
+## API Contract
+
+The gateway exposes an OpenAPI contract:
+
+```bash
+curl http://127.0.0.1:8787/openapi.json
+```
+
+This describes the customer API and admin control-plane API.
+
+It includes:
+
+- customer bearer auth
+- admin bearer auth
+- OpenAI-compatible model and chat endpoints
+- customer self view
+- provider, model route, customer, audit, billing, safety, and reporting endpoints
+
+This can help a customer technical team import the prototype into Postman, Swagger tools, or SDK generators.
 
 ## Admin Access
 

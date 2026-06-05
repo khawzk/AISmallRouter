@@ -158,6 +158,34 @@ class GatewayPrototypeTest(unittest.TestCase):
     def base_url(self):
         return self.gateway.base_url
 
+    def test_openapi_contract_lists_main_endpoints(self):
+        status, spec = request_json(self.base_url, path="/openapi.json")
+        self.assertEqual(status, 200)
+        self.assertEqual(spec["openapi"], "3.0.3")
+        self.assertEqual(spec["info"]["title"], "AISmallRouter Gateway API")
+        self.assertIn("customerBearerAuth", spec["components"]["securitySchemes"])
+        self.assertIn("adminBearerAuth", spec["components"]["securitySchemes"])
+        for path in [
+            "/v1/models",
+            "/v1/chat/completions",
+            "/v1/gateway/me",
+            "/v1/gateway/status",
+            "/v1/gateway/policy-presets",
+            "/v1/gateway/customers",
+            "/v1/gateway/providers",
+            "/v1/gateway/model-routes",
+            "/v1/gateway/audit-events",
+        ]:
+            self.assertIn(path, spec["paths"])
+        self.assertEqual(
+            spec["paths"]["/v1/chat/completions"]["post"]["security"],
+            [{"customerBearerAuth": []}],
+        )
+        self.assertEqual(
+            spec["paths"]["/v1/gateway/status"]["get"]["security"],
+            [{"adminBearerAuth": []}],
+        )
+
     def test_models_requires_valid_gateway_key(self):
         status, payload = request_json(self.base_url, path="/v1/models", api_key="wrong-key")
         self.assertEqual(status, 401)

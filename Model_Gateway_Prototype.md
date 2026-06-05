@@ -153,6 +153,7 @@ Included in the prototype:
 - Basic provider create, update, and disable workflow
 - Basic model route create, update, and disable workflow
 - Basic customer key issue preview
+- Basic OpenAPI contract export
 - Basic customer key create, rotate, and disable workflow
 - Basic audit events for customer key lifecycle changes
 - Basic customer self-service profile

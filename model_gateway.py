@@ -2734,6 +2734,242 @@ def openai_style_model_list(models):
     }
 
 
+def openapi_spec(server):
+    def json_response(description="JSON response"):
+        return {
+            "description": description,
+            "content": {
+                "application/json": {
+                    "schema": {"type": "object"}
+                }
+            },
+        }
+
+    def json_request(description="JSON request body"):
+        return {
+            "description": description,
+            "required": True,
+            "content": {
+                "application/json": {
+                    "schema": {"type": "object"}
+                }
+            },
+        }
+
+    customer_security = [{"customerBearerAuth": []}]
+    admin_security = [{"adminBearerAuth": []}]
+    paths = {
+        "/health": {
+            "get": {
+                "summary": "Health check",
+                "responses": {"200": json_response("Gateway is running.")},
+            }
+        },
+        "/v1/models": {
+            "get": {
+                "summary": "List OpenAI-compatible public models",
+                "security": customer_security,
+                "responses": {"200": json_response("OpenAI-compatible model list.")},
+            }
+        },
+        "/v1/chat/completions": {
+            "post": {
+                "summary": "Create an OpenAI-compatible chat completion",
+                "security": customer_security,
+                "requestBody": json_request("OpenAI-compatible chat request plus optional gateway controls."),
+                "responses": {"200": json_response("OpenAI-compatible chat completion or stream metadata.")},
+            }
+        },
+        "/v1/gateway/me": {
+            "get": {
+                "summary": "Customer self-service profile",
+                "security": customer_security,
+                "responses": {"200": json_response("Customer profile, allowed models, budget, usage, and invoice preview.")},
+            }
+        },
+        "/v1/gateway/status": {
+            "get": {
+                "summary": "Admin gateway status summary",
+                "security": admin_security,
+                "responses": {"200": json_response("Gateway status and control-plane summary.")},
+            }
+        },
+        "/v1/gateway/policy-presets": {
+            "get": {
+                "summary": "List named gateway policy presets",
+                "security": admin_security,
+                "responses": {"200": json_response("Policy preset names and controls.")},
+            }
+        },
+        "/v1/gateway/route-preview": {
+            "post": {
+                "summary": "Dry-run route selection",
+                "security": admin_security,
+                "requestBody": json_request("Route preview request with customer_id, model, and optional gateway controls."),
+                "responses": {"200": json_response("Route decision without calling a provider.")},
+            }
+        },
+        "/v1/gateway/cost-estimate": {
+            "post": {
+                "summary": "Dry-run cost estimate",
+                "security": admin_security,
+                "requestBody": json_request("Cost estimate request."),
+                "responses": {"200": json_response("Estimated tokens, cost, and budget impact.")},
+            }
+        },
+        "/v1/gateway/safety-preview": {
+            "post": {
+                "summary": "Preview obvious sensitive data",
+                "security": admin_security,
+                "requestBody": json_request("Prompt or chat payload to inspect locally."),
+                "responses": {"200": json_response("Local sensitive-data preview.")},
+            }
+        },
+        "/v1/gateway/key-issue-preview": {
+            "post": {
+                "summary": "Preview a new customer key package without saving",
+                "security": admin_security,
+                "requestBody": json_request("Customer onboarding settings."),
+                "responses": {"200": json_response("Generated key preview and config snippet.")},
+            }
+        },
+        "/v1/gateway/customers": {
+            "get": {
+                "summary": "List customer records",
+                "security": admin_security,
+                "responses": {"200": json_response("Customer records without raw secrets.")},
+            },
+            "post": {
+                "summary": "Create and persist a customer",
+                "security": admin_security,
+                "requestBody": json_request("Customer config, limits, allowed models, and optional default_policy."),
+                "responses": {"201": json_response("Created customer and one-time generated key.")},
+            },
+        },
+        "/v1/gateway/customers/rotate-key": {
+            "post": {
+                "summary": "Rotate a customer gateway key",
+                "security": admin_security,
+                "requestBody": json_request("customer_id and optional api_key."),
+                "responses": {"200": json_response("Rotated key response.")},
+            }
+        },
+        "/v1/gateway/customers/disable": {
+            "post": {
+                "summary": "Disable a customer",
+                "security": admin_security,
+                "requestBody": json_request("customer_id."),
+                "responses": {"200": json_response("Disabled customer response.")},
+            }
+        },
+        "/v1/gateway/providers": {
+            "get": {
+                "summary": "List providers",
+                "security": admin_security,
+                "responses": {"200": json_response("Provider configs without provider secrets.")},
+            },
+            "post": {
+                "summary": "Create and persist a provider",
+                "security": admin_security,
+                "requestBody": json_request("Provider id, type, base_url, and api_key_env."),
+                "responses": {"201": json_response("Created provider response.")},
+            },
+        },
+        "/v1/gateway/providers/update": {
+            "post": {
+                "summary": "Update a provider",
+                "security": admin_security,
+                "requestBody": json_request("Provider updates."),
+                "responses": {"200": json_response("Updated provider response.")},
+            }
+        },
+        "/v1/gateway/providers/disable": {
+            "post": {
+                "summary": "Disable a provider and its active model routes",
+                "security": admin_security,
+                "requestBody": json_request("provider_id."),
+                "responses": {"200": json_response("Disabled provider response.")},
+            }
+        },
+        "/v1/gateway/model-routes": {
+            "post": {
+                "summary": "Create and persist a public model route",
+                "security": admin_security,
+                "requestBody": json_request("Model route config."),
+                "responses": {"201": json_response("Created model route response.")},
+            }
+        },
+        "/v1/gateway/model-routes/update": {
+            "post": {
+                "summary": "Update a model route",
+                "security": admin_security,
+                "requestBody": json_request("Model route updates."),
+                "responses": {"200": json_response("Updated model route response.")},
+            }
+        },
+        "/v1/gateway/model-routes/disable": {
+            "post": {
+                "summary": "Disable a model route",
+                "security": admin_security,
+                "requestBody": json_request("model_id."),
+                "responses": {"200": json_response("Disabled model route response.")},
+            }
+        },
+    }
+    for path, summary in {
+        "/v1/gateway/alerts": "Operational alerts",
+        "/v1/gateway/access-matrix": "Customer and model access matrix",
+        "/v1/gateway/config-check": "Local config readiness check",
+        "/v1/gateway/requests": "Recent raw request records",
+        "/v1/gateway/audit-events": "Audit events with filters",
+        "/v1/gateway/usage": "Recent raw usage records",
+        "/v1/gateway/provider-health": "Provider health and readiness",
+        "/v1/gateway/model-catalog": "Model catalog and routing plan",
+        "/v1/gateway/customer-reports": "Customer usage and budget reports",
+        "/v1/gateway/request-activity": "Filtered request activity",
+        "/v1/gateway/request-detail": "One request detail by request_id",
+        "/v1/gateway/customer-usage": "Usage grouped by customer",
+        "/v1/gateway/invoice-preview": "Invoice preview JSON or CSV",
+        "/v1/gateway/model-usage": "Usage grouped by model",
+        "/v1/gateway/request-summary": "Request summary by dimensions",
+    }.items():
+        paths[path] = {
+            "get": {
+                "summary": summary,
+                "security": admin_security,
+                "responses": {"200": json_response(summary)},
+            }
+        }
+    return {
+        "openapi": "3.0.3",
+        "info": {
+            "title": "AISmallRouter Gateway API",
+            "version": "0.1.0-prototype",
+            "description": "OpenAI-compatible model gateway prototype with customer, provider, model route, routing policy, usage, billing preview, safety, and audit controls.",
+        },
+        "servers": [{"url": f"http://{server.server_address[0]}:{server.server_address[1]}"}],
+        "tags": [
+            {"name": "customer", "description": "Customer-facing OpenAI-compatible endpoints."},
+            {"name": "admin", "description": "Admin control-plane and reporting endpoints."},
+        ],
+        "components": {
+            "securitySchemes": {
+                "customerBearerAuth": {
+                    "type": "http",
+                    "scheme": "bearer",
+                    "description": "Customer gateway API key, for example dev-gateway-key in local mock mode.",
+                },
+                "adminBearerAuth": {
+                    "type": "http",
+                    "scheme": "bearer",
+                    "description": "Admin API key, for example dev-admin-key in local mock mode.",
+                },
+            }
+        },
+        "paths": paths,
+    }
+
+
 def gateway_status(server):
     return {
         "status": "ok",
@@ -3408,7 +3644,7 @@ class GatewayHandler(BaseHTTPRequestHandler):
             return
         if path in ADMIN_PATHS and not self.authenticate_admin():
             return
-        self.send_response(200 if path == "/health" or path in ADMIN_PATHS else 404)
+        self.send_response(200 if path in {"/health", "/openapi.json"} or path in ADMIN_PATHS else 404)
         self.end_headers()
 
     def do_GET(self):
@@ -3416,6 +3652,9 @@ class GatewayHandler(BaseHTTPRequestHandler):
         query = parse_qs(self.parsed_path().query)
         if path in {"/", "/dashboard"}:
             make_html_response(self, 200, dashboard_html(self.server))
+            return
+        if path == "/openapi.json":
+            make_json_response(self, 200, openapi_spec(self.server))
             return
         if path in ADMIN_PATHS and not self.authenticate_admin():
             return

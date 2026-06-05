@@ -54,6 +54,7 @@ It lets us test the idea with the API key we already have, without spending mone
 The prototype supports:
 
 - Visual dashboard
+- OpenAPI contract
 - Operational alerts
 - Access matrix
 - OpenAI-compatible chat endpoint
@@ -119,6 +120,22 @@ This means the customer can call `smart-fast`.
 The gateway decides that `smart-fast` should use Qwen `qwen-plus`.
 
 Later, the same public model name could route to another provider if needed.
+
+## What The OpenAPI Contract Shows
+
+The prototype includes `/openapi.json`.
+
+This is an API contract.
+
+It describes:
+
+- customer API endpoints
+- admin API endpoints
+- customer bearer key
+- admin bearer key
+- request and response shape at a high level
+
+This helps a customer technical team import the gateway into Postman, Swagger tools, or SDK generators.
 
 ## Why This Is Not Just An API Gateway
 
