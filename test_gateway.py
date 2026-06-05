@@ -177,6 +177,7 @@ class GatewayPrototypeTest(unittest.TestCase):
             "/v1/gateway/model-routes",
             "/v1/gateway/audit-events",
             "/v1/gateway/demo-bundle",
+            "/v1/gateway/production-readiness",
         ]:
             self.assertIn(path, spec["paths"])
         self.assertEqual(
@@ -204,6 +205,7 @@ class GatewayPrototypeTest(unittest.TestCase):
         self.assertIn("Chat Completion", customer_names)
         self.assertIn("Customer Integration Guide", customer_names)
         self.assertIn("Route Preview", admin_names)
+        self.assertIn("Production Readiness", admin_names)
         self.assertIn("Create Customer", admin_names)
         chat = next(item for item in folders["Customer API"]["item"] if item["name"] == "Chat Completion")
         self.assertEqual(chat["request"]["auth"]["bearer"][0]["value"], "{{gateway_api_key}}")
@@ -221,11 +223,33 @@ class GatewayPrototypeTest(unittest.TestCase):
         entry_urls = {item.get("url") or item.get("path") for item in bundle["entry_points"]}
         self.assertIn(f"{self.base_url}/openapi.json", entry_urls)
         self.assertIn(f"{self.base_url}/postman_collection.json", entry_urls)
+        self.assertIn(f"{self.base_url}/v1/gateway/production-readiness", entry_urls)
         self.assertIn("Model_Gateway_Customer_Guide.pdf", entry_urls)
         self.assertGreaterEqual(len(bundle["recommended_demo_flow"]), 5)
         self.assertGreaterEqual(len(bundle["quick_commands"]), 4)
         self.assertIn("Replace demo keys before production.", bundle["production_notes"])
         self.assertNotIn("DASHSCOPE_API_KEY", json.dumps(bundle))
+
+    def test_production_readiness_summarizes_go_live_gaps(self):
+        status, payload = request_json(self.base_url, path="/v1/gateway/production-readiness", api_key="dev-gateway-key")
+        self.assertEqual(status, 401)
+        self.assertEqual(payload["error"]["code"], "invalid_admin_key")
+
+        status, readiness = request_json(self.base_url, path="/v1/gateway/production-readiness", api_key="dev-admin-key")
+        self.assertEqual(status, 200)
+        self.assertEqual(readiness["object"], "gateway.production_readiness")
+        self.assertIn(readiness["overall_status"], {"ready", "needs_work", "blocked"})
+        self.assertTrue(readiness["prototype_only"])
+        areas = {category["area"] for category in readiness["categories"]}
+        self.assertIn("Security", areas)
+        self.assertIn("Provider Readiness", areas)
+        self.assertIn("Billing", areas)
+        self.assertIn("Documentation And Handoff", areas)
+        for category in readiness["categories"]:
+            self.assertIn(category["status"], {"ready", "needs_work", "blocked"})
+            self.assertIn("plain_english", category)
+            self.assertIn("next_step", category)
+        self.assertNotIn("DASHSCOPE_API_KEY", json.dumps(readiness))
 
     def test_customer_integration_guide_lists_safe_code_examples(self):
         status, payload = request_json(self.base_url, path="/v1/gateway/integration-guide", api_key="wrong-key")

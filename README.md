@@ -200,6 +200,7 @@ The current version also supports:
 - `GET /v1/gateway/model-usage`
 - `GET /v1/gateway/request-summary`
 - `GET /v1/gateway/config-check`
+- `GET /v1/gateway/production-readiness`
 - customer self-service view for allowed models, budget, usage, and invoice preview
 - customer integration guide with quickstart steps, curl, Python, JavaScript, streaming, and go-live checklist
 - `stream=true` Server-Sent Events
@@ -226,6 +227,7 @@ The current version also supports:
 - request activity feed with simple filters for troubleshooting
 - request detail lookup by `request_id`
 - operational alerts with next steps
+- production readiness report for go-live gaps
 - customer model access matrix
 - customer self-service profile with no provider secret exposure
 - customer integration guide with safe code examples and no provider secret exposure
@@ -236,6 +238,7 @@ The current version also supports:
 - OpenAPI contract at `/openapi.json`
 - Postman collection at `/postman_collection.json`
 - demo bundle manifest at `/v1/gateway/demo-bundle`
+- production readiness report at `/v1/gateway/production-readiness`
 
 ## API Contract
 
@@ -349,6 +352,27 @@ curl http://127.0.0.1:8787/v1/gateway/config-check \
 ```
 
 The config check warns about demo keys, missing live provider keys, and direct secret values in local config files.
+
+Run a production readiness report:
+
+```bash
+curl http://127.0.0.1:8787/v1/gateway/production-readiness \
+  -H "Authorization: Bearer dev-admin-key"
+```
+
+The readiness report groups go-live gaps into plain-English areas:
+
+- security
+- provider readiness
+- customer controls
+- routing and fallback
+- observability
+- billing
+- documentation and handoff
+
+It is not a full security audit.
+
+It is a management-friendly view for explaining what still needs work before production traffic.
 
 For production, change the key with `GATEWAY_ADMIN_API_KEY`.
 

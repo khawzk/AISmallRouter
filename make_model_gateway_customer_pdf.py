@@ -246,6 +246,7 @@ def build():
         "Request activity endpoint with simple filters for troubleshooting.",
         "Request detail lookup using gateway.request_id returned in chat responses.",
         "Config check endpoint for demo keys and missing production settings.",
+        "Production readiness endpoint for plain-English go-live gaps.",
         "Structured route decision summary for support explanations.",
         "Local safety preview for obvious sensitive data.",
         "Customer key issue preview for safe onboarding demos.",
@@ -282,6 +283,7 @@ def build():
             ["Tool calling", "OpenAI, Claude, and Qwen may differ in tool format.", "Mock tool_calls plus basic normalization"],
             ["Token usage", "Billing and quota require reliable usage data.", "Stored in SQLite"],
             ["Operational alerts", "Non-technical users need a clear action list.", "Alerts with severity, area, and next step"],
+            ["Production readiness", "Customers need to understand why demo-ready is not production-ready.", "Plain-English readiness report"],
             ["Access control", "Each customer may be allowed to use different models.", "Access matrix by customer and model"],
             ["Provider health", "Customers need to know whether a provider can serve traffic.", "Readiness view based on config and recent traffic"],
             ["Provider lifecycle", "Teams need to add and stop providers safely.", "Local JSON-backed create, update, and disable actions"],
@@ -525,6 +527,14 @@ def build():
     story.append(
         Paragraph(
             "The prototype includes /v1/gateway/config-check. It warns about demo admin keys, demo customer keys, missing live provider keys, and direct secret values in local JSON files. This is not a full security audit, but it is a useful readiness checklist for customer demos.",
+            styles["BodyCustom"],
+        )
+    )
+
+    story.append(Paragraph("Production Readiness Report", styles["H1Custom"]))
+    story.append(
+        Paragraph(
+            "/v1/gateway/production-readiness explains go-live gaps in plain English. It groups the work into security, provider readiness, customer controls, routing and fallback, observability, billing, and documentation handoff. Each area has a status, evidence, and next step. This helps a customer understand why a prototype can be demo-ready but still not production-ready.",
             styles["BodyCustom"],
         )
     )

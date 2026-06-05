@@ -149,6 +149,7 @@ Included in the prototype:
 - Basic request-level routing strategy control
 - Basic named policy presets
 - Basic customer default policy
+- Basic production readiness report
 - Basic capability routing control
 - Basic provider create, update, and disable workflow
 - Basic model route create, update, and disable workflow

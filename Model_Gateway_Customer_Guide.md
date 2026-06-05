@@ -318,6 +318,7 @@ They help explain the control layer:
 - Usage by model
 - Request summary by customer, model, provider, and error code
 - Config check for demo keys and missing production settings
+- Production readiness report
 
 In the prototype, these endpoints use a separate demo admin key.
 
@@ -857,6 +858,35 @@ Examples:
 This is not a full security audit.
 
 It is a simple readiness checklist for the demo gateway.
+
+## Why Production Readiness Matters
+
+The prototype includes `/v1/gateway/production-readiness`.
+
+This is a management-friendly report.
+
+It explains what is demo-ready and what still needs work.
+
+It groups the work into:
+
+- Security
+- Provider readiness
+- Customer controls
+- Routing and fallback
+- Observability
+- Billing
+- Documentation and handoff
+
+Each area has:
+
+- status
+- plain English explanation
+- evidence
+- next step
+
+This is not a full security audit.
+
+It helps a customer understand why a prototype is not the same as a production platform.
 
 ## Technical Challenges
 

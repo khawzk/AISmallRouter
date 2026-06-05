@@ -39,6 +39,7 @@ ADMIN_PATHS = {
     "/v1/gateway/customer-reports",
     "/v1/gateway/policy-presets",
     "/v1/gateway/demo-bundle",
+    "/v1/gateway/production-readiness",
     "/v1/gateway/request-activity",
     "/v1/gateway/model-catalog",
     "/v1/gateway/route-preview",
@@ -2564,6 +2565,137 @@ def gateway_config_check(server):
     }
 
 
+def production_readiness(server):
+    config = gateway_config_check(server)
+    alerts = gateway_alerts(server)
+    provider_rows = provider_health(server)
+    customers = [public_customer_view(customer) for customer in server.customers_by_key.values()]
+    models = model_catalog(server)
+    check_codes = {check.get("code") for check in config.get("checks", [])}
+    alert_summary = alerts.get("summary", {})
+    live_ready_providers = [
+        provider["id"]
+        for provider in provider_rows
+        if provider.get("status") == "ready_live"
+    ]
+    mock_only_providers = [
+        provider["id"]
+        for provider in provider_rows
+        if provider.get("status") == "ready_mock"
+    ]
+    not_ready_providers = [
+        provider["id"]
+        for provider in provider_rows
+        if provider.get("status") in {"not_ready", "degraded"}
+    ]
+
+    categories = [
+        {
+            "area": "Security",
+            "status": "needs_work" if {"default_admin_key", "demo_customer_keys", "plain_provider_secret"} & check_codes else "ready",
+            "plain_english": "Replace demo keys and move secrets to a secret manager before production.",
+            "evidence": {
+                "default_admin_key": "default_admin_key" in check_codes,
+                "demo_customer_keys": "demo_customer_keys" in check_codes,
+                "plain_provider_secret": "plain_provider_secret" in check_codes,
+            },
+            "next_step": "Use real customer keys, rotate the admin key, and store provider credentials outside JSON files.",
+        },
+        {
+            "area": "Provider Readiness",
+            "status": "blocked" if not_ready_providers else "needs_work" if mock_only_providers and not live_ready_providers else "ready",
+            "plain_english": "Mock-ready providers can explain routing, but live traffic needs real provider keys or BYOK.",
+            "evidence": {
+                "ready_live": live_ready_providers,
+                "ready_mock": mock_only_providers,
+                "not_ready_or_degraded": not_ready_providers,
+            },
+            "next_step": "Configure provider API keys, test live calls with low limits, and keep fallback providers ready.",
+        },
+        {
+            "area": "Customer Controls",
+            "status": "needs_work" if any(customer.get("token_budget") is None or customer.get("cost_budget") is None for customer in customers) else "ready",
+            "plain_english": "Every production customer should have access rules, request limits, token budgets, and cost budgets.",
+            "evidence": {
+                "customers": len(customers),
+                "customers_without_token_budget": [
+                    customer["id"] for customer in customers if customer.get("token_budget") is None
+                ],
+                "customers_without_cost_budget": [
+                    customer["id"] for customer in customers if customer.get("cost_budget") is None
+                ],
+            },
+            "next_step": "Confirm allowed models, default policy, request limits, token budgets, and cost budgets per customer.",
+        },
+        {
+            "area": "Routing And Fallback",
+            "status": "ready" if any(model.get("fallback_models") for model in models) else "needs_work",
+            "plain_english": "Fallback routes make outages easier to explain and recover from.",
+            "evidence": {
+                "models": len(models),
+                "models_with_fallback": [
+                    model["id"] for model in models if model.get("fallback_models")
+                ],
+                "policy_presets": sorted(POLICY_PRESETS.keys()),
+            },
+            "next_step": "Define fallback chains and default policies for customer-facing models.",
+        },
+        {
+            "area": "Observability",
+            "status": "ready" if alert_summary.get("critical", 0) == 0 else "blocked",
+            "plain_english": "Production needs request history, usage records, alerts, and a support workflow.",
+            "evidence": {
+                "alerts": alert_summary,
+                "request_activity_endpoint": "/v1/gateway/request-activity",
+                "request_detail_endpoint": "/v1/gateway/request-detail",
+                "audit_endpoint": "/v1/gateway/audit-events",
+            },
+            "next_step": "Connect logs and alerts to the real operations process before production traffic.",
+        },
+        {
+            "area": "Billing",
+            "status": "needs_work",
+            "plain_english": "The prototype estimates usage and invoice data, but production billing needs approved pricing and finance rules.",
+            "evidence": {
+                "invoice_preview_endpoint": "/v1/gateway/invoice-preview",
+                "cost_estimate_endpoint": "/v1/gateway/cost-estimate",
+                "customer_report_endpoint": "/v1/gateway/customer-reports",
+            },
+            "next_step": "Agree pricing, tax, invoice timing, credits, refunds, and budget enforcement rules.",
+        },
+        {
+            "area": "Documentation And Handoff",
+            "status": "ready",
+            "plain_english": "The prototype includes customer-facing docs, OpenAPI, Postman, demo bundle, and an integration guide.",
+            "evidence": {
+                "openapi": "/openapi.json",
+                "postman": "/postman_collection.json",
+                "demo_bundle": "/v1/gateway/demo-bundle",
+                "integration_guide": "/v1/gateway/integration-guide",
+                "pdf": "Model_Gateway_Customer_Guide.pdf",
+            },
+            "next_step": "Use the demo bundle first, then hand OpenAPI and Postman to the customer technical team.",
+        },
+    ]
+    category_statuses = {category["status"] for category in categories}
+    overall = "blocked" if "blocked" in category_statuses else "needs_work" if "needs_work" in category_statuses else "ready"
+    return {
+        "object": "gateway.production_readiness",
+        "overall_status": overall,
+        "mode": "mock" if server.mock_mode else "live",
+        "prototype_only": True,
+        "executive_summary": (
+            "This gateway is ready for customer explanation and mock demos, "
+            "but production use still needs real secrets, provider readiness, billing rules, and operating controls."
+            if overall != "ready"
+            else "This gateway has no blocking readiness items in the local prototype checks."
+        ),
+        "categories": categories,
+        "next_demo_step": "Use /v1/gateway/demo-bundle to walk a customer through the story.",
+        "next_production_step": "Start with Security and Provider Readiness before any live customer traffic.",
+    }
+
+
 def read_jsonl_tail(path, limit=50):
     if not os.path.exists(path):
         return []
@@ -3042,6 +3174,7 @@ def openapi_spec(server):
         "/v1/gateway/model-usage": "Usage grouped by model",
         "/v1/gateway/request-summary": "Request summary by dimensions",
         "/v1/gateway/demo-bundle": "Customer demo bundle manifest",
+        "/v1/gateway/production-readiness": "Production readiness report",
     }.items():
         paths[path] = {
             "get": {
@@ -3139,6 +3272,7 @@ def postman_collection(server):
         request_item("Gateway Status", "GET", "/v1/gateway/status", "admin_api_key"),
         request_item("Policy Presets", "GET", "/v1/gateway/policy-presets", "admin_api_key"),
         request_item("Provider Health", "GET", "/v1/gateway/provider-health", "admin_api_key"),
+        request_item("Production Readiness", "GET", "/v1/gateway/production-readiness", "admin_api_key"),
         request_item("Model Catalog", "GET", "/v1/gateway/model-catalog", "admin_api_key"),
         request_item("Audit Events", "GET", "/v1/gateway/audit-events", "admin_api_key"),
         request_item("Customer Reports", "GET", "/v1/gateway/customer-reports", "admin_api_key"),
@@ -3280,6 +3414,13 @@ def demo_bundle(server):
                 "purpose": "Import or inspect the API contract.",
             },
             {
+                "name": "Production readiness report",
+                "url": f"{base_url}/v1/gateway/production-readiness",
+                "audience": "business and technical",
+                "purpose": "Explain what is demo-ready and what still needs production work.",
+                "auth": "adminBearerAuth",
+            },
+            {
                 "name": "Postman collection",
                 "url": f"{base_url}/postman_collection.json",
                 "audience": "customer technical",
@@ -3320,8 +3461,8 @@ def demo_bundle(server):
             {
                 "step": 5,
                 "title": "Show control plane",
-                "show": "/v1/gateway/status",
-                "talk_track": "Admin views show provider health, customer usage, alerts, audit events, and invoice preview.",
+                "show": "/v1/gateway/status and /v1/gateway/production-readiness",
+                "talk_track": "Admin views show provider health, customer usage, alerts, readiness, audit events, and invoice preview.",
             },
             {
                 "step": 6,
@@ -3354,6 +3495,10 @@ def demo_bundle(server):
             {
                 "name": "Gateway status",
                 "command": f"curl {base_url}/v1/gateway/status -H 'Authorization: Bearer {server.admin_api_key or DEFAULT_ADMIN_API_KEY}'",
+            },
+            {
+                "name": "Production readiness",
+                "command": f"curl {base_url}/v1/gateway/production-readiness -H 'Authorization: Bearer {server.admin_api_key or DEFAULT_ADMIN_API_KEY}'",
             },
         ],
         "production_notes": [
@@ -4083,6 +4228,9 @@ class GatewayHandler(BaseHTTPRequestHandler):
             return
         if path == "/v1/gateway/config-check":
             make_json_response(self, 200, gateway_config_check(self.server))
+            return
+        if path == "/v1/gateway/production-readiness":
+            make_json_response(self, 200, production_readiness(self.server))
             return
         if path == "/v1/gateway/requests":
             make_json_response(self, 200, {"data": db_tail(self.server.db_path, "requests", 100)})

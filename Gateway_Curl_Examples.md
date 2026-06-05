@@ -30,7 +30,7 @@ It does not spend provider credits.
 python3 test_gateway.py
 ```
 
-The test covers auth, OpenAPI contract, Postman collection, demo bundle, customer integration guide, model listing, customer self view, customer key lifecycle, audit events, provider lifecycle, model route lifecycle, routing, route strategy, policy presets, route preview, route decision summary, provider allow-list routing, capability routing, safety preview, cost estimate, customer key issue preview, invoice preview, fallback, model access, budgets, SQLite logs, alerts, access matrix, provider health, model catalog, customer reports, request activity, request detail lookup, and admin summary endpoints.
+The test covers auth, OpenAPI contract, Postman collection, demo bundle, customer integration guide, production readiness, model listing, customer self view, customer key lifecycle, audit events, provider lifecycle, model route lifecycle, routing, route strategy, policy presets, route preview, route decision summary, provider allow-list routing, capability routing, safety preview, cost estimate, customer key issue preview, invoice preview, fallback, model access, budgets, SQLite logs, alerts, access matrix, provider health, model catalog, customer reports, request activity, request detail lookup, and admin summary endpoints.
 
 Open the visual dashboard:
 
@@ -54,6 +54,13 @@ Fetch the customer demo bundle manifest:
 
 ```bash
 curl http://127.0.0.1:8787/v1/gateway/demo-bundle \
+  -H "Authorization: Bearer dev-admin-key"
+```
+
+Fetch the production readiness report:
+
+```bash
+curl http://127.0.0.1:8787/v1/gateway/production-readiness \
   -H "Authorization: Bearer dev-admin-key"
 ```
 
@@ -700,11 +707,16 @@ curl http://127.0.0.1:8787/v1/gateway/request-summary \
 
 curl http://127.0.0.1:8787/v1/gateway/config-check \
   -H "Authorization: Bearer dev-admin-key"
+
+curl http://127.0.0.1:8787/v1/gateway/production-readiness \
+  -H "Authorization: Bearer dev-admin-key"
 ```
 
 The JSON endpoints read from SQLite.
 
 The config check warns about demo keys and missing production settings.
+
+The production readiness report explains go-live gaps in plain English.
 
 In this prototype, admin endpoints use the demo admin key `dev-admin-key`.
 
