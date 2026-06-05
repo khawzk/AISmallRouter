@@ -75,6 +75,7 @@ The prototype supports:
 - Customer plans with token and cost budgets
 - Bring Your Own Key provider mapping
 - Provider create, update, and disable actions
+- Provider contract matrix
 - Request-level provider allow-list
 - Request-level routing strategy control
 - Named policy presets
@@ -408,6 +409,37 @@ In mock mode, a provider can be `ready_mock`.
 That means the provider can be explained in the demo without spending credits.
 
 It does not mean the live provider key is ready.
+
+## What Provider Contracts Show
+
+The prototype includes `/v1/gateway/provider-contracts`.
+
+This endpoint explains provider differences.
+
+It compares:
+
+- OpenAI-compatible providers
+- Alibaba Cloud Model Studio compatible mode
+- Anthropic Claude
+- planned Xiaomi or other local model providers
+
+It shows:
+
+- auth method
+- endpoint path
+- request shape
+- response shape
+- streaming behavior
+- tool calling behavior
+- usage field behavior
+- adapter status
+- remaining gaps
+
+This is why an AI Model Gateway is more than a normal API Gateway.
+
+A normal API Gateway can forward HTTP.
+
+An AI Model Gateway must also normalize model names, request shape, response shape, streaming, tool calls, usage, errors, fallback, and customer policy.
 
 ## What Provider Lifecycle Shows
 

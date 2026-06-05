@@ -27,6 +27,50 @@ DEFAULT_GATEWAY_API_KEY = "dev-gateway-key"
 DEFAULT_ADMIN_API_KEY = "dev-admin-key"
 DEFAULT_REQUEST_LIMIT = 60
 DEFAULT_LIMIT_WINDOW_SECONDS = 60
+PROVIDER_TYPE_CONTRACTS = {
+    "openai_compatible": {
+        "label": "OpenAI-compatible",
+        "adapter_status": "implemented",
+        "examples": ["Alibaba Cloud Model Studio compatible mode", "OpenAI", "Xiaomi OpenAI-compatible endpoints if offered"],
+        "auth": "Bearer token header",
+        "chat_endpoint": "/chat/completions",
+        "request_shape": "OpenAI chat.completions style",
+        "response_shape": "OpenAI chat.completion style",
+        "streaming": "Server-Sent Events in OpenAI-compatible chunks",
+        "tools": "Pass through OpenAI-style tools when the upstream provider supports them",
+        "usage": "Use provider usage fields when available; estimate in mock mode",
+        "main_risk": "Compatible providers may still differ in model names, tool behavior, errors, and streaming details.",
+        "next_step": "Test each provider with chat, stream, tools, error, timeout, and usage cases before production.",
+    },
+    "anthropic": {
+        "label": "Anthropic Claude",
+        "adapter_status": "scaffolded",
+        "examples": ["Claude Messages API"],
+        "auth": "x-api-key header plus anthropic-version",
+        "chat_endpoint": "/messages",
+        "request_shape": "Anthropic messages style",
+        "response_shape": "Normalized back to OpenAI chat.completion style",
+        "streaming": "Provider-specific stream events need production hardening",
+        "tools": "OpenAI tools need normalization into Anthropic tool schema",
+        "usage": "Normalize Anthropic usage into prompt, completion, and total tokens",
+        "main_risk": "Tool calls, system prompts, stop reasons, and stream events are not the same as OpenAI.",
+        "next_step": "Add live Claude contract tests before enabling customer traffic.",
+    },
+    "xiaomi_planned": {
+        "label": "Xiaomi or other local model provider",
+        "adapter_status": "planned",
+        "examples": ["Future Xiaomi model API", "Other regional model APIs"],
+        "auth": "Unknown until provider docs are confirmed",
+        "chat_endpoint": "Unknown until provider docs are confirmed",
+        "request_shape": "Must be mapped after provider documentation is reviewed",
+        "response_shape": "Must be normalized into OpenAI chat.completion style",
+        "streaming": "Unknown until tested",
+        "tools": "Unknown until tested",
+        "usage": "Unknown until tested",
+        "main_risk": "Provider docs, auth, streaming, tools, and billing details may be different.",
+        "next_step": "Collect official provider docs, add a disabled provider config, then implement adapter tests.",
+    },
+}
 ADMIN_PATHS = {
     "/admin",
     "/v1/gateway/status",
@@ -36,6 +80,7 @@ ADMIN_PATHS = {
     "/v1/gateway/customers",
     "/v1/gateway/providers",
     "/v1/gateway/provider-health",
+    "/v1/gateway/provider-contracts",
     "/v1/gateway/customer-reports",
     "/v1/gateway/policy-presets",
     "/v1/gateway/demo-bundle",
@@ -1162,6 +1207,88 @@ def provider_health(server):
             }
         )
     return rows
+
+
+def provider_contracts(server):
+    health_by_provider = {provider["id"]: provider for provider in provider_health(server)}
+    configured = []
+    for provider_id, provider in sorted(server.providers.items()):
+        provider_type = provider.get("type", "openai_compatible")
+        contract = PROVIDER_TYPE_CONTRACTS.get(provider_type, {})
+        configured.append(
+            {
+                "id": provider_id,
+                "name": provider.get("name", provider_id),
+                "type": provider_type,
+                "adapter_status": contract.get("adapter_status", "unknown"),
+                "contract_label": contract.get("label", provider_type),
+                "base_url": provider.get("base_url"),
+                "api_key_env": provider.get("api_key_env"),
+                "api_version": provider.get("api_version"),
+                "models": [
+                    public_name
+                    for public_name, model in sorted(server.models.items())
+                    if model.get("provider") == provider_id
+                ],
+                "health": health_by_provider.get(provider_id, {}),
+                "contract_gaps": provider_contract_gaps(provider_type),
+            }
+        )
+    return {
+        "object": "gateway.provider_contracts",
+        "mode": "mock" if server.mock_mode else "live",
+        "summary": {
+            "configured_providers": len(configured),
+            "implemented_adapter_types": [
+                key
+                for key, contract in sorted(PROVIDER_TYPE_CONTRACTS.items())
+                if contract.get("adapter_status") == "implemented"
+            ],
+            "scaffolded_adapter_types": [
+                key
+                for key, contract in sorted(PROVIDER_TYPE_CONTRACTS.items())
+                if contract.get("adapter_status") == "scaffolded"
+            ],
+            "planned_adapter_types": [
+                key
+                for key, contract in sorted(PROVIDER_TYPE_CONTRACTS.items())
+                if contract.get("adapter_status") == "planned"
+            ],
+        },
+        "configured_providers": configured,
+        "provider_type_contracts": [
+            {"type": provider_type, **contract}
+            for provider_type, contract in sorted(PROVIDER_TYPE_CONTRACTS.items())
+        ],
+        "plain_english": [
+            "A normal API gateway can forward HTTP requests.",
+            "An AI model gateway also normalizes model names, request shapes, response shapes, streams, tool calls, usage, errors, fallbacks, and customer policy.",
+            "Even OpenAI-compatible providers need contract tests because compatible does not always mean identical.",
+        ],
+        "next_step": "Before enabling a new provider, add it disabled in model_registry.json, map its contract, run mock tests, then run a small live test with limits.",
+    }
+
+
+def provider_contract_gaps(provider_type):
+    if provider_type == "openai_compatible":
+        return [
+            "Confirm model names and pricing.",
+            "Test stream chunk shape.",
+            "Test tool call pass-through.",
+            "Normalize provider-specific errors.",
+        ]
+    if provider_type == "anthropic":
+        return [
+            "Harden live streaming normalization.",
+            "Test tool schema conversion.",
+            "Normalize stop reasons and usage fields.",
+            "Add live contract tests before enabling routes.",
+        ]
+    return [
+        "Collect official provider documentation.",
+        "Confirm auth, endpoint path, request shape, response shape, streaming, tools, and usage.",
+        "Implement an adapter and contract tests.",
+    ]
 
 
 def model_catalog(server):
@@ -3165,6 +3292,7 @@ def openapi_spec(server):
         "/v1/gateway/audit-events": "Audit events with filters",
         "/v1/gateway/usage": "Recent raw usage records",
         "/v1/gateway/provider-health": "Provider health and readiness",
+        "/v1/gateway/provider-contracts": "Provider adapter contract matrix",
         "/v1/gateway/model-catalog": "Model catalog and routing plan",
         "/v1/gateway/customer-reports": "Customer usage and budget reports",
         "/v1/gateway/request-activity": "Filtered request activity",
@@ -3272,6 +3400,7 @@ def postman_collection(server):
         request_item("Gateway Status", "GET", "/v1/gateway/status", "admin_api_key"),
         request_item("Policy Presets", "GET", "/v1/gateway/policy-presets", "admin_api_key"),
         request_item("Provider Health", "GET", "/v1/gateway/provider-health", "admin_api_key"),
+        request_item("Provider Contracts", "GET", "/v1/gateway/provider-contracts", "admin_api_key"),
         request_item("Production Readiness", "GET", "/v1/gateway/production-readiness", "admin_api_key"),
         request_item("Model Catalog", "GET", "/v1/gateway/model-catalog", "admin_api_key"),
         request_item("Audit Events", "GET", "/v1/gateway/audit-events", "admin_api_key"),
@@ -3421,6 +3550,13 @@ def demo_bundle(server):
                 "auth": "adminBearerAuth",
             },
             {
+                "name": "Provider contract matrix",
+                "url": f"{base_url}/v1/gateway/provider-contracts",
+                "audience": "business and technical",
+                "purpose": "Show why different model providers need adapters, tests, and normalization.",
+                "auth": "adminBearerAuth",
+            },
+            {
                 "name": "Postman collection",
                 "url": f"{base_url}/postman_collection.json",
                 "audience": "customer technical",
@@ -3449,8 +3585,8 @@ def demo_bundle(server):
             {
                 "step": 3,
                 "title": "Preview route decision",
-                "show": "/v1/gateway/route-preview",
-                "talk_track": "Route preview explains provider, fallback, capability, policy, and cost-aware decisions before spending credits.",
+                "show": "/v1/gateway/route-preview and /v1/gateway/provider-contracts",
+                "talk_track": "Route preview explains provider choice, while provider contracts explain why adapters and tests are needed.",
             },
             {
                 "step": 4,
@@ -3499,6 +3635,10 @@ def demo_bundle(server):
             {
                 "name": "Production readiness",
                 "command": f"curl {base_url}/v1/gateway/production-readiness -H 'Authorization: Bearer {server.admin_api_key or DEFAULT_ADMIN_API_KEY}'",
+            },
+            {
+                "name": "Provider contracts",
+                "command": f"curl {base_url}/v1/gateway/provider-contracts -H 'Authorization: Bearer {server.admin_api_key or DEFAULT_ADMIN_API_KEY}'",
             },
         ],
         "production_notes": [
@@ -4263,6 +4403,9 @@ class GatewayHandler(BaseHTTPRequestHandler):
             return
         if path == "/v1/gateway/provider-health":
             make_json_response(self, 200, {"data": provider_health(self.server)})
+            return
+        if path == "/v1/gateway/provider-contracts":
+            make_json_response(self, 200, provider_contracts(self.server))
             return
         if path == "/v1/gateway/policy-presets":
             make_json_response(self, 200, {"data": policy_presets_view()})

@@ -177,6 +177,7 @@ The current version also supports:
 - `GET /v1/gateway/customers`
 - `GET /v1/gateway/providers`
 - `GET /v1/gateway/provider-health`
+- `GET /v1/gateway/provider-contracts`
 - `GET /v1/gateway/policy-presets`
 - `GET /v1/gateway/model-catalog`
 - `POST /v1/gateway/route-preview`
@@ -207,6 +208,7 @@ The current version also supports:
 - `gateway_force_failover=true` for fallback testing in mock mode
 - OpenAI-style `tools` request with mock tool call response
 - provider readiness view for mock-ready, live-ready, and degraded providers
+- provider contract matrix for Qwen, OpenAI-compatible APIs, Claude, and planned providers
 - model catalog with provider status, fallback chain, usage, and pricing metadata
 - route preview dry run before a real provider call
 - structured route decision summary for support explanations
@@ -235,6 +237,7 @@ The current version also supports:
 - customer plans with request limits, token budgets, and cost budgets
 - SQLite persistence for request and usage records
 - disabled example provider configs for OpenAI and Anthropic
+- provider type contracts for OpenAI-compatible, Anthropic, and planned Xiaomi-style providers
 - OpenAPI contract at `/openapi.json`
 - Postman collection at `/postman_collection.json`
 - demo bundle manifest at `/v1/gateway/demo-bundle`
@@ -456,6 +459,36 @@ It shows:
 This is not a paid provider ping.
 
 It is a local readiness view based on configuration and recent gateway traffic.
+
+## Provider Contracts
+
+The gateway has a provider contract matrix:
+
+```bash
+curl http://127.0.0.1:8787/v1/gateway/provider-contracts \
+  -H "Authorization: Bearer dev-admin-key"
+```
+
+This explains why an AI gateway is more than a normal API Gateway.
+
+It compares:
+
+- OpenAI-compatible providers
+- Alibaba Cloud Model Studio compatible mode
+- Anthropic Claude
+- planned Xiaomi or other local model providers
+
+It shows differences in:
+
+- auth
+- endpoint path
+- request shape
+- response shape
+- streaming
+- tool calling
+- usage fields
+- adapter status
+- remaining contract gaps
 
 ## Provider Lifecycle
 

@@ -152,6 +152,7 @@ Included in the prototype:
 - Basic production readiness report
 - Basic capability routing control
 - Basic provider create, update, and disable workflow
+- Basic provider contract matrix
 - Basic model route create, update, and disable workflow
 - Basic customer key issue preview
 - Basic OpenAPI contract export

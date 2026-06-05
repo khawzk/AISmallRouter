@@ -238,6 +238,7 @@ def build():
         "Access matrix endpoint for customer and model permissions.",
         "Provider health endpoint for mock-ready, live-ready, degraded, and not-ready states.",
         "Provider create, update, and disable actions for provider lifecycle demos.",
+        "Provider contract matrix for adapter differences across Qwen, OpenAI-compatible APIs, Claude, and planned providers.",
         "Model catalog endpoint for provider status, fallback chain, usage, and pricing metadata.",
         "Model route create, update, and disable actions for route lifecycle demos.",
         "Route preview endpoint to dry-run model access, budget, provider readiness, and fallback order.",
@@ -287,6 +288,7 @@ def build():
             ["Access control", "Each customer may be allowed to use different models.", "Access matrix by customer and model"],
             ["Provider health", "Customers need to know whether a provider can serve traffic.", "Readiness view based on config and recent traffic"],
             ["Provider lifecycle", "Teams need to add and stop providers safely.", "Local JSON-backed create, update, and disable actions"],
+            ["Provider contracts", "Teams need to see why each provider needs adapter tests.", "Contract matrix for provider differences"],
             ["Model catalog", "Customers need to understand public model names and routes.", "Catalog with provider status, fallback chain, usage, and pricing metadata"],
             ["Model route lifecycle", "Teams need to change public model routes safely.", "Local JSON-backed create, update, and disable actions"],
             ["Route preview", "Sales and support need to explain a route before spending credits.", "Dry-run endpoint and dashboard preview"],
@@ -375,6 +377,14 @@ def build():
     story.append(
         Paragraph(
             "The prototype can create, update, and disable providers. A provider defines the upstream API type, base URL, and API key environment variable name. Disabling a provider also disables active model routes that point to it, so the local registry stays valid. These admin actions update model_registry.json, reload the local runtime, and write audit events. The prototype stores the provider key environment variable name, not the provider secret value. Production should use a database, secret manager, approval workflow, readiness checks, and rollout controls.",
+            styles["BodyCustom"],
+        )
+    )
+
+    story.append(Paragraph("Provider Contract Matrix", styles["H1Custom"]))
+    story.append(
+        Paragraph(
+            "/v1/gateway/provider-contracts explains why an AI Model Gateway is more than a normal API Gateway. It compares OpenAI-compatible providers, Alibaba Cloud Model Studio compatible mode, Anthropic Claude, and planned Xiaomi or other local model providers. It shows auth, endpoint path, request shape, response shape, streaming, tool calling, usage fields, adapter status, and remaining contract gaps.",
             styles["BodyCustom"],
         )
     )
