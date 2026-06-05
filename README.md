@@ -1116,7 +1116,7 @@ This prototype stores customer keys in local JSON. Production should use a datab
 
 ## Audit Events
 
-The gateway records customer key lifecycle actions.
+The gateway records admin lifecycle actions.
 
 ```bash
 curl "http://127.0.0.1:8787/v1/gateway/audit-events?target_id=customer-demo" \
@@ -1127,11 +1127,13 @@ It shows:
 
 - who performed the action
 - what action happened
-- which customer was changed
+- which customer, provider, or model route was changed
 - when it happened
 - safe details such as masked keys and key hashes
 
 It does not store full gateway API keys in the audit event.
+
+The dashboard also has an **Audit timeline** section for recent customer, provider, and model route changes.
 
 This is useful for explaining control history.
 

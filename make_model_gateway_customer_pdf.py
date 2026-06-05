@@ -576,7 +576,7 @@ def build():
     story.append(Paragraph("Audit Events", styles["H1Custom"]))
     story.append(
         Paragraph(
-            "/v1/gateway/audit-events records customer lifecycle actions such as customer created, key rotated, and customer disabled. The event includes actor, action, target customer, time, and safe details such as masked keys and key hashes. It does not store full gateway API keys. This helps explain control history, but it is not a full compliance audit system.",
+            "/v1/gateway/audit-events records admin lifecycle actions such as customer created, key rotated, customer disabled, provider changed, and model route changed. The dashboard also has an Audit timeline section for recent changes. Each event includes actor, action, target customer, provider, or model route, time, and safe details such as masked keys and key hashes. It does not store full gateway API keys. This helps explain control history, but it is not a full compliance audit system.",
             styles["BodyCustom"],
         )
     )

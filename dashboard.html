@@ -920,6 +920,7 @@
         <a href="#health">Health</a>
         <a href="#reports">Reports</a>
         <a href="#activity">Activity</a>
+        <a href="#audit">Audit</a>
         <a href="#demo-script">Demo Script</a>
         <a href="#routing">Routing</a>
         <a href="#console">Console</a>
@@ -1071,6 +1072,16 @@
       </div>
       <div class="card-body">
         <div class="activity-list" id="activityList"></div>
+      </div>
+    </section>
+
+    <section class="card" id="audit" style="margin-bottom: 18px;">
+      <div class="card-head">
+        <h2>Audit timeline</h2>
+        <span>admin changes to customers, providers, and routes</span>
+      </div>
+      <div class="card-body">
+        <div class="activity-list" id="auditList"></div>
       </div>
     </section>
 
@@ -1337,6 +1348,7 @@
     const customerReportList = document.getElementById("customerReportList");
     const invoicePreviewList = document.getElementById("invoicePreviewList");
     const activityList = document.getElementById("activityList");
+    const auditList = document.getElementById("auditList");
     const modelSelect = document.getElementById("modelSelect");
     const previewCustomer = document.getElementById("previewCustomer");
     const previewModel = document.getElementById("previewModel");
@@ -1622,6 +1634,33 @@
           <span>${Math.round(item.latency_ms || 0)}ms</span>
         `;
         activityList.appendChild(row);
+      });
+    }
+
+    const auditEvents = state.audit_events || [];
+    if (auditEvents.length === 0) {
+      auditList.innerHTML = '<div class="trace-item">No audit events yet. Use a lifecycle action to create an audit record.</div>';
+    } else {
+      auditEvents.forEach((event) => {
+        const row = document.createElement("div");
+        row.className = "activity-row";
+        const details = event.details || {};
+        const detailBits = [
+          details.api_key_masked ? `key ${details.api_key_masked}` : "",
+          details.new_api_key_masked ? `new key ${details.new_api_key_masked}` : "",
+          details.api_key_hash ? `hash ${details.api_key_hash}` : "",
+          details.new_api_key_hash ? `new hash ${details.new_api_key_hash}` : "",
+          details.disabled_model_routes ? `disabled routes ${(details.disabled_model_routes || []).join(", ") || "none"}` : ""
+        ].filter(Boolean);
+        row.innerHTML = `
+          <span class="${event.status === "success" ? "chip green" : "chip"}">${escapeHtml(event.status || "event")}</span>
+          <div>
+            <strong>${escapeHtml(event.summary || "")}</strong><br>
+            <span>${escapeHtml(event.target_type || "target")} / ${escapeHtml(event.target_id || "-")}${detailBits.length ? "<br>" + escapeHtml(detailBits.join(" / ")) : ""}</span>
+          </div>
+          <span>${escapeHtml(event.created || "")}</span>
+        `;
+        auditList.appendChild(row);
       });
     }
 

@@ -1714,6 +1714,9 @@ class GatewayPrototypeTest(unittest.TestCase):
         self.assertIn("Model route lifecycle", html)
         self.assertIn("createRouteButton", html)
         self.assertIn("/v1/gateway/model-routes/disable", html)
+        self.assertIn("Audit timeline", html)
+        self.assertIn("auditList", html)
+        self.assertIn("state.audit_events", html)
 
     def test_config_check_reports_demo_warnings(self):
         status, payload = request_json(self.base_url, path="/v1/gateway/config-check")

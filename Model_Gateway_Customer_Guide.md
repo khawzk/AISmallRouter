@@ -919,25 +919,29 @@ Production should use:
 
 The prototype includes `/v1/gateway/audit-events`.
 
-It records customer key lifecycle actions.
+It records admin lifecycle actions.
 
 For example:
 
 - customer created
 - customer key rotated
 - customer disabled
+- provider created, updated, or disabled
+- model route created, updated, or disabled
 
 Each event shows:
 
 - actor
 - action
-- target customer
+- target customer, provider, or model route
 - time
 - safe details
 
 The audit event can include masked keys and key hashes.
 
 It does not store the full gateway API key.
+
+The dashboard also has an Audit timeline section for recent changes.
 
 This helps explain control history.
 
