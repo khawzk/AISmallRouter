@@ -12,6 +12,19 @@ This repository is for a small AI Model Gateway prototype.
 
 The goal is to give customers one simple API for many AI model providers.
 
+This is still a prototype, not a production OpenRouter clone.
+
+It is useful because it shows the main building blocks:
+
+- Customer keys
+- Model aliases
+- Provider adapters
+- Fallback routing
+- Streaming
+- Usage records
+- A small admin view
+- Persistent SQLite storage
+
 Example providers:
 
 - Alibaba Cloud Model Studio / Qwen
@@ -110,9 +123,12 @@ The prototype includes:
 - Basic per-customer usage limits
 - JSONL request logs
 - JSONL usage records
+- SQLite request and usage storage in `data/aismallrouter.db`
 - Model routing
 - Mock fallback routing
 - Mock and live streaming support
+- Bring Your Own Key provider mapping through `provider_api_keys`
+- Provider adapter scaffolds for OpenAI-compatible APIs and Anthropic-style APIs
 - A simple admin page
 
 It does not replace a full enterprise API Gateway.
@@ -148,9 +164,56 @@ The current version also supports:
 - `GET /v1/gateway/status`
 - `GET /v1/gateway/requests`
 - `GET /v1/gateway/usage`
+- `GET /v1/gateway/customers`
 - `stream=true` Server-Sent Events
 - `gateway_force_failover=true` for fallback testing in mock mode
 - multiple customer keys through `customer_keys.json`
+- SQLite persistence for request and usage records
+- disabled example provider configs for OpenAI and Anthropic
+
+## What Is Still Hard
+
+The hard part is not receiving an HTTP request.
+
+The hard part is making many model providers feel like one product.
+
+Important hard parts:
+
+- Different providers use different request formats.
+- Streaming events are not exactly the same across providers.
+- Tool calling needs request and response normalization.
+- Token usage and pricing need careful calculation.
+- Customer keys must be protected.
+- Provider errors need clean fallback behavior.
+- Logs must be useful for support and billing.
+- Production rate limits usually need Redis or another shared store.
+- Real billing needs a database, invoices, refunds, and customer reporting.
+
+## Bring Your Own Key
+
+Some customers may want to use their own provider account.
+
+This is called Bring Your Own Key, or BYOK.
+
+In this prototype, a customer can map a provider to an environment variable:
+
+```json
+{
+  "id": "dev",
+  "api_key": "dev-gateway-key",
+  "provider_api_keys": {
+    "dashscope": "env:DASHSCOPE_API_KEY"
+  }
+}
+```
+
+This means:
+
+- The customer still calls the gateway with `dev-gateway-key`.
+- The gateway calls DashScope with `DASHSCOPE_API_KEY`.
+- The real provider key is not returned by the admin APIs.
+
+For production, provider keys should be encrypted in a secret manager.
 
 ## Try It Locally
 
@@ -185,6 +248,8 @@ http://127.0.0.1:8787/admin
 ```
 
 The admin page shows recent request logs and usage records.
+
+It reads from SQLite, so the records stay after the server restarts.
 
 List models:
 

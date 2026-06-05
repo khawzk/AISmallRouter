@@ -3,6 +3,7 @@ import argparse
 import hashlib
 import json
 import os
+import sqlite3
 import time
 import uuid
 import urllib.error
@@ -16,6 +17,7 @@ DEFAULT_REGISTRY_PATH = "model_registry.json"
 DEFAULT_CUSTOMERS_PATH = "customer_keys.json"
 DEFAULT_DASHBOARD_PATH = "dashboard.html"
 DEFAULT_LOG_DIR = "logs"
+DEFAULT_DATA_DIR = "data"
 DEFAULT_GATEWAY_API_KEY = "dev-gateway-key"
 DEFAULT_REQUEST_LIMIT = 60
 DEFAULT_LIMIT_WINDOW_SECONDS = 60
@@ -46,6 +48,26 @@ def key_hash(value):
     return hashlib.sha256(value.encode("utf-8")).hexdigest()[:12]
 
 
+def resolve_secret(value):
+    if not value:
+        return None
+    if isinstance(value, str) and value.startswith("env:"):
+        return os.getenv(value.removeprefix("env:"))
+    return value
+
+
+def public_customer_view(customer):
+    provider_keys = customer.get("provider_api_keys", {})
+    return {
+        "id": customer["id"],
+        "name": customer.get("name", customer["id"]),
+        "request_limit": customer.get("request_limit"),
+        "limit_window_seconds": customer.get("limit_window_seconds"),
+        "allowed_models": customer.get("allowed_models", []),
+        "byok_providers": sorted(provider_keys.keys()),
+    }
+
+
 def read_json(path, default):
     if not os.path.exists(path):
         return default
@@ -57,6 +79,201 @@ def append_jsonl(path, record):
     os.makedirs(os.path.dirname(path), exist_ok=True)
     with open(path, "a", encoding="utf-8") as file:
         file.write(json.dumps(record, ensure_ascii=False) + "\n")
+
+
+def init_db(path):
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    with sqlite3.connect(path) as conn:
+        conn.execute(
+            """
+            create table if not exists requests (
+                id integer primary key autoincrement,
+                created integer not null,
+                request_id text,
+                customer_id text,
+                api_key_hash text,
+                model text,
+                resolved_model text,
+                provider text,
+                status integer,
+                code text,
+                latency_ms real,
+                mock_mode integer
+            )
+            """
+        )
+        conn.execute(
+            """
+            create table if not exists usage_records (
+                id integer primary key autoincrement,
+                created integer not null,
+                customer_id text,
+                model text,
+                resolved_model text,
+                provider text,
+                prompt_tokens integer,
+                completion_tokens integer,
+                total_tokens integer,
+                estimated_cost real,
+                mock_mode integer
+            )
+            """
+        )
+        conn.execute(
+            """
+            create table if not exists customers (
+                id text primary key,
+                name text,
+                api_key_hash text,
+                request_limit integer,
+                limit_window_seconds integer,
+                allowed_models text,
+                byok_providers text,
+                enabled integer
+            )
+            """
+        )
+        customer_columns = {
+            row[1]
+            for row in conn.execute("pragma table_info(customers)").fetchall()
+        }
+        if "byok_providers" not in customer_columns:
+            conn.execute("alter table customers add column byok_providers text")
+        conn.commit()
+
+
+def sync_customers_to_db(path, customers_by_key):
+    with sqlite3.connect(path) as conn:
+        for api_key, customer in customers_by_key.items():
+            conn.execute(
+                """
+                insert into customers (
+                    id, name, api_key_hash, request_limit,
+                    limit_window_seconds, allowed_models, byok_providers, enabled
+                )
+                values (?, ?, ?, ?, ?, ?, ?, ?)
+                on conflict(id) do update set
+                    name=excluded.name,
+                    api_key_hash=excluded.api_key_hash,
+                    request_limit=excluded.request_limit,
+                    limit_window_seconds=excluded.limit_window_seconds,
+                    allowed_models=excluded.allowed_models,
+                    byok_providers=excluded.byok_providers,
+                    enabled=excluded.enabled
+                """,
+                (
+                    customer["id"],
+                    customer.get("name", customer["id"]),
+                    key_hash(api_key),
+                    int(customer.get("request_limit", DEFAULT_REQUEST_LIMIT)),
+                    int(customer.get("limit_window_seconds", DEFAULT_LIMIT_WINDOW_SECONDS)),
+                    json.dumps(customer.get("allowed_models", ["*"])),
+                    json.dumps(sorted(customer.get("provider_api_keys", {}).keys())),
+                    1 if customer.get("enabled", True) else 0,
+                ),
+            )
+        conn.commit()
+
+
+def insert_request_db(path, record):
+    with sqlite3.connect(path) as conn:
+        conn.execute(
+            """
+            insert into requests (
+                created, request_id, customer_id, api_key_hash, model,
+                resolved_model, provider, status, code, latency_ms, mock_mode
+            )
+            values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            (
+                record.get("created"),
+                record.get("request_id"),
+                record.get("customer_id"),
+                record.get("api_key_hash"),
+                record.get("model"),
+                record.get("resolved_model"),
+                record.get("provider"),
+                record.get("status"),
+                record.get("code"),
+                record.get("latency_ms"),
+                1 if record.get("mock_mode") else 0,
+            ),
+        )
+        conn.commit()
+
+
+def insert_usage_db(path, record):
+    with sqlite3.connect(path) as conn:
+        conn.execute(
+            """
+            insert into usage_records (
+                created, customer_id, model, resolved_model, provider,
+                prompt_tokens, completion_tokens, total_tokens,
+                estimated_cost, mock_mode
+            )
+            values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            (
+                record.get("created"),
+                record.get("customer_id"),
+                record.get("model"),
+                record.get("resolved_model"),
+                record.get("provider"),
+                record.get("prompt_tokens"),
+                record.get("completion_tokens"),
+                record.get("total_tokens"),
+                record.get("estimated_cost"),
+                1 if record.get("mock_mode") else 0,
+            ),
+        )
+        conn.commit()
+
+
+def db_tail(path, table, limit=50):
+    allowed = {"requests", "usage_records", "customers"}
+    if table not in allowed or not os.path.exists(path):
+        return []
+    with sqlite3.connect(path) as conn:
+        conn.row_factory = sqlite3.Row
+        if table == "customers":
+            rows = conn.execute("select * from customers order by id asc").fetchall()
+        else:
+            rows = conn.execute(
+                f"select * from {table} order by id desc limit ?",
+                (limit,),
+            ).fetchall()
+    return [dict(row) for row in rows]
+
+
+def db_summary(path):
+    if not os.path.exists(path):
+        return {}
+    with sqlite3.connect(path) as conn:
+        conn.row_factory = sqlite3.Row
+        request_count = conn.execute("select count(*) as value from requests").fetchone()["value"]
+        usage = conn.execute(
+            """
+            select
+                coalesce(sum(prompt_tokens), 0) as prompt_tokens,
+                coalesce(sum(completion_tokens), 0) as completion_tokens,
+                coalesce(sum(total_tokens), 0) as total_tokens,
+                coalesce(sum(estimated_cost), 0) as estimated_cost
+            from usage_records
+            """
+        ).fetchone()
+        by_customer = conn.execute(
+            """
+            select customer_id, count(*) as requests
+            from requests
+            group by customer_id
+            order by requests desc
+            """
+        ).fetchall()
+    return {
+        "request_count": request_count,
+        "usage": dict(usage),
+        "requests_by_customer": [dict(row) for row in by_customer],
+    }
 
 
 def read_jsonl_tail(path, limit=50):
@@ -190,16 +407,12 @@ def gateway_status(server):
     return {
         "status": "ok",
         "mode": "mock" if server.mock_mode else "live",
+        "database": server.db_path,
+        "summary": db_summary(server.db_path),
         "request_limit": server.default_request_limit,
         "limit_window_seconds": server.default_limit_window_seconds,
         "customers": [
-            {
-                "id": customer["id"],
-                "name": customer.get("name", customer["id"]),
-                "request_limit": customer.get("request_limit"),
-                "limit_window_seconds": customer.get("limit_window_seconds"),
-                "allowed_models": customer.get("allowed_models", []),
-            }
+            public_customer_view(customer)
             for customer in server.customers_by_key.values()
         ],
         "models": [
@@ -226,7 +439,7 @@ def dashboard_html(server):
 
 def admin_html(server):
     request_rows = ""
-    for record in reversed(read_jsonl_tail(server.request_log_path, 25)):
+    for record in db_tail(server.db_path, "requests", 25):
         request_rows += (
             "<tr>"
             f"<td>{record.get('created', '')}</td>"
@@ -239,7 +452,7 @@ def admin_html(server):
             "</tr>"
         )
     usage_rows = ""
-    for record in reversed(read_jsonl_tail(server.usage_log_path, 25)):
+    for record in db_tail(server.db_path, "usage_records", 25):
         usage_rows += (
             "<tr>"
             f"<td>{record.get('created', '')}</td>"
@@ -251,6 +464,7 @@ def admin_html(server):
             f"<td>{record.get('estimated_cost', '')}</td>"
             "</tr>"
         )
+    summary = db_summary(server.db_path)
     return f"""<!doctype html>
 <html lang="en">
 <head>
@@ -271,7 +485,16 @@ def admin_html(server):
 <body>
   <main>
     <h1>Gateway Admin</h1>
-    <p><a href="/">Dashboard</a> | <a href="/v1/gateway/status">Status JSON</a> | <a href="/v1/gateway/requests">Requests JSON</a> | <a href="/v1/gateway/usage">Usage JSON</a></p>
+    <p><a href="/">Dashboard</a> | <a href="/v1/gateway/status">Status JSON</a> | <a href="/v1/gateway/requests">Requests JSON</a> | <a href="/v1/gateway/usage">Usage JSON</a> | <a href="/v1/gateway/customers">Customers JSON</a></p>
+    <h2>Summary</h2>
+    <table>
+      <tbody>
+        <tr><th>Total requests</th><td>{summary.get('request_count', 0)}</td></tr>
+        <tr><th>Total tokens</th><td>{summary.get('usage', {}).get('total_tokens', 0)}</td></tr>
+        <tr><th>Estimated cost</th><td>{summary.get('usage', {}).get('estimated_cost', 0)}</td></tr>
+        <tr><th>Database</th><td>{server.db_path}</td></tr>
+      </tbody>
+    </table>
     <h2>Recent Requests</h2>
     <table>
       <thead><tr><th>Created</th><th>Customer</th><th>Public model</th><th>Resolved</th><th>Provider</th><th>Status</th><th>Latency ms</th></tr></thead>
@@ -288,8 +511,9 @@ def admin_html(server):
 
 
 class OpenAICompatibleAdapter:
-    def __init__(self, mock_mode):
+    def __init__(self, mock_mode, customer=None):
         self.mock_mode = mock_mode
+        self.customer = customer or {}
 
     def complete(self, model_config, request_payload, timeout, route_trace):
         if self.mock_mode:
@@ -374,7 +598,7 @@ class OpenAICompatibleAdapter:
 
     def live_completion(self, model_config, request_payload, timeout):
         provider = model_config["provider_config"]
-        api_key = os.getenv(provider["api_key_env"])
+        api_key = self.provider_api_key(provider)
         if not api_key:
             raise GatewayError(f"Missing provider API key. Set {provider['api_key_env']}.", "missing_provider_key", 500)
         upstream_payload = self.provider_payload(request_payload)
@@ -398,7 +622,7 @@ class OpenAICompatibleAdapter:
 
     def live_stream(self, model_config, request_payload, timeout):
         provider = model_config["provider_config"]
-        api_key = os.getenv(provider["api_key_env"])
+        api_key = self.provider_api_key(provider)
         if not api_key:
             raise GatewayError(f"Missing provider API key. Set {provider['api_key_env']}.", "missing_provider_key", 500)
         upstream_payload = self.provider_payload(request_payload)
@@ -436,6 +660,136 @@ class OpenAICompatibleAdapter:
             if not key.startswith("gateway_")
         }
 
+    def provider_api_key(self, provider):
+        byok = self.customer.get("provider_api_keys", {})
+        customer_key = resolve_secret(byok.get(provider["id"]))
+        if customer_key:
+            return customer_key
+        return os.getenv(provider["api_key_env"])
+
+
+class AnthropicAdapter(OpenAICompatibleAdapter):
+    def live_completion(self, model_config, request_payload, timeout):
+        provider = model_config["provider_config"]
+        api_key = self.provider_api_key(provider)
+        if not api_key:
+            raise GatewayError(f"Missing provider API key. Set {provider['api_key_env']}.", "missing_provider_key", 500)
+        upstream_payload = self.provider_payload(request_payload)
+        upstream_payload["model"] = model_config["upstream_model"]
+        url = provider["base_url"].rstrip("/") + "/messages"
+        request = urllib.request.Request(
+            url,
+            data=json.dumps(upstream_payload).encode("utf-8"),
+            headers={
+                "x-api-key": api_key,
+                "anthropic-version": provider.get("api_version", "2023-06-01"),
+                "Content-Type": "application/json",
+            },
+            method="POST",
+        )
+        try:
+            with urllib.request.urlopen(request, timeout=timeout) as response:
+                upstream = json.loads(response.read().decode("utf-8"))
+                return self.openai_response_from_anthropic(upstream, request_payload["model"])
+        except urllib.error.HTTPError as exc:
+            raise ProviderError("The upstream provider returned an error.", exc.code, exc.read().decode("utf-8", errors="replace"))
+
+    def live_stream(self, model_config, request_payload, timeout):
+        raise GatewayError(
+            "Anthropic live streaming is not implemented in this prototype yet.",
+            "streaming_not_implemented",
+            501,
+        )
+
+    def provider_payload(self, request_payload):
+        messages = []
+        system_text = None
+        for message in request_payload.get("messages", []):
+            role = message.get("role")
+            if role == "system":
+                system_text = message.get("content", "")
+                continue
+            if role in {"user", "assistant"}:
+                messages.append({"role": role, "content": message.get("content", "")})
+        payload = {
+            "messages": messages,
+            "max_tokens": request_payload.get("max_tokens", 1024),
+        }
+        if system_text:
+            payload["system"] = system_text
+        if "temperature" in request_payload:
+            payload["temperature"] = request_payload["temperature"]
+        if "tools" in request_payload:
+            payload["tools"] = normalize_tools_for_anthropic(request_payload["tools"])
+        return payload
+
+    def openai_response_from_anthropic(self, upstream, public_model):
+        text_parts = []
+        tool_calls = []
+        for item in upstream.get("content", []):
+            if item.get("type") == "text":
+                text_parts.append(item.get("text", ""))
+            if item.get("type") == "tool_use":
+                tool_calls.append(
+                    {
+                        "id": item.get("id"),
+                        "type": "function",
+                        "function": {
+                            "name": item.get("name"),
+                            "arguments": json.dumps(item.get("input", {})),
+                        },
+                    }
+                )
+        message = {"role": "assistant", "content": "\n".join(text_parts)}
+        if tool_calls:
+            message["tool_calls"] = tool_calls
+        usage = upstream.get("usage", {})
+        prompt_tokens = int(usage.get("input_tokens") or 0)
+        completion_tokens = int(usage.get("output_tokens") or 0)
+        return {
+            "id": upstream.get("id", f"chatcmpl-anthropic-{uuid.uuid4().hex[:12]}"),
+            "object": "chat.completion",
+            "created": now_unix(),
+            "model": public_model,
+            "choices": [
+                {
+                    "index": 0,
+                    "message": message,
+                    "finish_reason": upstream.get("stop_reason") or "stop",
+                }
+            ],
+            "usage": {
+                "prompt_tokens": prompt_tokens,
+                "completion_tokens": completion_tokens,
+                "total_tokens": prompt_tokens + completion_tokens,
+            },
+        }
+
+
+def normalize_tools_for_anthropic(tools):
+    normalized = []
+    for tool in tools or []:
+        if tool.get("type") != "function":
+            continue
+        function = tool.get("function", {})
+        normalized.append(
+            {
+                "name": function.get("name"),
+                "description": function.get("description", ""),
+                "input_schema": function.get("parameters", {"type": "object", "properties": {}}),
+            }
+        )
+    return normalized
+
+
+def adapter_for(model_config, mock_mode, customer):
+    provider_type = model_config["provider_config"].get("type", "openai_compatible")
+    if provider_type == "openai_compatible":
+        return OpenAICompatibleAdapter(mock_mode, customer)
+    if provider_type == "anthropic":
+        return AnthropicAdapter(mock_mode, customer)
+    raise GatewayError(f"Unsupported provider type: {provider_type}.", "unsupported_provider_type", 500)
+
 
 def should_force_failover(payload, candidate_index):
     value = payload.get("gateway_force_failover")
@@ -443,7 +797,7 @@ def should_force_failover(payload, candidate_index):
 
 
 class GatewayHandler(BaseHTTPRequestHandler):
-    server_version = "AISmallRouter/0.2"
+    server_version = "AISmallRouter/0.3"
 
     def log_message(self, format_text, *args):
         if self.server.quiet:
@@ -475,10 +829,13 @@ class GatewayHandler(BaseHTTPRequestHandler):
             make_json_response(self, 200, gateway_status(self.server))
             return
         if self.path == "/v1/gateway/requests":
-            make_json_response(self, 200, {"data": read_jsonl_tail(self.server.request_log_path, 100)})
+            make_json_response(self, 200, {"data": db_tail(self.server.db_path, "requests", 100)})
             return
         if self.path == "/v1/gateway/usage":
-            make_json_response(self, 200, {"data": read_jsonl_tail(self.server.usage_log_path, 100)})
+            make_json_response(self, 200, {"data": db_tail(self.server.db_path, "usage_records", 100)})
+            return
+        if self.path == "/v1/gateway/customers":
+            make_json_response(self, 200, {"data": db_tail(self.server.db_path, "customers", 100)})
             return
         if self.path == "/v1/models":
             if not self.authenticate():
@@ -609,7 +966,7 @@ class GatewayHandler(BaseHTTPRequestHandler):
             payload_for_provider["model"] = public_model
             route_trace = self.route_trace(public_model, model_config["upstream_model"])
             try:
-                adapter = OpenAICompatibleAdapter(self.server.mock_mode)
+                adapter = adapter_for(model_config, self.server.mock_mode, self.customer)
                 if stream:
                     self.stream_response(adapter, model_config, payload_for_provider, route_trace, started_at)
                     return
@@ -672,6 +1029,7 @@ class GatewayHandler(BaseHTTPRequestHandler):
             "mock_mode": self.server.mock_mode,
         }
         append_jsonl(self.server.request_log_path, record)
+        insert_request_db(self.server.db_path, record)
         if not self.server.quiet:
             print(json.dumps(record, ensure_ascii=False), flush=True)
 
@@ -684,21 +1042,20 @@ class GatewayHandler(BaseHTTPRequestHandler):
             prompt_tokens / 1000 * float(pricing.get("prompt_per_1k", 0))
             + completion_tokens / 1000 * float(pricing.get("completion_per_1k", 0))
         )
-        append_jsonl(
-            self.server.usage_log_path,
-            {
-                "created": now_unix(),
-                "customer_id": getattr(self, "customer", {}).get("id"),
-                "model": public_model,
-                "resolved_model": model_config.get("upstream_model"),
-                "provider": model_config.get("provider"),
-                "prompt_tokens": prompt_tokens,
-                "completion_tokens": completion_tokens,
-                "total_tokens": prompt_tokens + completion_tokens,
-                "estimated_cost": round(estimated_cost, 8),
-                "mock_mode": self.server.mock_mode,
-            },
-        )
+        record = {
+            "created": now_unix(),
+            "customer_id": getattr(self, "customer", {}).get("id"),
+            "model": public_model,
+            "resolved_model": model_config.get("upstream_model"),
+            "provider": model_config.get("provider"),
+            "prompt_tokens": prompt_tokens,
+            "completion_tokens": completion_tokens,
+            "total_tokens": prompt_tokens + completion_tokens,
+            "estimated_cost": round(estimated_cost, 8),
+            "mock_mode": self.server.mock_mode,
+        }
+        append_jsonl(self.server.usage_log_path, record)
+        insert_usage_db(self.server.db_path, record)
 
 
 def parse_args():
@@ -708,6 +1065,8 @@ def parse_args():
     parser.add_argument("--registry", default=os.getenv("MODEL_REGISTRY", DEFAULT_REGISTRY_PATH))
     parser.add_argument("--customers", default=os.getenv("CUSTOMER_KEYS", DEFAULT_CUSTOMERS_PATH))
     parser.add_argument("--log-dir", default=os.getenv("GATEWAY_LOG_DIR", DEFAULT_LOG_DIR))
+    parser.add_argument("--data-dir", default=os.getenv("GATEWAY_DATA_DIR", DEFAULT_DATA_DIR))
+    parser.add_argument("--db-path", default=os.getenv("GATEWAY_DB_PATH"))
     parser.add_argument("--timeout", type=int, default=int(os.getenv("UPSTREAM_TIMEOUT", "60")))
     parser.add_argument("--request-limit", type=int, default=int(os.getenv("GATEWAY_REQUEST_LIMIT", DEFAULT_REQUEST_LIMIT)))
     parser.add_argument("--limit-window-seconds", type=int, default=int(os.getenv("GATEWAY_LIMIT_WINDOW_SECONDS", DEFAULT_LIMIT_WINDOW_SECONDS)))
@@ -726,6 +1085,10 @@ def main():
     registry = load_registry(args.registry)
     customers_by_key = load_customers(args.customers)
     os.makedirs(args.log_dir, exist_ok=True)
+    os.makedirs(args.data_dir, exist_ok=True)
+    db_path = args.db_path or os.path.join(args.data_dir, "aismallrouter.db")
+    init_db(db_path)
+    sync_customers_to_db(db_path, customers_by_key)
     server = ThreadingHTTPServer((args.host, args.port), GatewayHandler)
     server.providers = registry["providers"]
     server.models = registry["models"]
@@ -738,12 +1101,14 @@ def main():
     server.usage_by_key = {}
     server.request_log_path = os.path.join(args.log_dir, "requests.jsonl")
     server.usage_log_path = os.path.join(args.log_dir, "usage.jsonl")
+    server.db_path = db_path
     mode = "mock" if args.mock else "live"
     print(f"AISmallRouter listening on http://{args.host}:{args.port}")
     print(f"Mode: {mode}")
     print(f"Models: {', '.join(sorted(server.models.keys()))}")
     print(f"Customers: {', '.join(customer['id'] for customer in customers_by_key.values())}")
     print(f"Logs: {args.log_dir}")
+    print(f"Database: {db_path}")
     server.serve_forever()
 
 

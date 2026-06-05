@@ -7,6 +7,23 @@
       "base_url": "https://dashscope-intl.aliyuncs.com/compatible-mode/v1",
       "api_key_env": "DASHSCOPE_API_KEY",
       "enabled": true
+    },
+    {
+      "id": "openai",
+      "name": "OpenAI",
+      "type": "openai_compatible",
+      "base_url": "https://api.openai.com/v1",
+      "api_key_env": "OPENAI_API_KEY",
+      "enabled": false
+    },
+    {
+      "id": "anthropic",
+      "name": "Anthropic Claude",
+      "type": "anthropic",
+      "base_url": "https://api.anthropic.com/v1",
+      "api_key_env": "ANTHROPIC_API_KEY",
+      "api_version": "2023-06-01",
+      "enabled": false
     }
   ],
   "models": [
@@ -45,6 +62,30 @@
         "completion_per_1k": 0
       },
       "enabled": true
+    },
+    {
+      "id": "openai-fast",
+      "provider": "openai",
+      "upstream_model": "gpt-4o-mini",
+      "fallback_models": [],
+      "capabilities": ["chat", "streaming", "tools"],
+      "pricing": {
+        "prompt_per_1k": 0,
+        "completion_per_1k": 0
+      },
+      "enabled": false
+    },
+    {
+      "id": "claude-balanced",
+      "provider": "anthropic",
+      "upstream_model": "claude-3-5-sonnet-latest",
+      "fallback_models": [],
+      "capabilities": ["chat", "tools"],
+      "pricing": {
+        "prompt_per_1k": 0,
+        "completion_per_1k": 0
+      },
+      "enabled": false
     }
   ]
 }

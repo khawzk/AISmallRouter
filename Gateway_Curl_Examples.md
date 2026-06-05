@@ -32,6 +32,14 @@ Optional: test a very small request limit.
 python3 model_gateway.py --mock --request-limit 1 --limit-window-seconds 60
 ```
 
+Optional: store the SQLite database in a temporary folder.
+
+```bash
+python3 model_gateway.py --mock \
+  --data-dir /tmp/aismallrouter-data \
+  --log-dir /tmp/aismallrouter-logs
+```
+
 ## List Models
 
 ```bash
@@ -131,6 +139,15 @@ Or fetch JSON:
 ```bash
 curl http://127.0.0.1:8787/v1/gateway/requests
 curl http://127.0.0.1:8787/v1/gateway/usage
+curl http://127.0.0.1:8787/v1/gateway/customers
+```
+
+The JSON endpoints read from SQLite.
+
+The default database path is:
+
+```text
+data/aismallrouter.db
 ```
 
 ## Test Invalid API Key
@@ -180,3 +197,36 @@ curl http://127.0.0.1:8787/v1/chat/completions \
     "stream": false
   }'
 ```
+
+## Bring Your Own Key Example
+
+In `customer_keys.json`, a customer can map a provider to an environment variable.
+
+```json
+{
+  "id": "dev",
+  "name": "Development Customer",
+  "api_key": "dev-gateway-key",
+  "provider_api_keys": {
+    "dashscope": "env:DASHSCOPE_API_KEY"
+  },
+  "allowed_models": ["*"],
+  "enabled": true
+}
+```
+
+The customer still calls the gateway with the gateway key.
+
+The gateway uses the provider key only when it calls the provider.
+
+## Enable More Providers Later
+
+`model_registry.json` already contains disabled examples for OpenAI and Anthropic.
+
+To test them later:
+
+- Add a provider API key as an environment variable.
+- Enable the provider.
+- Enable a model that points to that provider.
+- Test in mock mode first.
+- Test in live mode only when you are ready to spend provider credits.

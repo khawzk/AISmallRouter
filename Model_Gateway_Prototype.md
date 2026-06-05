@@ -140,7 +140,10 @@ Included in the prototype:
 - Basic usage limit per key
 - Basic request logs
 - Basic usage tracking
+- Persistent SQLite records
 - Basic model access control
+- Basic Bring Your Own Key provider mapping
+- Provider adapter scaffolds for OpenAI-compatible APIs and Anthropic-style APIs
 - Basic error response format
 
 Not included in the first prototype:
@@ -219,6 +222,26 @@ flowchart TB
 The missing part is the Model Gateway.
 
 The Model Gateway understands the AI provider differences.
+
+## Current Prototype Scope
+
+The current version is still simple, but it is no longer only a route demo.
+
+It now has a small product skeleton:
+
+- Customer keys in `customer_keys.json`
+- Model and provider rules in `model_registry.json`
+- Request and usage records in SQLite
+- JSONL logs for easy local inspection
+- Mock streaming
+- Mock fallback routing
+- OpenAI-compatible provider adapter
+- Anthropic adapter scaffold
+- BYOK mapping through environment variables
+
+This is enough to explain the direction to customers.
+
+It is not enough for production billing or enterprise security yet.
 
 ## Recommended First Architecture
 

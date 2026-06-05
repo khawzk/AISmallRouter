@@ -228,6 +228,9 @@ def build():
         "Customer API key authentication with Bearer token.",
         "Basic in-memory request limit.",
         "Model registry in model_registry.json.",
+        "SQLite request and usage records for restart-safe demo data.",
+        "Bring Your Own Key mapping through environment variables.",
+        "Provider adapter scaffolds for OpenAI-compatible APIs and Claude-style APIs.",
         "Mock mode for demos and planning.",
         "Live Qwen mode when DASHSCOPE_API_KEY is available.",
     ]:
@@ -239,11 +242,11 @@ def build():
         [
             ["Difficulty", "Why It Matters", "Prototype Status"],
             ["Provider format differences", "Each provider may use different request and response details.", "Handled first for DashScope-compatible chat"],
-            ["Streaming", "Chat UIs and agents often need incremental tokens.", "Not in first gateway; existing Qwen streaming POC exists"],
-            ["Tool calling", "OpenAI, Claude, and Qwen may differ in tool format.", "Future adapter work"],
-            ["Token usage", "Billing and quota require reliable usage data.", "Mock usage now; live provider usage later"],
-            ["Fallback", "Retrying another model needs clear business rules.", "Future routing milestone"],
-            ["Customer key management", "Each customer needs limits, logs, and access control.", "Minimum version included"],
+            ["Streaming", "Chat UIs and agents often need incremental tokens.", "Mock streaming included; live provider differences still need work"],
+            ["Tool calling", "OpenAI, Claude, and Qwen may differ in tool format.", "Basic normalization scaffold"],
+            ["Token usage", "Billing and quota require reliable usage data.", "Stored in SQLite"],
+            ["Fallback", "Retrying another model needs clear business rules.", "Mock fallback test included"],
+            ["Customer key management", "Each customer needs limits, logs, and access control.", "Minimum version plus BYOK mapping"],
             ["Cost control", "Different models have different prices and limits.", "Future usage and billing layer"],
         ],
         colWidths=[1.55 * inch, 3.15 * inch, 1.75 * inch],
@@ -257,8 +260,8 @@ def build():
             ["Phase", "Goal", "Result"],
             ["1. Current prototype", "Qwen-only gateway with mock dashboard", "Customer can understand the concept"],
             ["2. Live Qwen demo", "Use Model Studio API key for real chat", "Validate latency and response quality"],
-            ["3. Gateway controls", "Persist logs, usage, and model access rules", "Better customer management"],
-            ["4. More providers", "Add OpenAI, Claude, Xiaomi adapters", "More complete OpenRouter-like direction"],
+            ["3. Gateway controls", "Persist logs, usage, model access rules, and BYOK mapping", "Better customer management"],
+            ["4. More providers", "Enable OpenAI, Claude, Xiaomi adapters", "More complete OpenRouter-like direction"],
             ["5. Production", "Database, secrets, streaming, fallback, billing", "Enterprise-ready platform path"],
         ],
         colWidths=[1.45 * inch, 3.1 * inch, 1.9 * inch],
@@ -293,4 +296,3 @@ def build():
 
 if __name__ == "__main__":
     build()
-

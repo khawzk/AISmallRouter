@@ -611,7 +611,8 @@
       <div class="stat"><strong>1</strong><span>Unified API</span></div>
       <div class="stat"><strong id="modelCount">2</strong><span>Models in registry</span></div>
       <div class="stat"><strong id="customerCount">2</strong><span>Customer keys</span></div>
-      <div class="stat"><strong>0</strong><span>Credits used in mock</span></div>
+      <div class="stat"><strong id="requestCount">0</strong><span>Stored requests</span></div>
+      <div class="stat"><strong id="tokenCount">0</strong><span>Tracked tokens</span></div>
       <div class="stat"><strong id="modeText">mock</strong><span>Current mode</span></div>
     </section>
 
@@ -636,7 +637,7 @@
       </article>
       <article class="feature">
         <h3>Provider control later</h3>
-        <p>Start with Qwen. Add OpenAI, Claude, Xiaomi, fallback, cost controls, and customer usage records later.</p>
+        <p>Start with Qwen. OpenAI and Claude configs are already scaffolded for future provider testing.</p>
         <div class="mini-visual">
           <div class="visual-box">Qwen</div>
           <div class="visual-arrow">+</div>
@@ -660,8 +661,8 @@
             </div>
             <div class="route-step active">
               <div class="index">2</div>
-              <div class="route-copy"><strong>Gateway entry control</strong><span>checks API key and request limit</span></div>
-              <span class="chip green">enabled</span>
+              <div class="route-copy"><strong>Gateway entry control</strong><span>checks API key, request limit, and BYOK mapping</span></div>
+              <span class="chip green">customer control</span>
             </div>
             <div class="route-step active">
               <div class="index">3</div>
@@ -676,7 +677,7 @@
             <div class="route-step">
               <div class="index">5</div>
               <div class="route-copy"><strong>Mock or live provider</strong><span>mock returns route_trace, live calls Model Studio</span></div>
-              <span class="chip">zero spend</span>
+              <span class="chip">SQLite usage</span>
             </div>
           </div>
         </div>
@@ -743,6 +744,10 @@
         <strong>3. Move to live mode</strong>
         <p>Add DASHSCOPE_API_KEY only when you want a real Qwen response.</p>
       </article>
+      <article class="step-card">
+        <strong>4. Explain the control layer</strong>
+        <p>Use Admin to show stored requests, usage, customers, and BYOK provider mapping.</p>
+      </article>
     </section>
   </div>
 
@@ -750,6 +755,8 @@
     const state = __GATEWAY_STATE__;
     const modelCount = document.getElementById("modelCount");
     const customerCount = document.getElementById("customerCount");
+    const requestCount = document.getElementById("requestCount");
+    const tokenCount = document.getElementById("tokenCount");
     const modeText = document.getElementById("modeText");
     const limitText = document.getElementById("limitText");
     const modelsList = document.getElementById("modelsList");
@@ -762,6 +769,8 @@
 
     modelCount.textContent = String(state.models.length);
     customerCount.textContent = String((state.customers || []).length);
+    requestCount.textContent = String((state.summary && state.summary.request_count) || 0);
+    tokenCount.textContent = String((state.summary && state.summary.usage && state.summary.usage.total_tokens) || 0);
     modeText.textContent = state.mode;
     const firstCustomer = (state.customers || [])[0] || {};
     const requestLimit = firstCustomer.request_limit || state.request_limit;

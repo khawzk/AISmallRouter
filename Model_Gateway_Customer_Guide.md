@@ -58,8 +58,13 @@ The prototype supports:
 - Customer API key check
 - Basic usage limit
 - Request logs
+- SQLite request and usage storage
 - Model registry
 - Model routing alias
+- Fallback routing test in mock mode
+- Mock streaming
+- Bring Your Own Key provider mapping
+- Provider adapter scaffolds for OpenAI and Claude
 - Mock mode
 - Live Qwen mode
 
@@ -250,7 +255,7 @@ The gateway should help route by cost, quality, speed, or customer plan.
 
 ### Phase 3: Better Gateway Controls
 
-- Save request logs to a file or database
+- Save request logs to a file and database
 - Add per-customer usage records
 - Add model access rules
 - Add a simple admin page
@@ -259,6 +264,8 @@ The gateway should help route by cost, quality, speed, or customer plan.
 
 - Add OpenAI adapter
 - Add Claude adapter
+- Add provider-specific tool calling normalization
+- Add customer-owned provider keys
 - Add Xiaomi adapter
 - Keep OpenAI-compatible customer API
 
@@ -312,4 +319,3 @@ Use mock mode for customer explanation.
 Use live mode only when we need to test real model quality.
 
 After the customer understands the value, add more providers and stronger gateway controls step by step.
-

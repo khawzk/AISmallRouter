@@ -7,6 +7,9 @@
       "request_limit": 60,
       "limit_window_seconds": 60,
       "allowed_models": ["*"],
+      "provider_api_keys": {
+        "dashscope": "env:DASHSCOPE_API_KEY"
+      },
       "enabled": true
     },
     {
