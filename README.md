@@ -170,6 +170,7 @@ The current version also supports:
 - `GET /v1/gateway/providers`
 - `GET /v1/gateway/provider-health`
 - `GET /v1/gateway/model-catalog`
+- `POST /v1/gateway/route-preview`
 - `GET /v1/gateway/customer-reports`
 - `GET /v1/gateway/request-activity`
 - `GET /v1/gateway/customer-usage`
@@ -181,6 +182,7 @@ The current version also supports:
 - OpenAI-style `tools` request with mock tool call response
 - provider readiness view for mock-ready, live-ready, and degraded providers
 - model catalog with provider status, fallback chain, usage, and pricing metadata
+- route preview dry run before a real provider call
 - customer usage reports with request count, errors, token usage, and budget state
 - request activity feed with simple filters for troubleshooting
 - multiple customer keys through `customer_keys.json`
@@ -267,6 +269,33 @@ This helps explain the routing plan.
 The customer sees a simple model name.
 
 The gateway keeps the provider details behind it.
+
+## Route Preview
+
+The gateway has a dry-run route preview endpoint:
+
+```bash
+curl http://127.0.0.1:8787/v1/gateway/route-preview \
+  -H "Authorization: Bearer dev-admin-key" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "customer_id": "dev",
+    "model": "smart-fast"
+  }'
+```
+
+It does not call the provider.
+
+It shows:
+
+- whether the customer can use the model
+- current budget state
+- route candidates
+- fallback order
+- upstream model names
+- provider readiness
+
+This is useful before a live demo or customer test.
 
 ## Customer Reports
 
@@ -604,6 +633,7 @@ The tests check:
 - Status output without leaking provider keys
 - Provider health readiness output
 - Model catalog routing output
+- Route preview dry-run output
 - Customer usage report output
 - Request activity filtering
 - Provider, customer, model, and request summary admin endpoints

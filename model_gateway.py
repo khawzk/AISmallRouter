@@ -34,6 +34,7 @@ ADMIN_PATHS = {
     "/v1/gateway/customer-reports",
     "/v1/gateway/request-activity",
     "/v1/gateway/model-catalog",
+    "/v1/gateway/route-preview",
     "/v1/gateway/customer-usage",
     "/v1/gateway/model-usage",
     "/v1/gateway/request-summary",
@@ -765,6 +766,112 @@ def model_catalog(server):
             }
         )
     return rows
+
+
+def customer_by_id(server, customer_id):
+    for customer in server.customers_by_key.values():
+        if customer.get("id") == customer_id:
+            return customer
+    return None
+
+
+def customer_model_allowed(customer, public_model):
+    allowed = customer.get("allowed_models", ["*"])
+    return "*" in allowed or public_model in allowed
+
+
+def build_candidate_models(server, customer, public_model, payload):
+    model = server.models.get(public_model)
+    if not model:
+        raise GatewayError(f"Unknown model: {public_model}.", "unknown_model", 404)
+    if not customer_model_allowed(customer, public_model):
+        raise GatewayError(f"Customer is not allowed to use model: {public_model}.", "model_not_allowed", 403)
+    routing_policy = {
+        "source": "model_registry",
+        "fallback_enabled": not bool(payload.get("gateway_disable_fallback")),
+        "requested_fallback_models": None,
+    }
+    fallback_models = model.get("fallback_models", [])
+    requested_fallbacks = False
+    if "gateway_fallback_models" in payload:
+        requested = payload.get("gateway_fallback_models")
+        if not isinstance(requested, list) or not all(isinstance(name, str) for name in requested):
+            raise GatewayError(
+                "gateway_fallback_models must be a list of model names.",
+                "invalid_routing_policy",
+                400,
+            )
+        fallback_models = requested
+        requested_fallbacks = True
+        routing_policy["source"] = "request"
+        routing_policy["requested_fallback_models"] = requested
+    if not routing_policy["fallback_enabled"]:
+        fallback_models = []
+        routing_policy["source"] = "request"
+
+    candidates = [public_model]
+    for name in fallback_models:
+        if name == public_model or name in candidates:
+            continue
+        if name not in server.models:
+            raise GatewayError(f"Unknown fallback model: {name}.", "unknown_fallback_model", 404)
+        if requested_fallbacks and not customer_model_allowed(customer, name):
+            raise GatewayError(f"Customer is not allowed to use model: {name}.", "model_not_allowed", 403)
+        candidates.append(name)
+    routing_policy["candidates"] = candidates
+    return candidates, routing_policy
+
+
+def route_preview(server, payload):
+    public_model = payload.get("model")
+    if not public_model:
+        raise GatewayError("Missing required field: model.", "missing_model", 400)
+    customer_id = payload.get("customer_id") or "dev"
+    customer = customer_by_id(server, customer_id)
+    if not customer:
+        raise GatewayError(f"Unknown customer: {customer_id}.", "unknown_customer", 404)
+    budget = customer_budget_status(server.db_path, customer)
+    budget_state = customer_budget_state(budget)
+    candidates, routing_policy = build_candidate_models(server, customer, public_model, payload)
+    provider_health_by_id = {provider["id"]: provider for provider in provider_health(server)}
+    routes = []
+    for index, candidate_name in enumerate(candidates):
+        model = server.models[candidate_name]
+        provider_id = model.get("provider")
+        provider = server.providers.get(provider_id, {})
+        health = provider_health_by_id.get(provider_id, {})
+        routes.append(
+            {
+                "index": index,
+                "public_model": candidate_name,
+                "upstream_model": model.get("upstream_model"),
+                "provider": provider_id,
+                "provider_name": provider.get("name", provider_id),
+                "provider_status": health.get("status", "unknown"),
+                "capabilities": model.get("capabilities", []),
+                "pricing": model.get("pricing", {}),
+                "reason": "primary route" if index == 0 else "fallback route",
+            }
+        )
+    allowed = budget_state != "blocked"
+    return {
+        "mode": "mock" if server.mock_mode else "live",
+        "customer": public_customer_view(customer),
+        "model": public_model,
+        "allowed": allowed,
+        "blocked_reason": "customer_budget_blocked" if not allowed else None,
+        "budget": budget,
+        "budget_state": budget_state,
+        "routing_policy": routing_policy,
+        "routes": routes,
+        "route_trace": [
+            f"Customer = {customer_id}",
+            f"Requested model = {public_model}",
+            f"Access allowed = {customer_model_allowed(customer, public_model)}",
+            f"Budget state = {budget_state}",
+            f"Route candidates = {', '.join(candidates)}",
+        ],
+    }
 
 
 def add_config_check(checks, severity, code, message, details=None):
@@ -1766,7 +1873,19 @@ class GatewayHandler(BaseHTTPRequestHandler):
         make_error(self, 404, "Route not found.", "route_not_found")
 
     def do_POST(self):
-        if self.route_path() != "/v1/chat/completions":
+        path = self.route_path()
+        if path == "/v1/gateway/route-preview":
+            if not self.authenticate_admin():
+                return
+            payload = self.read_json_body()
+            if payload is None:
+                return
+            try:
+                make_json_response(self, 200, route_preview(self.server, payload))
+            except GatewayError as exc:
+                make_error(self, exc.status, exc.message, exc.code, exc.details)
+            return
+        if path != "/v1/chat/completions":
             make_error(self, 404, "Route not found.", "route_not_found")
             return
         if not self.authenticate():
@@ -1863,8 +1982,7 @@ class GatewayHandler(BaseHTTPRequestHandler):
             return None
 
     def ensure_model_access(self, public_model):
-        allowed = self.customer.get("allowed_models", ["*"])
-        if "*" not in allowed and public_model not in allowed:
+        if not customer_model_allowed(self.customer, public_model):
             raise GatewayError(f"Customer is not allowed to use model: {public_model}.", "model_not_allowed", 403)
 
     def ensure_budget_available(self):
@@ -1888,43 +2006,7 @@ class GatewayHandler(BaseHTTPRequestHandler):
             )
 
     def candidate_models(self, public_model, payload):
-        model = self.server.models.get(public_model)
-        if not model:
-            raise GatewayError(f"Unknown model: {public_model}.", "unknown_model", 404)
-        routing_policy = {
-            "source": "model_registry",
-            "fallback_enabled": not bool(payload.get("gateway_disable_fallback")),
-            "requested_fallback_models": None,
-        }
-        fallback_models = model.get("fallback_models", [])
-        requested_fallbacks = False
-        if "gateway_fallback_models" in payload:
-            requested = payload.get("gateway_fallback_models")
-            if not isinstance(requested, list) or not all(isinstance(name, str) for name in requested):
-                raise GatewayError(
-                    "gateway_fallback_models must be a list of model names.",
-                    "invalid_routing_policy",
-                    400,
-                )
-            fallback_models = requested
-            requested_fallbacks = True
-            routing_policy["source"] = "request"
-            routing_policy["requested_fallback_models"] = requested
-        if not routing_policy["fallback_enabled"]:
-            fallback_models = []
-            routing_policy["source"] = "request"
-
-        candidates = [public_model]
-        for name in fallback_models:
-            if name == public_model or name in candidates:
-                continue
-            if name not in self.server.models:
-                raise GatewayError(f"Unknown fallback model: {name}.", "unknown_fallback_model", 404)
-            if requested_fallbacks:
-                self.ensure_model_access(name)
-            candidates.append(name)
-        routing_policy["candidates"] = candidates
-        return candidates, routing_policy
+        return build_candidate_models(self.server, self.customer, public_model, payload)
 
     def route_trace(self, public_model, resolved_model, routing_policy):
         fallback_text = "disabled"

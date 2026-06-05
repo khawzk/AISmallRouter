@@ -940,6 +940,29 @@
         </div>
       </section>
 
+      <section class="card" id="preview">
+        <div class="card-head">
+          <h2>Route preview</h2>
+          <span>dry run, no provider call</span>
+        </div>
+        <div class="card-body">
+          <div class="console">
+            <label>Customer
+              <select id="previewCustomer"></select>
+            </label>
+            <label>Model
+              <select id="previewModel"></select>
+            </label>
+            <div class="form-actions">
+              <button id="previewButton" type="button">Preview route</button>
+            </div>
+          </div>
+          <div class="trace" id="previewTrace">
+            <div class="trace-item">Preview route will appear here before a real request.</div>
+          </div>
+        </div>
+      </section>
+
       <section class="card" id="models">
         <div class="card-head">
           <h2>Featured models</h2>
@@ -986,6 +1009,10 @@
     const customerReportList = document.getElementById("customerReportList");
     const activityList = document.getElementById("activityList");
     const modelSelect = document.getElementById("modelSelect");
+    const previewCustomer = document.getElementById("previewCustomer");
+    const previewModel = document.getElementById("previewModel");
+    const previewButton = document.getElementById("previewButton");
+    const previewTrace = document.getElementById("previewTrace");
     const routeTrace = document.getElementById("routeTrace");
     const output = document.getElementById("output");
     const sendButton = document.getElementById("sendButton");
@@ -1003,6 +1030,14 @@
     const requestLimit = firstCustomer.request_limit || state.request_limit;
     const limitWindow = firstCustomer.limit_window_seconds || state.limit_window_seconds;
     limitText.textContent = `${requestLimit} requests / ${limitWindow}s`;
+
+    (state.customers || []).forEach((customer) => {
+      const option = document.createElement("option");
+      option.value = customer.id;
+      option.textContent = `${customer.id} (${customer.plan})`;
+      if (customer.id === "dev") option.selected = true;
+      previewCustomer.appendChild(option);
+    });
 
     (state.model_catalog || state.models || []).forEach((model) => {
       const card = document.createElement("article");
@@ -1032,6 +1067,12 @@
       option.textContent = model.id;
       if (model.id === "smart-fast") option.selected = true;
       modelSelect.appendChild(option);
+
+      const previewOption = document.createElement("option");
+      previewOption.value = model.id;
+      previewOption.textContent = model.id;
+      if (model.id === "smart-fast") previewOption.selected = true;
+      previewModel.appendChild(previewOption);
     });
 
     (state.provider_health || []).forEach((provider) => {
@@ -1160,6 +1201,36 @@
     }
 
     sendButton.addEventListener("click", sendRequest);
+    previewButton.addEventListener("click", async () => {
+      previewButton.disabled = true;
+      previewTrace.innerHTML = '<div class="trace-item">Previewing route...</div>';
+      try {
+        const response = await fetch("/v1/gateway/route-preview?admin_key=" + encodeURIComponent(adminKey), {
+          method: "POST",
+          headers: {"Content-Type": "application/json"},
+          body: JSON.stringify({
+            customer_id: previewCustomer.value,
+            model: previewModel.value
+          })
+        });
+        const data = await response.json();
+        if (!response.ok) {
+          previewTrace.innerHTML = `<div class="trace-item">${data.error ? data.error.message : "Preview failed."}</div>`;
+          return;
+        }
+        previewTrace.innerHTML = "";
+        [...(data.route_trace || []), ...(data.routes || []).map((route) => `${route.reason}: ${route.public_model} -> ${route.upstream_model} on ${route.provider} (${route.provider_status})`)].forEach((line, index) => {
+          const div = document.createElement("div");
+          div.className = "trace-item";
+          div.innerHTML = `<strong>${index + 1}</strong>${line}`;
+          previewTrace.appendChild(div);
+        });
+      } catch (error) {
+        previewTrace.innerHTML = '<div class="trace-item">' + String(error) + '</div>';
+      } finally {
+        previewButton.disabled = false;
+      }
+    });
     resetButton.addEventListener("click", () => {
       promptInput.value = "Explain this gateway in one short sentence.";
       routeTrace.innerHTML = '<div class="trace-item">Route trace will appear here after a test request.</div>';

@@ -386,6 +386,30 @@ class GatewayPrototypeTest(unittest.TestCase):
         self.assertIn("pricing", catalog["smart-fast"])
         self.assertGreaterEqual(catalog["smart-fast"]["usage"]["requests"], 1)
 
+        status, preview = request_json(
+            self.base_url,
+            method="POST",
+            path="/v1/gateway/route-preview",
+            api_key="dev-admin-key",
+            payload={"customer_id": "dev", "model": "smart-fast"},
+        )
+        self.assertEqual(status, 200)
+        self.assertTrue(preview["allowed"])
+        self.assertEqual(preview["customer"]["id"], "dev")
+        self.assertEqual(preview["routes"][0]["public_model"], "smart-fast")
+        self.assertEqual(preview["routes"][0]["upstream_model"], "qwen-plus")
+        self.assertIn("qwen-turbo", preview["routing_policy"]["candidates"])
+
+        status, preview = request_json(
+            self.base_url,
+            method="POST",
+            path="/v1/gateway/route-preview",
+            api_key="dev-admin-key",
+            payload={"customer_id": "demo-limited", "model": "qwen-plus"},
+        )
+        self.assertEqual(status, 403)
+        self.assertEqual(preview["error"]["code"], "model_not_allowed")
+
         status, customer_usage = request_json(self.base_url, path="/v1/gateway/customer-usage", api_key="dev-admin-key")
         self.assertEqual(status, 200)
         customer_ids = {row["id"] for row in customer_usage["data"]}

@@ -205,6 +205,7 @@ They help explain the control layer:
 - Provider status
 - Provider health and readiness
 - Model catalog and routing plan
+- Route preview before a live request
 - Customer usage reports
 - Request activity feed
 - Usage by customer
@@ -261,6 +262,27 @@ This is useful for non-technical customers.
 They can see that `smart-fast` is a simple public name.
 
 Behind it, the gateway can route to Qwen and fallback when needed.
+
+## What Route Preview Shows
+
+The prototype includes `/v1/gateway/route-preview`.
+
+It is a dry run.
+
+It does not call the model provider.
+
+It shows:
+
+- Can this customer use this model?
+- Is the customer budget still available?
+- Which model is the primary route?
+- Which models are fallback routes?
+- Which provider would handle the request?
+- Is the provider ready?
+
+This is useful before a customer demo.
+
+You can explain the route without spending model credits.
 
 ## What Customer Reports Show
 
