@@ -378,6 +378,50 @@
       font-size: 11px;
     }
 
+    .readiness-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+    }
+
+    .readiness-card {
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: var(--panel-3);
+      padding: 14px;
+    }
+
+    .readiness-card.ready {
+      border-color: rgba(65, 217, 157, 0.38);
+    }
+
+    .readiness-card.needs_work {
+      border-color: rgba(255, 196, 107, 0.38);
+    }
+
+    .readiness-card.blocked {
+      border-color: rgba(255, 123, 123, 0.45);
+    }
+
+    .readiness-title {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      align-items: start;
+      margin-bottom: 10px;
+    }
+
+    .readiness-title strong {
+      display: block;
+      font-size: 14px;
+    }
+
+    .readiness-card p {
+      margin: 0 0 10px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
     .route-flow {
       display: grid;
       gap: 12px;
@@ -949,6 +993,7 @@
       .feature-grid,
       .architecture-map,
       .option-grid,
+      .readiness-grid,
       .demo-board,
       .quickstart {
         grid-template-columns: 1fr;
@@ -1028,6 +1073,7 @@
       <div class="nav-links">
         <a href="#architecture">Architecture</a>
         <a href="#options">Options</a>
+        <a href="#readiness">Readiness</a>
         <a href="#models">Models</a>
         <a href="#health">Health</a>
         <a href="#reports">Reports</a>
@@ -1133,6 +1179,16 @@
             <p>The dashboard will load the decision guide from the admin API.</p>
           </article>
         </div>
+      </div>
+    </section>
+
+    <section class="card" id="readiness" style="margin-bottom: 18px;">
+      <div class="card-head">
+        <h2>Production readiness</h2>
+        <span id="readinessSummary">demo-ready does not mean production-ready</span>
+      </div>
+      <div class="card-body">
+        <div class="readiness-grid" id="readinessList"></div>
       </div>
     </section>
 
@@ -1513,6 +1569,8 @@
     const alertSummary = document.getElementById("alertSummary");
     const alertList = document.getElementById("alertList");
     const gatewayOptionsList = document.getElementById("gatewayOptionsList");
+    const readinessSummary = document.getElementById("readinessSummary");
+    const readinessList = document.getElementById("readinessList");
     const accessMatrixList = document.getElementById("accessMatrixList");
     const customerReportList = document.getElementById("customerReportList");
     const invoicePreviewList = document.getElementById("invoicePreviewList");
@@ -1698,6 +1756,29 @@
       `;
       providerHealthList.appendChild(card);
     });
+
+    const readiness = state.production_readiness || {categories: []};
+    readinessSummary.textContent = `${readiness.overall_status || "unknown"} / ${readiness.prototype_only ? "prototype only" : "production candidate"}`;
+    if ((readiness.categories || []).length === 0) {
+      readinessList.innerHTML = '<div class="trace-item">No readiness categories available.</div>';
+    } else {
+      (readiness.categories || []).forEach((category) => {
+        const card = document.createElement("article");
+        card.className = "readiness-card " + (category.status || "");
+        const chipClass = category.status === "ready" ? "chip green" : "chip";
+        card.innerHTML = `
+          <div class="readiness-title">
+            <strong>${escapeHtml(category.area || "")}</strong>
+            <span class="${chipClass}">${escapeHtml(category.status || "")}</span>
+          </div>
+          <p>${escapeHtml(category.plain_english || "")}</p>
+          <div class="option-list">
+            <span>${escapeHtml(category.next_step || "")}</span>
+          </div>
+        `;
+        readinessList.appendChild(card);
+      });
+    }
 
     function tokenPercent(report) {
       const budget = report.budget || {};

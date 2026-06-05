@@ -402,6 +402,8 @@ It is not a full security audit.
 
 It is a management-friendly view for explaining what still needs work before production traffic.
 
+The dashboard also shows this as **Production readiness** cards.
+
 For production, change the key with `GATEWAY_ADMIN_API_KEY`.
 
 ## Customer Self View
@@ -1366,6 +1368,7 @@ The dashboard is designed for customer explanation. It shows:
 - The layered architecture
 - A visual architecture map from customer systems to model providers
 - Gateway options comparison for API Gateway, managed AI Gateway, custom Model Gateway, and OpenRouter-like paths
+- Production readiness cards for go-live gaps
 - Gateway entry control
 - Model routing
 - Provider adapters

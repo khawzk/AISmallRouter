@@ -4619,6 +4619,7 @@ def gateway_status(server):
         "access_matrix": access_matrix(server),
         "customer_reports": customer_reports(server),
         "invoice_preview": invoice_preview(server),
+        "production_readiness": production_readiness(server),
         "request_activity": request_activity(server.db_path, limit=10),
         "audit_events": audit_events(server.db_path, limit=10),
         "usage_by_customer": usage_grouped_by(server.db_path, "customer_id"),

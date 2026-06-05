@@ -261,6 +261,7 @@ The dashboard shows:
 
 - Layered architecture map
 - Gateway options comparison
+- Production readiness cards
 - Operational alerts
 - Access matrix
 - One API for customers
@@ -1082,6 +1083,8 @@ The prototype includes `/v1/gateway/production-readiness`.
 This is a management-friendly report.
 
 It explains what is demo-ready and what still needs work.
+
+The dashboard also shows this as Production readiness cards.
 
 It groups the work into:
 

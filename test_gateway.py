@@ -835,6 +835,9 @@ class GatewayPrototypeTest(unittest.TestCase):
         self.assertIn("audit_event_count", payload["summary"])
         self.assertIn("invoice_preview", payload)
         self.assertIn("totals", payload["invoice_preview"])
+        self.assertIn("production_readiness", payload)
+        self.assertIn("categories", payload["production_readiness"])
+        self.assertGreaterEqual(len(payload["production_readiness"]["categories"]), 5)
         catalog = {model["id"]: model for model in payload["model_catalog"]}
         self.assertIn("smart-fast", catalog)
         self.assertEqual(catalog["smart-fast"]["route_chain"][0], "smart-fast")
@@ -1710,6 +1713,8 @@ class GatewayPrototypeTest(unittest.TestCase):
         self.assertIn("Gateway options comparison", html)
         self.assertIn("gatewayOptionsList", html)
         self.assertIn("/v1/gateway/decision-guide?admin_key=", html)
+        self.assertIn("Production readiness", html)
+        self.assertIn("readinessList", html)
         self.assertIn("Customer lifecycle", html)
         self.assertIn("createCustomerButton", html)
         self.assertIn("/v1/gateway/customers/rotate-key", html)

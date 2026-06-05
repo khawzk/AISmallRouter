@@ -630,7 +630,7 @@ def build():
     story.append(Paragraph("Production Readiness Report", styles["H1Custom"]))
     story.append(
         Paragraph(
-            "/v1/gateway/production-readiness explains go-live gaps in plain English. It groups the work into security, provider readiness, customer controls, routing and fallback, observability, billing, and documentation handoff. Each area has a status, evidence, and next step. This helps a customer understand why a prototype can be demo-ready but still not production-ready.",
+            "/v1/gateway/production-readiness explains go-live gaps in plain English. The dashboard also shows this as Production readiness cards. It groups the work into security, provider readiness, customer controls, routing and fallback, observability, billing, and documentation handoff. Each area has a status, evidence, and next step. This helps a customer understand why a prototype can be demo-ready but still not production-ready.",
             styles["BodyCustom"],
         )
     )
