@@ -501,6 +501,8 @@ class GatewayPrototypeTest(unittest.TestCase):
         self.assertIn("budget_state", reports["dev"])
         self.assertNotIn("provider_api_keys", reports["dev"])
         self.assertIn("request_activity", payload)
+        self.assertIn("audit_events", payload)
+        self.assertIn("audit_event_count", payload["summary"])
         self.assertIn("invoice_preview", payload)
         self.assertIn("totals", payload["invoice_preview"])
         catalog = {model["id"]: model for model in payload["model_catalog"]}
@@ -816,6 +818,32 @@ class GatewayPrototypeTest(unittest.TestCase):
         status, disabled_view = request_json(self.base_url, path="/v1/gateway/me", api_key="lifecycle-key-2")
         self.assertEqual(status, 401)
         self.assertEqual(disabled_view["error"]["code"], "invalid_api_key")
+
+        status, audit = request_json(self.base_url, path="/v1/gateway/audit-events")
+        self.assertEqual(status, 401)
+
+        status, audit = request_json(
+            self.base_url,
+            path="/v1/gateway/audit-events?target_id=lifecycle-customer",
+            api_key="dev-admin-key",
+        )
+        self.assertEqual(status, 200)
+        actions = {event["action"] for event in audit["data"]}
+        self.assertIn("customer.created", actions)
+        self.assertIn("customer.key_rotated", actions)
+        self.assertIn("customer.disabled", actions)
+        audit_text = json.dumps(audit)
+        self.assertNotIn("lifecycle-key-1", audit_text)
+        self.assertNotIn("lifecycle-key-2", audit_text)
+        self.assertIn("api_key_hash", audit_text)
+
+        status, audit = request_json(
+            self.base_url,
+            path="/v1/gateway/audit-events?action=customer.key_rotated&limit=5",
+            api_key="dev-admin-key",
+        )
+        self.assertEqual(status, 200)
+        self.assertTrue(all(event["action"] == "customer.key_rotated" for event in audit["data"]))
 
         status, customer_usage = request_json(self.base_url, path="/v1/gateway/customer-usage", api_key="dev-admin-key")
         self.assertEqual(status, 200)

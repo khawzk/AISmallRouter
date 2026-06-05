@@ -149,6 +149,7 @@ Included in the prototype:
 - Basic capability routing control
 - Basic customer key issue preview
 - Basic customer key create, rotate, and disable workflow
+- Basic audit events for customer key lifecycle changes
 - Basic customer self-service profile
 - Basic invoice preview with CSV export
 - Basic customer plan, token budget, and cost budget control

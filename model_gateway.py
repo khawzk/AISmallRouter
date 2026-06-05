@@ -30,6 +30,7 @@ DEFAULT_LIMIT_WINDOW_SECONDS = 60
 ADMIN_PATHS = {
     "/admin",
     "/v1/gateway/status",
+    "/v1/gateway/audit-events",
     "/v1/gateway/requests",
     "/v1/gateway/usage",
     "/v1/gateway/customers",
@@ -186,6 +187,20 @@ def init_db(path):
             )
             """
         )
+        conn.execute(
+            """
+            create table if not exists audit_events (
+                id integer primary key autoincrement,
+                created integer not null,
+                actor text,
+                action text,
+                target_type text,
+                target_id text,
+                status text,
+                details text
+            )
+            """
+        )
         customer_columns = {
             row[1]
             for row in conn.execute("pragma table_info(customers)").fetchall()
@@ -297,8 +312,30 @@ def insert_usage_db(path, record):
         conn.commit()
 
 
+def insert_audit_db(path, record):
+    with sqlite3.connect(path) as conn:
+        conn.execute(
+            """
+            insert into audit_events (
+                created, actor, action, target_type, target_id, status, details
+            )
+            values (?, ?, ?, ?, ?, ?, ?)
+            """,
+            (
+                record.get("created"),
+                record.get("actor"),
+                record.get("action"),
+                record.get("target_type"),
+                record.get("target_id"),
+                record.get("status"),
+                json.dumps(record.get("details", {}), ensure_ascii=False),
+            ),
+        )
+        conn.commit()
+
+
 def db_tail(path, table, limit=50):
-    allowed = {"requests", "usage_records", "customers"}
+    allowed = {"requests", "usage_records", "customers", "audit_events"}
     if table not in allowed or not os.path.exists(path):
         return []
     with sqlite3.connect(path) as conn:
@@ -373,6 +410,54 @@ def request_activity(path, filters=None, limit=50):
     return activity
 
 
+def audit_events(path, filters=None, limit=50):
+    filters = filters or {}
+    if not os.path.exists(path):
+        return []
+    allowed_filters = {
+        "actor": "actor",
+        "action": "action",
+        "target_type": "target_type",
+        "target_id": "target_id",
+        "status": "status",
+    }
+    clauses = []
+    values = []
+    for filter_name, column in allowed_filters.items():
+        value = filters.get(filter_name)
+        if value:
+            clauses.append(f"{column} = ?")
+            values.append(value)
+    where = f"where {' and '.join(clauses)}" if clauses else ""
+    values.append(bounded_int(limit, 50))
+    with sqlite3.connect(path) as conn:
+        conn.row_factory = sqlite3.Row
+        rows = conn.execute(
+            f"""
+            select
+                created, actor, action, target_type, target_id, status, details
+            from audit_events
+            {where}
+            order by id desc
+            limit ?
+            """,
+            values,
+        ).fetchall()
+    events = []
+    for row in rows:
+        record = dict(row)
+        try:
+            record["details"] = json.loads(record.get("details") or "{}")
+        except json.JSONDecodeError:
+            record["details"] = {}
+        record["summary"] = (
+            f"{record.get('actor') or 'unknown'} {record.get('action') or 'changed'} "
+            f"{record.get('target_type') or 'target'} {record.get('target_id') or 'unknown'}"
+        )
+        events.append(record)
+    return events
+
+
 def request_detail(path, request_id):
     if not request_id or not os.path.exists(path):
         return None
@@ -430,6 +515,7 @@ def db_summary(path):
     with sqlite3.connect(path) as conn:
         conn.row_factory = sqlite3.Row
         request_count = conn.execute("select count(*) as value from requests").fetchone()["value"]
+        audit_event_count = conn.execute("select count(*) as value from audit_events").fetchone()["value"]
         usage = conn.execute(
             """
             select
@@ -450,6 +536,7 @@ def db_summary(path):
         ).fetchall()
     return {
         "request_count": request_count,
+        "audit_event_count": audit_event_count,
         "usage": dict(usage),
         "requests_by_customer": [dict(row) for row in by_customer],
     }
@@ -1429,6 +1516,22 @@ def customer_key_package(customer):
     return public_customer
 
 
+def write_audit_event(server, action, target_type, target_id, status="success", details=None):
+    safe_details = details or {}
+    record = {
+        "created": now_unix(),
+        "actor": "admin",
+        "action": action,
+        "target_type": target_type,
+        "target_id": target_id,
+        "status": status,
+        "details": safe_details,
+    }
+    append_jsonl(server.audit_log_path, record)
+    insert_audit_db(server.db_path, record)
+    return record
+
+
 def customer_create(server, payload):
     config = load_customer_config(server.customers_path)
     existing_ids = {customer.get("id") for customer in config.get("customers", [])}
@@ -1441,6 +1544,21 @@ def customer_create(server, payload):
     config.setdefault("customers", []).append(customer_config)
     write_json(server.customers_path, config)
     reload_customer_runtime(server)
+    write_audit_event(
+        server,
+        "customer.created",
+        "customer",
+        customer_config["id"],
+        details={
+            "plan": customer_config.get("plan"),
+            "allowed_models": customer_config.get("allowed_models", []),
+            "request_limit": customer_config.get("request_limit"),
+            "token_budget": customer_config.get("token_budget"),
+            "cost_budget": customer_config.get("cost_budget"),
+            "api_key_hash": key_hash(customer_config["api_key"]),
+            "api_key_masked": mask_key(customer_config["api_key"]),
+        },
+    )
     return {
         "object": "customer.created",
         "customer": customer_key_package(customer_config),
@@ -1475,6 +1593,16 @@ def customer_disable(server, payload):
     config["customers"][index] = customer
     write_json(server.customers_path, config)
     reload_customer_runtime(server)
+    write_audit_event(
+        server,
+        "customer.disabled",
+        "customer",
+        customer_id,
+        details={
+            "api_key_hash": key_hash(customer.get("api_key", "")) if customer.get("api_key") else "",
+            "api_key_masked": mask_key(customer.get("api_key", "")),
+        },
+    )
     return {
         "object": "customer.disabled",
         "customer": customer_key_package(customer),
@@ -1509,6 +1637,18 @@ def customer_rotate_key(server, payload):
     config["customers"][index] = customer
     write_json(server.customers_path, config)
     reload_customer_runtime(server)
+    write_audit_event(
+        server,
+        "customer.key_rotated",
+        "customer",
+        customer_id,
+        details={
+            "old_api_key_hash": key_hash(old_key) if old_key else "",
+            "old_api_key_masked": mask_key(old_key),
+            "new_api_key_hash": key_hash(api_key),
+            "new_api_key_masked": mask_key(api_key),
+        },
+    )
     return {
         "object": "customer.key_rotated",
         "customer": customer_key_package(customer),
@@ -2060,6 +2200,7 @@ def gateway_status(server):
         "customer_reports": customer_reports(server),
         "invoice_preview": invoice_preview(server),
         "request_activity": request_activity(server.db_path, limit=10),
+        "audit_events": audit_events(server.db_path, limit=10),
         "usage_by_customer": usage_grouped_by(server.db_path, "customer_id"),
         "usage_by_model": usage_grouped_by(server.db_path, "model"),
         "request_limit": server.default_request_limit,
@@ -2755,6 +2896,23 @@ class GatewayHandler(BaseHTTPRequestHandler):
         if path == "/v1/gateway/requests":
             make_json_response(self, 200, {"data": db_tail(self.server.db_path, "requests", 100)})
             return
+        if path == "/v1/gateway/audit-events":
+            filters = {
+                key: values[0]
+                for key, values in query.items()
+                if values and key in {"actor", "action", "target_type", "target_id", "status"}
+            }
+            limit = bounded_int(query.get("limit", [50])[0], 50)
+            make_json_response(
+                self,
+                200,
+                {
+                    "filters": filters,
+                    "limit": limit,
+                    "data": audit_events(self.server.db_path, filters, limit),
+                },
+            )
+            return
         if path == "/v1/gateway/usage":
             make_json_response(self, 200, {"data": db_tail(self.server.db_path, "usage_records", 100)})
             return
@@ -3239,6 +3397,7 @@ def main():
     server.usage_by_key = {}
     server.request_log_path = os.path.join(args.log_dir, "requests.jsonl")
     server.usage_log_path = os.path.join(args.log_dir, "usage.jsonl")
+    server.audit_log_path = os.path.join(args.log_dir, "audit_events.jsonl")
     server.db_path = db_path
     mode = "mock" if args.mock else "live"
     print(f"AISmallRouter listening on http://{args.host}:{args.port}")

@@ -74,6 +74,7 @@ The prototype supports:
 - Local safety preview
 - Customer key issue preview
 - Customer key create, rotate, and disable actions
+- Audit events for customer key lifecycle actions
 - Invoice preview with CSV export
 - Provider adapter scaffolds for OpenAI and Claude
 - Automated mock regression test
@@ -225,6 +226,7 @@ They help explain the control layer:
 - Cost estimate before a live request
 - Customer key issue preview
 - Customer key lifecycle actions
+- Audit events
 - Customer self view
 - Customer usage reports
 - Invoice preview
@@ -496,6 +498,34 @@ Production should use:
 - secret manager
 - approval workflow
 - customer admin UI
+
+## What Audit Events Show
+
+The prototype includes `/v1/gateway/audit-events`.
+
+It records customer key lifecycle actions.
+
+For example:
+
+- customer created
+- customer key rotated
+- customer disabled
+
+Each event shows:
+
+- actor
+- action
+- target customer
+- time
+- safe details
+
+The audit event can include masked keys and key hashes.
+
+It does not store the full gateway API key.
+
+This helps explain control history.
+
+It is not a full compliance audit system.
 
 ## What Invoice Preview Shows
 

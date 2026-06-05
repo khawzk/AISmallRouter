@@ -30,7 +30,7 @@ It does not spend provider credits.
 python3 test_gateway.py
 ```
 
-The test covers auth, model listing, customer self view, customer key lifecycle, routing, route preview, route decision summary, provider allow-list routing, capability routing, safety preview, cost estimate, customer key issue preview, invoice preview, fallback, model access, budgets, SQLite logs, alerts, access matrix, provider health, model catalog, customer reports, request activity, request detail lookup, and admin summary endpoints.
+The test covers auth, model listing, customer self view, customer key lifecycle, audit events, routing, route preview, route decision summary, provider allow-list routing, capability routing, safety preview, cost estimate, customer key issue preview, invoice preview, fallback, model access, budgets, SQLite logs, alerts, access matrix, provider health, model catalog, customer reports, request activity, request detail lookup, and admin summary endpoints.
 
 Open the visual dashboard:
 
@@ -110,6 +110,24 @@ curl http://127.0.0.1:8787/v1/gateway/customers/disable \
 ```
 
 This updates `customer_keys.json` in the running prototype.
+
+## Check Audit Events
+
+Audit events show customer key lifecycle actions.
+
+They do not store full API keys.
+
+```bash
+curl "http://127.0.0.1:8787/v1/gateway/audit-events?target_id=customer-demo" \
+  -H "Authorization: Bearer dev-admin-key"
+```
+
+Filter by action:
+
+```bash
+curl "http://127.0.0.1:8787/v1/gateway/audit-events?action=customer.key_rotated" \
+  -H "Authorization: Bearer dev-admin-key"
+```
 
 ## Check Operational Alerts
 

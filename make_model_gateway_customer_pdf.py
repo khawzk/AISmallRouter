@@ -244,6 +244,7 @@ def build():
         "Local safety preview for obvious sensitive data.",
         "Customer key issue preview for safe onboarding demos.",
         "Customer key create, rotate, and disable actions for lifecycle demos.",
+        "Audit events for customer key lifecycle actions.",
         "Invoice preview with JSON and CSV output.",
         "Capability routing control for streaming and tools.",
         "Request-level fallback controls for routing demos.",
@@ -279,6 +280,7 @@ def build():
             ["Cost estimate", "Customers need budget planning before live calls.", "Dry-run estimate for tokens, cost, and budget impact"],
             ["Customer onboarding", "New customers need keys, limits, and model access.", "Key issue preview creates a safe config snippet"],
             ["Key lifecycle", "Customers need key rotation and disable workflows.", "Local JSON-backed create, rotate, and disable actions"],
+            ["Audit trail", "Teams need to know who changed customer access.", "Audit events for customer lifecycle actions"],
             ["Customer self-service", "Customers need to see their own access, usage, and budget.", "Customer self view with no provider secret exposure"],
             ["Invoice preview", "Customers need a simple billing story.", "Estimated invoice preview with CSV export"],
             ["Customer reporting", "Customers need a simple usage and budget story.", "Per-customer report endpoint and dashboard cards"],
@@ -409,6 +411,14 @@ def build():
     story.append(
         Paragraph(
             "The prototype can also create a customer, rotate a customer gateway key, and disable a customer. These admin actions update customer_keys.json and reload the local runtime. After rotation, the old key stops working. After disable, the customer key stops working. This is useful for demos, but production should use a database, audit logs, approval workflow, and a secret manager.",
+            styles["BodyCustom"],
+        )
+    )
+
+    story.append(Paragraph("Audit Events", styles["H1Custom"]))
+    story.append(
+        Paragraph(
+            "/v1/gateway/audit-events records customer lifecycle actions such as customer created, key rotated, and customer disabled. The event includes actor, action, target customer, time, and safe details such as masked keys and key hashes. It does not store full gateway API keys. This helps explain control history, but it is not a full compliance audit system.",
             styles["BodyCustom"],
         )
     )

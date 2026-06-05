@@ -165,6 +165,7 @@ The current version also supports:
 
 - `GET /admin`
 - `GET /v1/gateway/status`
+- `GET /v1/gateway/audit-events`
 - `GET /v1/gateway/alerts`
 - `GET /v1/gateway/access-matrix`
 - `GET /v1/gateway/requests`
@@ -200,6 +201,7 @@ The current version also supports:
 - cost estimate dry run for prompt tokens, completion tokens, and budget impact
 - customer key issue preview for safe onboarding demos
 - persistent customer create, key rotation, and customer disable actions
+- audit events for customer key lifecycle actions
 - local safety preview for obvious emails, phone numbers, and secrets
 - invoice preview with JSON and CSV output
 - request-level provider allow-list with `gateway_allowed_providers`
@@ -546,6 +548,29 @@ curl http://127.0.0.1:8787/v1/gateway/customers/disable \
 The disabled customer's gateway key stops working.
 
 This prototype stores customer keys in local JSON. Production should use a database, audit logs, and a secret manager.
+
+## Audit Events
+
+The gateway records customer key lifecycle actions.
+
+```bash
+curl "http://127.0.0.1:8787/v1/gateway/audit-events?target_id=customer-demo" \
+  -H "Authorization: Bearer dev-admin-key"
+```
+
+It shows:
+
+- who performed the action
+- what action happened
+- which customer was changed
+- when it happened
+- safe details such as masked keys and key hashes
+
+It does not store full gateway API keys in the audit event.
+
+This is useful for explaining control history.
+
+It is not a full compliance audit system.
 
 ## Invoice Preview
 
