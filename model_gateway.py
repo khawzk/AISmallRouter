@@ -37,6 +37,7 @@ ADMIN_PATHS = {
     "/v1/gateway/route-preview",
     "/v1/gateway/request-detail",
     "/v1/gateway/alerts",
+    "/v1/gateway/access-matrix",
     "/v1/gateway/customer-usage",
     "/v1/gateway/model-usage",
     "/v1/gateway/request-summary",
@@ -664,6 +665,44 @@ def customer_reports(server):
                 "usage_by_model": customer_dimension_usage(server.db_path, customer_id, "model"),
                 "usage_by_provider": customer_dimension_usage(server.db_path, customer_id, "provider"),
                 "recent_requests": customer_recent_requests(server.db_path, customer_id),
+            }
+        )
+    return rows
+
+
+def access_matrix(server):
+    rows = []
+    catalog_by_id = {model["id"]: model for model in model_catalog(server)}
+    for customer in sorted(server.customers_by_key.values(), key=lambda item: item.get("id", "")):
+        budget = customer_budget_status(server.db_path, customer)
+        budget_state = customer_budget_state(budget)
+        model_access = []
+        for public_name in sorted(server.models.keys()):
+            model = catalog_by_id.get(public_name, {})
+            allowed = customer_model_allowed(customer, public_name)
+            reason = "allowed by wildcard" if "*" in customer.get("allowed_models", ["*"]) else "allowed by customer model list"
+            if not allowed:
+                reason = "not listed in customer allowed_models"
+            model_access.append(
+                {
+                    "model": public_name,
+                    "allowed": allowed,
+                    "reason": reason,
+                    "provider": model.get("provider"),
+                    "provider_status": model.get("provider_status"),
+                    "upstream_model": model.get("upstream_model"),
+                    "fallback_models": model.get("fallback_models", []),
+                    "capabilities": model.get("capabilities", []),
+                }
+            )
+        rows.append(
+            {
+                **public_customer_view(customer),
+                "budget_state": budget_state,
+                "budget": budget,
+                "models": model_access,
+                "allowed_count": sum(1 for item in model_access if item["allowed"]),
+                "blocked_count": sum(1 for item in model_access if not item["allowed"]),
             }
         )
     return rows
@@ -1323,6 +1362,7 @@ def gateway_status(server):
         "provider_summary": provider_status(server),
         "provider_health": provider_health(server),
         "model_catalog": model_catalog(server),
+        "access_matrix": access_matrix(server),
         "customer_reports": customer_reports(server),
         "request_activity": request_activity(server.db_path, limit=10),
         "usage_by_customer": usage_grouped_by(server.db_path, "customer_id"),
@@ -1474,6 +1514,21 @@ def admin_html(server):
             f"<td>{budget.get('remaining_cost', '')}</td>"
             "</tr>"
         )
+    access_matrix_rows = ""
+    for customer in access_matrix(server):
+        for model in customer.get("models", []):
+            access_matrix_rows += (
+                "<tr>"
+                f"<td>{customer.get('id', '')}</td>"
+                f"<td>{customer.get('plan', '')}</td>"
+                f"<td>{customer.get('budget_state', '')}</td>"
+                f"<td>{model.get('model', '')}</td>"
+                f"<td>{model.get('allowed', '')}</td>"
+                f"<td>{model.get('provider', '')}</td>"
+                f"<td>{model.get('provider_status', '')}</td>"
+                f"<td>{model.get('reason', '')}</td>"
+                "</tr>"
+            )
     model_usage_rows = ""
     for record in usage_grouped_by(server.db_path, "model"):
         model_usage_rows += (
@@ -1542,7 +1597,7 @@ def admin_html(server):
 <body>
   <main>
     <h1>Gateway Admin</h1>
-    <p><a href="/">Dashboard</a> | <a href="/v1/gateway/status">Status JSON</a> | <a href="/v1/gateway/alerts">Alerts JSON</a> | <a href="/v1/gateway/config-check">Config Check JSON</a> | <a href="/v1/gateway/provider-health">Provider Health JSON</a> | <a href="/v1/gateway/model-catalog">Model Catalog JSON</a> | <a href="/v1/gateway/customer-reports">Customer Reports JSON</a> | <a href="/v1/gateway/request-activity">Request Activity JSON</a> | <a href="/v1/gateway/providers">Providers JSON</a> | <a href="/v1/gateway/customer-usage">Customer Usage JSON</a> | <a href="/v1/gateway/model-usage">Model Usage JSON</a> | <a href="/v1/gateway/requests">Requests JSON</a> | <a href="/v1/gateway/usage">Usage JSON</a> | <a href="/v1/gateway/customers">Customers JSON</a></p>
+    <p><a href="/">Dashboard</a> | <a href="/v1/gateway/status">Status JSON</a> | <a href="/v1/gateway/alerts">Alerts JSON</a> | <a href="/v1/gateway/access-matrix">Access Matrix JSON</a> | <a href="/v1/gateway/config-check">Config Check JSON</a> | <a href="/v1/gateway/provider-health">Provider Health JSON</a> | <a href="/v1/gateway/model-catalog">Model Catalog JSON</a> | <a href="/v1/gateway/customer-reports">Customer Reports JSON</a> | <a href="/v1/gateway/request-activity">Request Activity JSON</a> | <a href="/v1/gateway/providers">Providers JSON</a> | <a href="/v1/gateway/customer-usage">Customer Usage JSON</a> | <a href="/v1/gateway/model-usage">Model Usage JSON</a> | <a href="/v1/gateway/requests">Requests JSON</a> | <a href="/v1/gateway/usage">Usage JSON</a> | <a href="/v1/gateway/customers">Customers JSON</a></p>
     <h2>Summary</h2>
     <table>
       <tbody>
@@ -1603,6 +1658,11 @@ def admin_html(server):
     <table>
       <thead><tr><th>Customer</th><th>Plan</th><th>Budget state</th><th>Requests</th><th>Errors</th><th>Avg latency ms</th><th>Total tokens</th><th>Remaining tokens</th><th>Remaining cost</th></tr></thead>
       <tbody>{customer_report_rows}</tbody>
+    </table>
+    <h2>Access Matrix</h2>
+    <table>
+      <thead><tr><th>Customer</th><th>Plan</th><th>Budget state</th><th>Model</th><th>Allowed?</th><th>Provider</th><th>Provider status</th><th>Reason</th></tr></thead>
+      <tbody>{access_matrix_rows}</tbody>
     </table>
     <h2>Usage By Model</h2>
     <table>
@@ -1985,6 +2045,9 @@ class GatewayHandler(BaseHTTPRequestHandler):
             return
         if path == "/v1/gateway/alerts":
             make_json_response(self, 200, gateway_alerts(self.server))
+            return
+        if path == "/v1/gateway/access-matrix":
+            make_json_response(self, 200, {"data": access_matrix(self.server)})
             return
         if path == "/v1/gateway/config-check":
             make_json_response(self, 200, gateway_config_check(self.server))

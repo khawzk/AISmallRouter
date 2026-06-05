@@ -553,6 +553,24 @@
       font-size: 12px;
     }
 
+    .access-list {
+      display: grid;
+      gap: 6px;
+      margin-top: 10px;
+    }
+
+    .access-row {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 8px;
+      border: 1px solid var(--line);
+      border-radius: 9px;
+      padding: 7px 8px;
+      background: #0b0d10;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
     .activity-row {
       display: grid;
       grid-template-columns: 88px 1fr auto;
@@ -891,6 +909,16 @@
       </div>
     </section>
 
+    <section class="card" id="access" style="margin-bottom: 18px;">
+      <div class="card-head">
+        <h2>Access matrix</h2>
+        <span>customer model permissions</span>
+      </div>
+      <div class="card-body">
+        <div class="report-grid" id="accessMatrixList"></div>
+      </div>
+    </section>
+
     <section class="card" id="activity" style="margin-bottom: 18px;">
       <div class="card-head">
         <h2>Request activity</h2>
@@ -1051,6 +1079,7 @@
     const providerHealthList = document.getElementById("providerHealthList");
     const alertSummary = document.getElementById("alertSummary");
     const alertList = document.getElementById("alertList");
+    const accessMatrixList = document.getElementById("accessMatrixList");
     const customerReportList = document.getElementById("customerReportList");
     const activityList = document.getElementById("activityList");
     const modelSelect = document.getElementById("modelSelect");
@@ -1103,6 +1132,34 @@
       option.textContent = `${customer.id} (${customer.plan})`;
       if (customer.id === "dev") option.selected = true;
       previewCustomer.appendChild(option);
+    });
+
+    (state.access_matrix || []).forEach((customer) => {
+      const card = document.createElement("article");
+      card.className = "report-card";
+      const chipClass = customer.budget_state === "ok" || customer.budget_state === "unlimited" ? "chip green" : "chip";
+      const accessHtml = (customer.models || []).map((item) => `
+        <div class="access-row">
+          <span>${item.model}<br>${item.provider || "-"} / ${item.provider_status || "-"}</span>
+          <span class="${item.allowed ? "chip green" : "chip"}">${item.allowed ? "allowed" : "blocked"}</span>
+        </div>
+      `).join("");
+      card.innerHTML = `
+        <div class="report-top">
+          <div>
+            <strong>${customer.id}</strong>
+            <span>${customer.plan}</span>
+          </div>
+          <span class="${chipClass}">${customer.budget_state}</span>
+        </div>
+        <div class="report-metrics">
+          <span>Allowed<br><strong>${customer.allowed_count}</strong></span>
+          <span>Blocked<br><strong>${customer.blocked_count}</strong></span>
+          <span>Models<br><strong>${(customer.models || []).length}</strong></span>
+        </div>
+        <div class="access-list">${accessHtml}</div>
+      `;
+      accessMatrixList.appendChild(card);
     });
 
     (state.model_catalog || state.models || []).forEach((model) => {

@@ -165,6 +165,7 @@ The current version also supports:
 - `GET /admin`
 - `GET /v1/gateway/status`
 - `GET /v1/gateway/alerts`
+- `GET /v1/gateway/access-matrix`
 - `GET /v1/gateway/requests`
 - `GET /v1/gateway/usage`
 - `GET /v1/gateway/customers`
@@ -189,6 +190,7 @@ The current version also supports:
 - request activity feed with simple filters for troubleshooting
 - request detail lookup by `request_id`
 - operational alerts with next steps
+- customer model access matrix
 - multiple customer keys through `customer_keys.json`
 - customer plans with request limits, token budgets, and cost budgets
 - SQLite persistence for request and usage records
@@ -247,6 +249,26 @@ It combines:
 Each alert includes a `next_step`.
 
 This helps non-technical users understand what needs attention before a live customer demo.
+
+## Access Matrix
+
+The gateway has an access matrix endpoint:
+
+```bash
+curl http://127.0.0.1:8787/v1/gateway/access-matrix \
+  -H "Authorization: Bearer dev-admin-key"
+```
+
+It shows:
+
+- each customer
+- each public model
+- whether that customer can use that model
+- why access is allowed or blocked
+- budget state
+- provider and provider readiness
+
+This helps explain customer-level API control.
 
 ## Provider Health
 
@@ -683,6 +705,7 @@ The tests check:
 - Request activity filtering
 - Request detail lookup
 - Operational alerts output
+- Access matrix output
 - Provider, customer, model, and request summary admin endpoints
 
 ## Customer Materials

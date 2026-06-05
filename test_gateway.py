@@ -365,6 +365,10 @@ class GatewayPrototypeTest(unittest.TestCase):
         self.assertIn("alerts", payload)
         self.assertIn("summary", payload["alerts"])
         self.assertIn("alerts", payload["alerts"])
+        self.assertIn("access_matrix", payload)
+        matrix = {row["id"]: row for row in payload["access_matrix"]}
+        self.assertIn("dev", matrix)
+        self.assertGreaterEqual(matrix["dev"]["allowed_count"], 1)
 
     def test_admin_summary_endpoints(self):
         request_json(
@@ -412,6 +416,20 @@ class GatewayPrototypeTest(unittest.TestCase):
         alert_codes = {alert["code"] for alert in alerts["alerts"]}
         self.assertIn("default_admin_key", alert_codes)
         self.assertTrue(all("next_step" in alert for alert in alerts["alerts"]))
+
+        status, access_matrix = request_json(self.base_url, path="/v1/gateway/access-matrix")
+        self.assertEqual(status, 401)
+
+        status, access_matrix = request_json(self.base_url, path="/v1/gateway/access-matrix", api_key="dev-admin-key")
+        self.assertEqual(status, 200)
+        matrix = {row["id"]: row for row in access_matrix["data"]}
+        self.assertIn("dev", matrix)
+        self.assertIn("demo-limited", matrix)
+        dev_models = {item["model"]: item for item in matrix["dev"]["models"]}
+        limited_models = {item["model"]: item for item in matrix["demo-limited"]["models"]}
+        self.assertTrue(dev_models["qwen-plus"]["allowed"])
+        self.assertFalse(limited_models["qwen-plus"]["allowed"])
+        self.assertEqual(limited_models["qwen-plus"]["reason"], "not listed in customer allowed_models")
 
         status, model_catalog = request_json(self.base_url, path="/v1/gateway/model-catalog")
         self.assertEqual(status, 401)

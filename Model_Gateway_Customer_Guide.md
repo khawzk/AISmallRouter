@@ -55,6 +55,7 @@ The prototype supports:
 
 - Visual dashboard
 - Operational alerts
+- Access matrix
 - OpenAI-compatible chat endpoint
 - Customer API key check
 - Basic usage limit
@@ -165,6 +166,7 @@ http://127.0.0.1:8790/
 The dashboard shows:
 
 - Operational alerts
+- Access matrix
 - One API for customers
 - Gateway entry control
 - Model registry
@@ -206,6 +208,7 @@ They help explain the control layer:
 
 - Provider status
 - Operational alerts
+- Access matrix
 - Provider health and readiness
 - Model catalog and routing plan
 - Route preview before a live request
@@ -237,6 +240,25 @@ It combines several signals:
 Each alert includes a simple next step.
 
 This helps non-technical users understand what needs attention before a live demo.
+
+## What The Access Matrix Shows
+
+The prototype includes `/v1/gateway/access-matrix`.
+
+It shows:
+
+- Which customers exist
+- Which public models exist
+- Whether each customer can use each model
+- Why access is allowed or blocked
+- Customer budget state
+- Provider readiness for that model
+
+This helps explain customer-level API control.
+
+For example, one customer can be allowed to use `smart-fast` only.
+
+Another customer can be allowed to use all models.
 
 ## What Provider Health Means
 
