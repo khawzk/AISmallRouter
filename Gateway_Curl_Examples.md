@@ -30,7 +30,7 @@ It does not spend provider credits.
 python3 test_gateway.py
 ```
 
-The test covers auth, OpenAPI contract, Postman collection, demo bundle, customer integration guide, production readiness, provider contracts, incident playbook, support policy, pilot checklist, executive brief, roadmap, model listing, customer self view, customer key lifecycle, audit events, provider lifecycle, model route lifecycle, routing, route strategy, policy presets, route preview, route decision summary, provider allow-list routing, capability routing, safety preview, cost estimate, customer key issue preview, invoice preview, fallback, model access, budgets, SQLite logs, alerts, access matrix, provider health, model catalog, customer reports, request activity, request detail lookup, and admin summary endpoints.
+The test covers auth, OpenAPI contract, Postman collection, demo bundle, customer integration guide, production readiness, provider contracts, incident playbook, support policy, pilot checklist, executive brief, roadmap, decision guide, model listing, customer self view, customer key lifecycle, audit events, provider lifecycle, model route lifecycle, routing, route strategy, policy presets, route preview, route decision summary, provider allow-list routing, capability routing, safety preview, cost estimate, customer key issue preview, invoice preview, fallback, model access, budgets, SQLite logs, alerts, access matrix, provider health, model catalog, customer reports, request activity, request detail lookup, and admin summary endpoints.
 
 Open the visual dashboard:
 
@@ -103,6 +103,13 @@ Fetch the roadmap:
 
 ```bash
 curl http://127.0.0.1:8787/v1/gateway/roadmap \
+  -H "Authorization: Bearer dev-admin-key"
+```
+
+Fetch the decision guide:
+
+```bash
+curl http://127.0.0.1:8787/v1/gateway/decision-guide \
   -H "Authorization: Bearer dev-admin-key"
 ```
 
@@ -770,6 +777,9 @@ curl http://127.0.0.1:8787/v1/gateway/executive-brief \
 
 curl http://127.0.0.1:8787/v1/gateway/roadmap \
   -H "Authorization: Bearer dev-admin-key"
+
+curl http://127.0.0.1:8787/v1/gateway/decision-guide \
+  -H "Authorization: Bearer dev-admin-key"
 ```
 
 The JSON endpoints read from SQLite.
@@ -787,6 +797,8 @@ The pilot checklist explains what to prepare before, during, and after a custome
 The executive brief explains the business story for non-technical stakeholders.
 
 The roadmap explains the path from prototype to pilot, production hardening, and multi-provider expansion.
+
+The decision guide compares API Gateway, managed AI Gateway, custom Model Gateway, and OpenRouter-like options.
 
 In this prototype, admin endpoints use the demo admin key `dev-admin-key`.
 

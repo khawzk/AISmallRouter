@@ -64,6 +64,7 @@ The prototype supports:
 - Pilot checklist
 - Executive brief
 - Roadmap
+- Decision guide
 - Access matrix
 - OpenAI-compatible chat endpoint
 - Customer API key check
@@ -482,6 +483,23 @@ Each phase includes:
 - main risks
 
 This helps a customer understand the next steps without jumping too quickly into production promises.
+
+## What The Decision Guide Shows
+
+The prototype includes `/v1/gateway/decision-guide`.
+
+This endpoint helps answer an early customer question:
+
+Should we use an API Gateway, a managed AI Gateway, a custom Model Gateway, or an OpenRouter-like platform?
+
+It compares:
+
+- normal API Gateway
+- managed AI Gateway
+- custom Model Gateway
+- OpenRouter-like marketplace
+
+It explains what each option is good at, what it does not solve, and when to choose it.
 
 ## What The Access Matrix Shows
 

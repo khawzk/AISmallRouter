@@ -90,6 +90,7 @@ ADMIN_PATHS = {
     "/v1/gateway/pilot-checklist",
     "/v1/gateway/executive-brief",
     "/v1/gateway/roadmap",
+    "/v1/gateway/decision-guide",
     "/v1/gateway/request-activity",
     "/v1/gateway/model-catalog",
     "/v1/gateway/route-preview",
@@ -3377,6 +3378,111 @@ def gateway_roadmap(server):
     }
 
 
+def decision_guide(server):
+    readiness = production_readiness(server)
+    return {
+        "object": "gateway.decision_guide",
+        "title": "AI Gateway Build Or Buy Decision Guide",
+        "mode": "mock" if server.mock_mode else "live",
+        "plain_english": "Use this guide to explain whether a customer needs a normal API Gateway, a managed AI Gateway, a custom Model Gateway, or an OpenRouter-like platform.",
+        "options": [
+            {
+                "option": "Normal API Gateway",
+                "best_for": "General HTTP traffic control.",
+                "good_at": [
+                    "Authentication",
+                    "Rate limits",
+                    "WAF or IP rules",
+                    "Request logs",
+                    "Traffic routing",
+                ],
+                "not_enough_for": [
+                    "Provider request and response normalization",
+                    "Model alias routing",
+                    "Tool calling differences",
+                    "Provider usage and cost normalization",
+                    "Fallback across AI providers",
+                ],
+                "recommendation": "Use it in front of the Model Gateway when enterprise traffic controls are needed.",
+            },
+            {
+                "option": "Managed AI Gateway",
+                "best_for": "Teams that want faster managed provider access and platform-level routing features.",
+                "good_at": [
+                    "Unified AI provider entry point",
+                    "Centralized monitoring",
+                    "Provider failover features",
+                    "Managed infrastructure",
+                ],
+                "not_enough_for": [
+                    "Highly custom customer billing rules",
+                    "Custom onboarding workflow",
+                    "Internal product-specific policy",
+                    "Customer-specific demo and support package",
+                ],
+                "recommendation": "Consider it when managed operations matter more than custom control.",
+            },
+            {
+                "option": "Custom Model Gateway",
+                "best_for": "Teams that need customer-specific controls and a product-owned routing layer.",
+                "good_at": [
+                    "Public model aliases",
+                    "Customer keys and budgets",
+                    "Provider adapter control",
+                    "BYOK mapping",
+                    "Customer reports and pilot workflows",
+                ],
+                "not_enough_for": [
+                    "Enterprise WAF by itself",
+                    "Global production operations without more infrastructure",
+                    "Legal SLA without production hardening",
+                ],
+                "recommendation": "This prototype explores this path with Qwen first, then more providers later.",
+            },
+            {
+                "option": "OpenRouter-like Marketplace",
+                "best_for": "Public multi-provider model marketplace or broad model catalog.",
+                "good_at": [
+                    "Large model catalog",
+                    "Provider routing choices",
+                    "Customer credit and usage experience",
+                    "Marketplace-style discovery",
+                ],
+                "not_enough_for": [
+                    "Private customer-specific business rules unless built in",
+                    "Full control over every provider contract",
+                    "Internal-only compliance and billing rules",
+                ],
+                "recommendation": "Use OpenRouter as a reference pattern, not as something to copy blindly.",
+            },
+        ],
+        "recommended_path_now": [
+            "Use the current custom Model Gateway prototype for customer explanation.",
+            "Keep normal API Gateway features optional until enterprise traffic controls are needed.",
+            "Use Qwen / Model Studio first because the key is available.",
+            "Add providers only after provider contracts and pilot success are clear.",
+        ],
+        "decision_questions": [
+            "Does the customer only need HTTP traffic control?",
+            "Does the customer need model aliases, provider adapters, and fallback logic?",
+            "Does the customer need custom budgets, reporting, onboarding, and support wording?",
+            "Does the customer prefer managed infrastructure over custom control?",
+            "Is the goal a private customer gateway or a public model marketplace?",
+        ],
+        "evidence_to_show": [
+            "/v1/gateway/provider-contracts",
+            "/v1/gateway/route-preview",
+            "/v1/gateway/production-readiness",
+            "/v1/gateway/executive-brief",
+            "/v1/gateway/roadmap",
+        ],
+        "current_readiness": {
+            "overall_status": readiness.get("overall_status"),
+            "prototype_only": readiness.get("prototype_only"),
+        },
+    }
+
+
 def read_jsonl_tail(path, limit=50):
     if not os.path.exists(path):
         return []
@@ -3862,6 +3968,7 @@ def openapi_spec(server):
         "/v1/gateway/pilot-checklist": "Customer pilot checklist",
         "/v1/gateway/executive-brief": "Executive customer brief",
         "/v1/gateway/roadmap": "Prototype to production roadmap",
+        "/v1/gateway/decision-guide": "AI gateway build or buy decision guide",
     }.items():
         paths[path] = {
             "get": {
@@ -3966,6 +4073,7 @@ def postman_collection(server):
         request_item("Pilot Checklist", "GET", "/v1/gateway/pilot-checklist", "admin_api_key"),
         request_item("Executive Brief", "GET", "/v1/gateway/executive-brief", "admin_api_key"),
         request_item("Roadmap", "GET", "/v1/gateway/roadmap", "admin_api_key"),
+        request_item("Decision Guide", "GET", "/v1/gateway/decision-guide", "admin_api_key"),
         request_item("Model Catalog", "GET", "/v1/gateway/model-catalog", "admin_api_key"),
         request_item("Audit Events", "GET", "/v1/gateway/audit-events", "admin_api_key"),
         request_item("Customer Reports", "GET", "/v1/gateway/customer-reports", "admin_api_key"),
@@ -4156,6 +4264,13 @@ def demo_bundle(server):
                 "auth": "adminBearerAuth",
             },
             {
+                "name": "Decision guide",
+                "url": f"{base_url}/v1/gateway/decision-guide",
+                "audience": "business and technical",
+                "purpose": "Compare normal API Gateway, managed AI Gateway, custom Model Gateway, and OpenRouter-like marketplace paths.",
+                "auth": "adminBearerAuth",
+            },
+            {
                 "name": "Postman collection",
                 "url": f"{base_url}/postman_collection.json",
                 "audience": "customer technical",
@@ -4258,6 +4373,10 @@ def demo_bundle(server):
             {
                 "name": "Roadmap",
                 "command": f"curl {base_url}/v1/gateway/roadmap -H 'Authorization: Bearer {server.admin_api_key or DEFAULT_ADMIN_API_KEY}'",
+            },
+            {
+                "name": "Decision guide",
+                "command": f"curl {base_url}/v1/gateway/decision-guide -H 'Authorization: Bearer {server.admin_api_key or DEFAULT_ADMIN_API_KEY}'",
             },
         ],
         "production_notes": [
@@ -5005,6 +5124,9 @@ class GatewayHandler(BaseHTTPRequestHandler):
             return
         if path == "/v1/gateway/roadmap":
             make_json_response(self, 200, gateway_roadmap(self.server))
+            return
+        if path == "/v1/gateway/decision-guide":
+            make_json_response(self, 200, decision_guide(self.server))
             return
         if path == "/v1/gateway/requests":
             make_json_response(self, 200, {"data": db_tail(self.server.db_path, "requests", 100)})

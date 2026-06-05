@@ -176,6 +176,7 @@ The current version also supports:
 - `GET /v1/gateway/pilot-checklist`
 - `GET /v1/gateway/executive-brief`
 - `GET /v1/gateway/roadmap`
+- `GET /v1/gateway/decision-guide`
 - `GET /v1/gateway/access-matrix`
 - `GET /v1/gateway/requests`
 - `GET /v1/gateway/usage`
@@ -239,6 +240,7 @@ The current version also supports:
 - pilot checklist for before, during, and after a customer trial
 - executive brief for non-technical customer stakeholders
 - roadmap from prototype to pilot, production hardening, and multi-provider expansion
+- decision guide comparing API Gateway, managed AI Gateway, custom Model Gateway, and OpenRouter-like options
 - production readiness report for go-live gaps
 - customer model access matrix
 - customer self-service profile with no provider secret exposure
@@ -253,6 +255,7 @@ The current version also supports:
 - pilot checklist for scope, roles, success criteria, and exit decision
 - executive brief for business value, demo story, risks, and next step
 - roadmap for phased prototype-to-production planning
+- decision guide for build-or-buy gateway discussion
 - OpenAPI contract at `/openapi.json`
 - Postman collection at `/postman_collection.json`
 - demo bundle manifest at `/v1/gateway/demo-bundle`
@@ -558,6 +561,24 @@ Each phase includes:
 - deliverables
 - exit criteria
 - main risks
+
+## Decision Guide
+
+The gateway has a decision guide endpoint:
+
+```bash
+curl http://127.0.0.1:8787/v1/gateway/decision-guide \
+  -H "Authorization: Bearer dev-admin-key"
+```
+
+It compares:
+
+- normal API Gateway
+- managed AI Gateway
+- custom Model Gateway
+- OpenRouter-like marketplace
+
+It explains what each option is good at, what it does not solve, and when to choose it.
 
 ## Access Matrix
 
