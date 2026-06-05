@@ -71,6 +71,7 @@ The prototype supports:
 - Bring Your Own Key provider mapping
 - Request-level provider allow-list
 - Capability routing control
+- Local safety preview
 - Customer key issue preview
 - Invoice preview with CSV export
 - Provider adapter scaffolds for OpenAI and Claude
@@ -219,6 +220,7 @@ They help explain the control layer:
 - Route preview before a live request
 - Route decision summary
 - Capability routing control
+- Safety preview before provider call
 - Cost estimate before a live request
 - Customer key issue preview
 - Customer usage reports
@@ -459,6 +461,29 @@ This is not a legal invoice.
 
 It is a simple way to explain how billing reports could work later.
 
+## What Safety Preview Shows
+
+The prototype includes `/v1/gateway/safety-preview`.
+
+It checks for obvious sensitive data before a provider call.
+
+Examples:
+
+- Email addresses
+- Possible phone numbers
+- Possible API keys
+- Secret assignments such as `api_key=...`
+
+Chat requests can also opt in.
+
+`gateway_safety_check=true` returns the safety result in gateway metadata.
+
+`gateway_block_sensitive=true` blocks the request when sensitive data is detected.
+
+This is useful for explaining gateway guardrails.
+
+It is not a full DLP or compliance system.
+
 ## What Customer Reports Show
 
 The prototype includes `/v1/gateway/customer-reports`.
@@ -646,6 +671,7 @@ It is a demo of the control layer that full billing would need.
 - Add a simple admin page
 - Add request-level provider allow-list
 - Add capability routing control
+- Add local safety preview
 - Add customer key issue preview
 - Add invoice preview with CSV export
 

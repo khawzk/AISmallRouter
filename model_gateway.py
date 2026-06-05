@@ -5,6 +5,7 @@ import hashlib
 import io
 import json
 import os
+import re
 import secrets
 import sqlite3
 import time
@@ -39,6 +40,7 @@ ADMIN_PATHS = {
     "/v1/gateway/model-catalog",
     "/v1/gateway/route-preview",
     "/v1/gateway/key-issue-preview",
+    "/v1/gateway/safety-preview",
     "/v1/gateway/request-detail",
     "/v1/gateway/alerts",
     "/v1/gateway/access-matrix",
@@ -1626,6 +1628,88 @@ def estimate_tokens(messages, content):
     return max(1, len(text) // 4)
 
 
+SAFETY_PATTERNS = [
+    {
+        "type": "email",
+        "severity": "warning",
+        "pattern": re.compile(r"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b"),
+        "explanation": "Email address detected.",
+    },
+    {
+        "type": "phone",
+        "severity": "warning",
+        "pattern": re.compile(r"\b(?:\+?\d[\d\s().-]{7,}\d)\b"),
+        "explanation": "Possible phone number detected.",
+    },
+    {
+        "type": "api_key",
+        "severity": "critical",
+        "pattern": re.compile(r"\b(?:sk|pk|ak|aisr)_[A-Za-z0-9_-]{16,}\b"),
+        "explanation": "Possible API key detected.",
+    },
+    {
+        "type": "secret_assignment",
+        "severity": "critical",
+        "pattern": re.compile(r"(?i)\b(?:api[_-]?key|secret|token|password)\s*[:=]\s*[A-Za-z0-9_./+=-]{8,}"),
+        "explanation": "Possible secret value detected.",
+    },
+]
+
+
+def mask_sample(value):
+    value = str(value)
+    if len(value) <= 8:
+        return value[0:2] + "..."
+    return value[:4] + "..." + value[-3:]
+
+
+def payload_text_segments(payload):
+    segments = []
+    if isinstance(payload.get("prompt"), str):
+        segments.append({"location": "prompt", "text": payload["prompt"]})
+    for index, message in enumerate(payload.get("messages") or []):
+        content = message.get("content", "") if isinstance(message, dict) else ""
+        if isinstance(content, str):
+            segments.append({"location": f"messages[{index}].content", "text": content})
+    return segments
+
+
+def safety_preview(payload):
+    findings = []
+    for segment in payload_text_segments(payload):
+        for rule in SAFETY_PATTERNS:
+            for match in rule["pattern"].finditer(segment["text"]):
+                findings.append(
+                    {
+                        "type": rule["type"],
+                        "severity": rule["severity"],
+                        "location": segment["location"],
+                        "sample": mask_sample(match.group(0)),
+                        "explanation": rule["explanation"],
+                    }
+                )
+    severity_rank = {"critical": 2, "warning": 1, "info": 0}
+    max_rank = max((severity_rank.get(item["severity"], 0) for item in findings), default=0)
+    status = "blocked" if max_rank >= 2 else "review" if max_rank == 1 else "clear"
+    return {
+        "status": status,
+        "findings": findings,
+        "summary": {
+            "critical": sum(1 for item in findings if item["severity"] == "critical"),
+            "warning": sum(1 for item in findings if item["severity"] == "warning"),
+            "total": len(findings),
+        },
+        "next_step": (
+            "Remove secrets before sending this request to a model provider."
+            if status == "blocked"
+            else "Review personal data before sending this request to a model provider."
+            if status == "review"
+            else "No obvious sensitive data was detected by the local preview."
+        ),
+        "note": "This is a simple local preview. It is not a full DLP or compliance system.",
+    }
+
+
 def first_openai_function_tool(tools):
     for tool in tools or []:
         if tool.get("type") == "function" and isinstance(tool.get("function"), dict):
@@ -2572,6 +2656,14 @@ class GatewayHandler(BaseHTTPRequestHandler):
             except GatewayError as exc:
                 make_error(self, exc.status, exc.message, exc.code, exc.details)
             return
+        if path == "/v1/gateway/safety-preview":
+            if not self.authenticate_admin():
+                return
+            payload = self.read_json_body()
+            if payload is None:
+                return
+            make_json_response(self, 200, safety_preview(payload))
+            return
         if path != "/v1/chat/completions":
             make_error(self, 404, "Route not found.", "route_not_found")
             return
@@ -2718,6 +2810,14 @@ class GatewayHandler(BaseHTTPRequestHandler):
             raise GatewayError("Missing required field: model.", "missing_model", 400)
         self.ensure_model_access(public_model)
         self.ensure_budget_available()
+        safety = safety_preview(payload)
+        if payload.get("gateway_block_sensitive") and safety["summary"]["total"]:
+            raise GatewayError(
+                "The request was blocked by the local gateway safety preview.",
+                "safety_blocked",
+                400,
+                safety,
+            )
         stream = bool(payload.get("stream"))
         candidates, routing_policy = self.candidate_models(public_model, payload)
         errors = []
@@ -2753,6 +2853,8 @@ class GatewayHandler(BaseHTTPRequestHandler):
                         ),
                     }
                 )
+                if payload.get("gateway_safety_check"):
+                    response["gateway"]["safety_preview"] = safety
                 self.write_usage(response, public_model, model_config)
                 response["gateway"]["customer_budget"] = customer_budget_status(self.server.db_path, self.customer)
                 request_record = self.write_request_log(started_at, public_model, model_config["upstream_model"], model_config["provider"], 200, "ok")

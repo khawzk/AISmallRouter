@@ -241,6 +241,7 @@ def build():
         "Request detail lookup using gateway.request_id returned in chat responses.",
         "Config check endpoint for demo keys and missing production settings.",
         "Structured route decision summary for support explanations.",
+        "Local safety preview for obvious sensitive data.",
         "Customer key issue preview for safe onboarding demos.",
         "Invoice preview with JSON and CSV output.",
         "Capability routing control for streaming and tools.",
@@ -271,6 +272,7 @@ def build():
             ["Model catalog", "Customers need to understand public model names and routes.", "Catalog with provider status, fallback chain, usage, and pricing metadata"],
             ["Route preview", "Sales and support need to explain a route before spending credits.", "Dry-run endpoint and dashboard preview"],
             ["Route decision summary", "Customers may ask why a route was chosen.", "Plain-language summary and reasons"],
+            ["Safety preview", "Customers may worry about secrets in prompts.", "Local preview for obvious emails, phone numbers, and secrets"],
             ["Provider routing control", "Some customers may want only approved providers for a request.", "gateway_allowed_providers filters route candidates"],
             ["Capability routing", "Requests may need streaming, tools, or other abilities.", "gateway_required_capabilities filters route candidates"],
             ["Cost estimate", "Customers need budget planning before live calls.", "Dry-run estimate for tokens, cost, and budget impact"],
@@ -348,6 +350,14 @@ def build():
     story.append(
         Paragraph(
             "Route preview and chat responses include route_decision. It explains the requested public model, selected upstream model, provider, fallback policy, provider controls, capability controls, and simple reasons for the routing decision. This is useful when a customer asks why a request used a certain model or provider.",
+            styles["BodyCustom"],
+        )
+    )
+
+    story.append(Paragraph("Safety Preview", styles["H1Custom"]))
+    story.append(
+        Paragraph(
+            "/v1/gateway/safety-preview checks for obvious sensitive data before a provider call. It can detect examples such as email addresses, possible phone numbers, possible API keys, and secret assignments. Chat requests can also use gateway_safety_check to return safety metadata or gateway_block_sensitive to block detected sensitive data. This is useful for explaining gateway guardrails, but it is not a full DLP or compliance system.",
             styles["BodyCustom"],
         )
     )

@@ -1035,6 +1035,7 @@
             <div class="form-actions">
               <button id="previewButton" type="button">Preview route</button>
               <button id="estimateButton" type="button">Estimate cost</button>
+              <button id="safetyButton" type="button">Safety preview</button>
             </div>
           </div>
           <div class="trace" id="previewTrace">
@@ -1133,6 +1134,7 @@
     const requiredCapabilities = document.getElementById("requiredCapabilities");
     const previewButton = document.getElementById("previewButton");
     const estimateButton = document.getElementById("estimateButton");
+    const safetyButton = document.getElementById("safetyButton");
     const previewTrace = document.getElementById("previewTrace");
     const detailRequestId = document.getElementById("detailRequestId");
     const detailButton = document.getElementById("detailButton");
@@ -1517,6 +1519,36 @@
         previewTrace.innerHTML = '<div class="trace-item">' + String(error) + '</div>';
       } finally {
         estimateButton.disabled = false;
+      }
+    });
+    safetyButton.addEventListener("click", async () => {
+      safetyButton.disabled = true;
+      previewTrace.innerHTML = '<div class="trace-item">Checking request safety...</div>';
+      try {
+        const response = await fetch("/v1/gateway/safety-preview?admin_key=" + encodeURIComponent(adminKey), {
+          method: "POST",
+          headers: {"Content-Type": "application/json"},
+          body: JSON.stringify({
+            messages: [{role: "user", content: promptInput.value}]
+          })
+        });
+        const data = await response.json();
+        previewTrace.innerHTML = "";
+        [
+          `status = ${data.status}`,
+          `findings = ${data.summary.total} total / ${data.summary.critical} critical / ${data.summary.warning} warning`,
+          data.next_step,
+          data.note
+        ].forEach((line, index) => {
+          const div = document.createElement("div");
+          div.className = "trace-item";
+          div.innerHTML = `<strong>${index + 1}</strong>${line}`;
+          previewTrace.appendChild(div);
+        });
+      } catch (error) {
+        previewTrace.innerHTML = '<div class="trace-item">' + String(error) + '</div>';
+      } finally {
+        safetyButton.disabled = false;
       }
     });
     keyPreviewButton.addEventListener("click", async () => {

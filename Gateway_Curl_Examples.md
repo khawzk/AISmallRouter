@@ -30,7 +30,7 @@ It does not spend provider credits.
 python3 test_gateway.py
 ```
 
-The test covers auth, model listing, routing, route preview, route decision summary, provider allow-list routing, capability routing, cost estimate, customer key issue preview, invoice preview, fallback, model access, budgets, SQLite logs, alerts, access matrix, provider health, model catalog, customer reports, request activity, request detail lookup, and admin summary endpoints.
+The test covers auth, model listing, routing, route preview, route decision summary, provider allow-list routing, capability routing, safety preview, cost estimate, customer key issue preview, invoice preview, fallback, model access, budgets, SQLite logs, alerts, access matrix, provider health, model catalog, customer reports, request activity, request detail lookup, and admin summary endpoints.
 
 Open the visual dashboard:
 
@@ -199,6 +199,24 @@ CSV output:
 ```bash
 curl "http://127.0.0.1:8787/v1/gateway/invoice-preview?customer_id=dev&format=csv" \
   -H "Authorization: Bearer dev-admin-key"
+```
+
+## Preview Request Safety
+
+This checks for obvious sensitive data before a provider call.
+
+```bash
+curl http://127.0.0.1:8787/v1/gateway/safety-preview \
+  -H "Authorization: Bearer dev-admin-key" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "messages": [
+      {
+        "role": "user",
+        "content": "My email is user@example.com"
+      }
+    ]
+  }'
 ```
 
 ## Check Request Activity

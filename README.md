@@ -175,6 +175,7 @@ The current version also supports:
 - `POST /v1/gateway/route-preview`
 - `POST /v1/gateway/cost-estimate`
 - `POST /v1/gateway/key-issue-preview`
+- `POST /v1/gateway/safety-preview`
 - `GET /v1/gateway/customer-reports`
 - `GET /v1/gateway/invoice-preview`
 - `GET /v1/gateway/request-activity`
@@ -193,6 +194,7 @@ The current version also supports:
 - capability routing control for `streaming` and `tools`
 - cost estimate dry run for prompt tokens, completion tokens, and budget impact
 - customer key issue preview for safe onboarding demos
+- local safety preview for obvious emails, phone numbers, and secrets
 - invoice preview with JSON and CSV output
 - request-level provider allow-list with `gateway_allowed_providers`
 - customer usage reports with request count, errors, token usage, and budget state
@@ -501,6 +503,33 @@ curl "http://127.0.0.1:8787/v1/gateway/invoice-preview?customer_id=dev&format=cs
 This is not a legal invoice.
 
 It is a local billing preview for customer explanation.
+
+## Safety Preview
+
+The gateway can preview obvious sensitive data before a provider call:
+
+```bash
+curl http://127.0.0.1:8787/v1/gateway/safety-preview \
+  -H "Authorization: Bearer dev-admin-key" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "messages": [
+      {
+        "role": "user",
+        "content": "My email is user@example.com"
+      }
+    ]
+  }'
+```
+
+Chat requests can also opt in:
+
+- `gateway_safety_check=true` returns the safety preview in the gateway metadata.
+- `gateway_block_sensitive=true` blocks the request when sensitive data is detected.
+
+This is a simple local preview.
+
+It is not a full DLP or compliance system.
 
 ## Customer Reports
 

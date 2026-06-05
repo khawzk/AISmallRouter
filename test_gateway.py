@@ -342,6 +342,58 @@ class GatewayPrototypeTest(unittest.TestCase):
         self.assertIn("tools", payload["gateway"]["routing_policy"]["required_capabilities"])
         self.assertEqual(payload["gateway"]["routing_policy"]["candidates"], ["smart-fast"])
 
+    def test_safety_preview_and_optional_blocking(self):
+        status, preview = request_json(
+            self.base_url,
+            method="POST",
+            path="/v1/gateway/safety-preview",
+            payload={"messages": [{"role": "user", "content": "My email is user@example.com"}]},
+        )
+        self.assertEqual(status, 401)
+
+        status, preview = request_json(
+            self.base_url,
+            method="POST",
+            path="/v1/gateway/safety-preview",
+            api_key="dev-admin-key",
+            payload={"messages": [{"role": "user", "content": "token=sk_test_1234567890abcdef"}]},
+        )
+        self.assertEqual(status, 200)
+        self.assertEqual(preview["status"], "blocked")
+        self.assertGreaterEqual(preview["summary"]["critical"], 1)
+        self.assertIn("not a full DLP", preview["note"])
+
+        status, payload = request_json(
+            self.base_url,
+            method="POST",
+            path="/v1/chat/completions",
+            api_key="dev-gateway-key",
+            payload={
+                "model": "smart-fast",
+                "messages": [{"role": "user", "content": "My email is user@example.com"}],
+                "gateway_safety_check": True,
+                "stream": False,
+            },
+        )
+        self.assertEqual(status, 200)
+        self.assertEqual(payload["gateway"]["safety_preview"]["status"], "review")
+
+        status, payload = request_json(
+            self.base_url,
+            method="POST",
+            path="/v1/chat/completions",
+            api_key="dev-gateway-key",
+            payload={
+                "model": "smart-fast",
+                "messages": [{"role": "user", "content": "api_key=sk_test_1234567890abcdef"}],
+                "gateway_block_sensitive": True,
+                "stream": False,
+            },
+        )
+        self.assertEqual(status, 400)
+        self.assertEqual(payload["error"]["code"], "safety_blocked")
+        self.assertGreaterEqual(payload["error"]["details"]["summary"]["critical"], 1)
+
     def test_anthropic_tool_normalization(self):
         tools = [
             {
