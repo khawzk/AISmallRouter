@@ -59,6 +59,7 @@ The prototype supports:
 - Basic usage limit
 - Request logs
 - SQLite request and usage storage
+- Provider, customer, model, and request summary endpoints
 - Model registry
 - Model routing alias
 - Fallback routing test in mock mode
@@ -194,6 +195,21 @@ The test checks:
 - Customer model access
 - Token budget blocking
 - Status output without provider key leaks
+
+## What The Admin Endpoints Show
+
+The prototype has simple admin JSON endpoints.
+
+They help explain the control layer:
+
+- Provider status
+- Usage by customer
+- Usage by model
+- Request summary by customer, model, provider, and error code
+
+In the prototype, these endpoints are open on localhost.
+
+In production, they should be protected by admin authentication.
 
 ## Technical Challenges
 

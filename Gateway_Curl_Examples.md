@@ -30,7 +30,7 @@ It does not spend provider credits.
 python3 test_gateway.py
 ```
 
-The test covers auth, model listing, routing, fallback, model access, budgets, and SQLite logs.
+The test covers auth, model listing, routing, fallback, model access, budgets, SQLite logs, and admin summary endpoints.
 
 Open the visual dashboard:
 
@@ -152,9 +152,17 @@ Or fetch JSON:
 curl http://127.0.0.1:8787/v1/gateway/requests
 curl http://127.0.0.1:8787/v1/gateway/usage
 curl http://127.0.0.1:8787/v1/gateway/customers
+curl http://127.0.0.1:8787/v1/gateway/providers
+curl http://127.0.0.1:8787/v1/gateway/customer-usage
+curl http://127.0.0.1:8787/v1/gateway/model-usage
+curl http://127.0.0.1:8787/v1/gateway/request-summary
 ```
 
 The JSON endpoints read from SQLite.
+
+In this prototype, these admin endpoints are open on localhost.
+
+In production, put them behind admin authentication.
 
 The default database path is:
 

@@ -225,6 +225,41 @@ class GatewayPrototypeTest(unittest.TestCase):
         self.assertIn("dashscope", customers["dev"]["byok_providers"])
         self.assertNotIn("provider_api_keys", customers["dev"])
 
+    def test_admin_summary_endpoints(self):
+        request_json(
+            self.base_url,
+            method="POST",
+            path="/v1/chat/completions",
+            api_key="dev-gateway-key",
+            payload={
+                "model": "smart-fast",
+                "messages": [{"role": "user", "content": "Create usage for summary endpoints."}],
+                "stream": False,
+            },
+        )
+
+        status, providers = request_json(self.base_url, path="/v1/gateway/providers")
+        self.assertEqual(status, 200)
+        dashscope = {provider["id"]: provider for provider in providers["data"]}["dashscope"]
+        self.assertIn("smart-fast", dashscope["models"])
+        self.assertIn("dev", dashscope["byok_customers"])
+        self.assertNotIn("provider_api_keys", dashscope)
+
+        status, customer_usage = request_json(self.base_url, path="/v1/gateway/customer-usage")
+        self.assertEqual(status, 200)
+        customer_ids = {row["id"] for row in customer_usage["data"]}
+        self.assertIn("dev", customer_ids)
+
+        status, model_usage = request_json(self.base_url, path="/v1/gateway/model-usage")
+        self.assertEqual(status, 200)
+        model_ids = {row["id"] for row in model_usage["data"]}
+        self.assertIn("smart-fast", model_ids)
+
+        status, request_summary = request_json(self.base_url, path="/v1/gateway/request-summary")
+        self.assertEqual(status, 200)
+        self.assertIn("by_customer", request_summary)
+        self.assertIn("by_code", request_summary)
+
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)

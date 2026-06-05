@@ -229,6 +229,7 @@ def build():
         "Basic in-memory request limit.",
         "Model registry in model_registry.json.",
         "SQLite request and usage records for restart-safe demo data.",
+        "Provider, customer, model, and request summary endpoints.",
         "Simple customer plans with token and cost budgets.",
         "Bring Your Own Key mapping through environment variables.",
         "Provider adapter scaffolds for OpenAI-compatible APIs and Claude-style APIs.",
@@ -260,6 +261,14 @@ def build():
     story.append(
         Paragraph(
             "The repository includes test_gateway.py. It starts the gateway in mock mode and checks API keys, model listing, route tracing, fallback, model access rules, token budget blocking, SQLite logs, and status output without leaking provider keys.",
+            styles["BodyCustom"],
+        )
+    )
+
+    story.append(Paragraph("Admin Summary Endpoints", styles["H1Custom"]))
+    story.append(
+        Paragraph(
+            "The prototype exposes local admin JSON views for provider status, usage by customer, usage by model, and request summaries. These make the control layer easier to explain. In production, these endpoints should be protected by admin authentication.",
             styles["BodyCustom"],
         )
     )

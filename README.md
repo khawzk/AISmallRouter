@@ -166,6 +166,10 @@ The current version also supports:
 - `GET /v1/gateway/requests`
 - `GET /v1/gateway/usage`
 - `GET /v1/gateway/customers`
+- `GET /v1/gateway/providers`
+- `GET /v1/gateway/customer-usage`
+- `GET /v1/gateway/model-usage`
+- `GET /v1/gateway/request-summary`
 - `stream=true` Server-Sent Events
 - `gateway_force_failover=true` for fallback testing in mock mode
 - multiple customer keys through `customer_keys.json`
@@ -376,6 +380,7 @@ The tests check:
 - Customer model access rules
 - Token budget blocking
 - Status output without leaking provider keys
+- Provider, customer, model, and request summary admin endpoints
 
 ## Customer Materials
 

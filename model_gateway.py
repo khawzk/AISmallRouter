@@ -323,6 +323,50 @@ def customer_usage_summary(path, customer_id):
     return dict(usage) if usage else empty
 
 
+def usage_grouped_by(path, field):
+    allowed = {"customer_id", "model", "resolved_model", "provider"}
+    if field not in allowed or not os.path.exists(path):
+        return []
+    with sqlite3.connect(path) as conn:
+        conn.row_factory = sqlite3.Row
+        rows = conn.execute(
+            f"""
+            select
+                {field} as id,
+                count(*) as usage_records,
+                coalesce(sum(prompt_tokens), 0) as prompt_tokens,
+                coalesce(sum(completion_tokens), 0) as completion_tokens,
+                coalesce(sum(total_tokens), 0) as total_tokens,
+                coalesce(sum(estimated_cost), 0) as estimated_cost
+            from usage_records
+            group by {field}
+            order by total_tokens desc
+            """
+        ).fetchall()
+    return [dict(row) for row in rows]
+
+
+def request_grouped_by(path, field):
+    allowed = {"customer_id", "model", "resolved_model", "provider", "code"}
+    if field not in allowed or not os.path.exists(path):
+        return []
+    with sqlite3.connect(path) as conn:
+        conn.row_factory = sqlite3.Row
+        rows = conn.execute(
+            f"""
+            select
+                {field} as id,
+                count(*) as requests,
+                coalesce(avg(latency_ms), 0) as avg_latency_ms,
+                sum(case when status >= 400 then 1 else 0 end) as errors
+            from requests
+            group by {field}
+            order by requests desc
+            """
+        ).fetchall()
+    return [dict(row) for row in rows]
+
+
 def customer_budget_status(path, customer):
     usage = customer_usage_summary(path, customer.get("id"))
     token_budget = customer.get("token_budget")
@@ -340,6 +384,47 @@ def customer_budget_status(path, customer):
         "remaining_tokens": remaining_tokens,
         "remaining_cost": remaining_cost,
     }
+
+
+def provider_status(server):
+    rows = []
+    request_by_provider = {
+        row["id"]: row
+        for row in request_grouped_by(server.db_path, "provider")
+        if row.get("id") is not None
+    }
+    usage_by_provider = {
+        row["id"]: row
+        for row in usage_grouped_by(server.db_path, "provider")
+        if row.get("id") is not None
+    }
+    for provider_id, provider in sorted(server.providers.items()):
+        models = [
+            public_name
+            for public_name, model in sorted(server.models.items())
+            if model.get("provider") == provider_id
+        ]
+        configured = bool(os.getenv(provider.get("api_key_env", "")))
+        byok_customers = [
+            customer["id"]
+            for customer in server.customers_by_key.values()
+            if provider_id in customer.get("provider_api_keys", {})
+        ]
+        rows.append(
+            {
+                "id": provider_id,
+                "name": provider.get("name", provider_id),
+                "type": provider.get("type", "openai_compatible"),
+                "base_url": provider.get("base_url"),
+                "models": models,
+                "api_key_env": provider.get("api_key_env"),
+                "server_key_configured": configured,
+                "byok_customers": byok_customers,
+                "requests": request_by_provider.get(provider_id, {}),
+                "usage": usage_by_provider.get(provider_id, {}),
+            }
+        )
+    return rows
 
 
 def read_jsonl_tail(path, limit=50):
@@ -475,6 +560,9 @@ def gateway_status(server):
         "mode": "mock" if server.mock_mode else "live",
         "database": server.db_path,
         "summary": db_summary(server.db_path),
+        "provider_summary": provider_status(server),
+        "usage_by_customer": usage_grouped_by(server.db_path, "customer_id"),
+        "usage_by_model": usage_grouped_by(server.db_path, "model"),
         "request_limit": server.default_request_limit,
         "limit_window_seconds": server.default_limit_window_seconds,
         "customers": [
@@ -547,6 +635,39 @@ def admin_html(server):
             f"<td>{record.get('byok_providers', '')}</td>"
             "</tr>"
         )
+    provider_rows = ""
+    for record in provider_status(server):
+        provider_rows += (
+            "<tr>"
+            f"<td>{record.get('id', '')}</td>"
+            f"<td>{record.get('type', '')}</td>"
+            f"<td>{', '.join(record.get('models', []))}</td>"
+            f"<td>{record.get('api_key_env', '')}</td>"
+            f"<td>{record.get('server_key_configured', '')}</td>"
+            f"<td>{', '.join(record.get('byok_customers', []))}</td>"
+            f"<td>{record.get('usage', {}).get('total_tokens', 0)}</td>"
+            "</tr>"
+        )
+    customer_usage_rows = ""
+    for record in usage_grouped_by(server.db_path, "customer_id"):
+        customer_usage_rows += (
+            "<tr>"
+            f"<td>{record.get('id', '')}</td>"
+            f"<td>{record.get('usage_records', 0)}</td>"
+            f"<td>{record.get('total_tokens', 0)}</td>"
+            f"<td>{record.get('estimated_cost', 0)}</td>"
+            "</tr>"
+        )
+    model_usage_rows = ""
+    for record in usage_grouped_by(server.db_path, "model"):
+        model_usage_rows += (
+            "<tr>"
+            f"<td>{record.get('id', '')}</td>"
+            f"<td>{record.get('usage_records', 0)}</td>"
+            f"<td>{record.get('total_tokens', 0)}</td>"
+            f"<td>{record.get('estimated_cost', 0)}</td>"
+            "</tr>"
+        )
     summary = db_summary(server.db_path)
     return f"""<!doctype html>
 <html lang="en">
@@ -568,7 +689,7 @@ def admin_html(server):
 <body>
   <main>
     <h1>Gateway Admin</h1>
-    <p><a href="/">Dashboard</a> | <a href="/v1/gateway/status">Status JSON</a> | <a href="/v1/gateway/requests">Requests JSON</a> | <a href="/v1/gateway/usage">Usage JSON</a> | <a href="/v1/gateway/customers">Customers JSON</a></p>
+    <p><a href="/">Dashboard</a> | <a href="/v1/gateway/status">Status JSON</a> | <a href="/v1/gateway/providers">Providers JSON</a> | <a href="/v1/gateway/customer-usage">Customer Usage JSON</a> | <a href="/v1/gateway/model-usage">Model Usage JSON</a> | <a href="/v1/gateway/requests">Requests JSON</a> | <a href="/v1/gateway/usage">Usage JSON</a> | <a href="/v1/gateway/customers">Customers JSON</a></p>
     <h2>Summary</h2>
     <table>
       <tbody>
@@ -587,6 +708,21 @@ def admin_html(server):
     <table>
       <thead><tr><th>Created</th><th>Customer</th><th>Model</th><th>Provider</th><th>Prompt</th><th>Completion</th><th>Est. cost</th></tr></thead>
       <tbody>{usage_rows}</tbody>
+    </table>
+    <h2>Provider Status</h2>
+    <table>
+      <thead><tr><th>ID</th><th>Type</th><th>Models</th><th>Key env</th><th>Server key?</th><th>BYOK customers</th><th>Total tokens</th></tr></thead>
+      <tbody>{provider_rows}</tbody>
+    </table>
+    <h2>Usage By Customer</h2>
+    <table>
+      <thead><tr><th>Customer</th><th>Usage records</th><th>Total tokens</th><th>Est. cost</th></tr></thead>
+      <tbody>{customer_usage_rows}</tbody>
+    </table>
+    <h2>Usage By Model</h2>
+    <table>
+      <thead><tr><th>Model</th><th>Usage records</th><th>Total tokens</th><th>Est. cost</th></tr></thead>
+      <tbody>{model_usage_rows}</tbody>
     </table>
     <h2>Customers</h2>
     <table>
@@ -885,7 +1021,7 @@ def should_force_failover(payload, candidate_index):
 
 
 class GatewayHandler(BaseHTTPRequestHandler):
-    server_version = "AISmallRouter/0.4"
+    server_version = "AISmallRouter/0.5"
 
     def log_message(self, format_text, *args):
         if self.server.quiet:
@@ -924,6 +1060,27 @@ class GatewayHandler(BaseHTTPRequestHandler):
             return
         if self.path == "/v1/gateway/customers":
             make_json_response(self, 200, {"data": db_tail(self.server.db_path, "customers", 100)})
+            return
+        if self.path == "/v1/gateway/providers":
+            make_json_response(self, 200, {"data": provider_status(self.server)})
+            return
+        if self.path == "/v1/gateway/customer-usage":
+            make_json_response(self, 200, {"data": usage_grouped_by(self.server.db_path, "customer_id")})
+            return
+        if self.path == "/v1/gateway/model-usage":
+            make_json_response(self, 200, {"data": usage_grouped_by(self.server.db_path, "model")})
+            return
+        if self.path == "/v1/gateway/request-summary":
+            make_json_response(
+                self,
+                200,
+                {
+                    "by_customer": request_grouped_by(self.server.db_path, "customer_id"),
+                    "by_model": request_grouped_by(self.server.db_path, "model"),
+                    "by_provider": request_grouped_by(self.server.db_path, "provider"),
+                    "by_code": request_grouped_by(self.server.db_path, "code"),
+                },
+            )
             return
         if self.path == "/v1/models":
             if not self.authenticate():
