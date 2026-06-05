@@ -30,7 +30,7 @@ It does not spend provider credits.
 python3 test_gateway.py
 ```
 
-The test covers auth, model listing, customer self view, customer key lifecycle, audit events, provider lifecycle, model route lifecycle, routing, route strategy, route preview, route decision summary, provider allow-list routing, capability routing, safety preview, cost estimate, customer key issue preview, invoice preview, fallback, model access, budgets, SQLite logs, alerts, access matrix, provider health, model catalog, customer reports, request activity, request detail lookup, and admin summary endpoints.
+The test covers auth, model listing, customer self view, customer key lifecycle, audit events, provider lifecycle, model route lifecycle, routing, route strategy, policy presets, route preview, route decision summary, provider allow-list routing, capability routing, safety preview, cost estimate, customer key issue preview, invoice preview, fallback, model access, budgets, SQLite logs, alerts, access matrix, provider health, model catalog, customer reports, request activity, request detail lookup, and admin summary endpoints.
 
 Open the visual dashboard:
 
@@ -305,6 +305,32 @@ Supported strategies:
 - `healthiest`
 
 The response includes `candidate_scores` in `route_decision`.
+
+## Preview A Route With A Policy Preset
+
+List policy presets:
+
+```bash
+curl http://127.0.0.1:8787/v1/gateway/policy-presets \
+  -H "Authorization: Bearer dev-admin-key"
+```
+
+Use a preset:
+
+```bash
+curl http://127.0.0.1:8787/v1/gateway/route-preview \
+  -H "Authorization: Bearer dev-admin-key" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "customer_id": "dev",
+    "model": "smart-fast",
+    "gateway_policy": "tool_ready"
+  }'
+```
+
+Presets are shortcuts.
+
+Explicit request controls override preset controls.
 
 ## Preview A Route With Capability Control
 

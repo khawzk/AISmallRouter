@@ -252,6 +252,7 @@ def build():
         "Request-level fallback controls for routing demos.",
         "Request-level provider allow-list for routing control demos.",
         "Request-level route strategy for registry, lowest cost, fastest, and healthiest routing.",
+        "Named policy presets for common routing controls.",
         "Mock OpenAI-style tool call response for agent demos.",
         "Simple customer plans with token and cost budgets.",
         "Bring Your Own Key mapping through environment variables.",
@@ -282,6 +283,7 @@ def build():
             ["Safety preview", "Customers may worry about secrets in prompts.", "Local preview for obvious emails, phone numbers, and secrets"],
             ["Provider routing control", "Some customers may want only approved providers for a request.", "gateway_allowed_providers filters route candidates"],
             ["Route strategy", "Customers may want cost, latency, or health-aware routing.", "Request-level route strategy reorders candidates"],
+            ["Policy presets", "Non-technical users need simple policy names.", "gateway_policy applies named routing presets"],
             ["Capability routing", "Requests may need streaming, tools, or other abilities.", "gateway_required_capabilities filters route candidates"],
             ["Cost estimate", "Customers need budget planning before live calls.", "Dry-run estimate for tokens, cost, and budget impact"],
             ["Customer onboarding", "New customers need keys, limits, and model access.", "Key issue preview creates a safe config snippet"],
@@ -409,6 +411,14 @@ def build():
     story.append(
         Paragraph(
             "The prototype supports gateway_route_strategy. Supported values are registry, lowest_cost, fastest, and healthiest. The strategy reorders route candidates before the provider call. Route preview and chat responses include candidate_scores in route_decision. This helps explain cost-aware, latency-aware, and health-aware routing. Production should use stronger cost data, latency windows, provider SLAs, and customer policy rules.",
+            styles["BodyCustom"],
+        )
+    )
+
+    story.append(Paragraph("Policy Presets", styles["H1Custom"]))
+    story.append(
+        Paragraph(
+            "The prototype supports gateway_policy. A policy preset is a short name for common routing controls. Current presets include balanced, lowest_cost, fastest, and tool_ready. /v1/gateway/policy-presets lists the presets. Explicit request controls override preset controls. This helps non-technical customers choose a simple policy name instead of many technical fields.",
             styles["BodyCustom"],
         )
     )

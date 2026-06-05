@@ -147,6 +147,7 @@ Included in the prototype:
 - Basic fallback routing
 - Basic request-level provider allow-list
 - Basic request-level routing strategy control
+- Basic named policy presets
 - Basic capability routing control
 - Basic provider create, update, and disable workflow
 - Basic model route create, update, and disable workflow

@@ -37,6 +37,7 @@ ADMIN_PATHS = {
     "/v1/gateway/providers",
     "/v1/gateway/provider-health",
     "/v1/gateway/customer-reports",
+    "/v1/gateway/policy-presets",
     "/v1/gateway/request-activity",
     "/v1/gateway/model-catalog",
     "/v1/gateway/route-preview",
@@ -1150,6 +1151,81 @@ def requested_allowed_providers(payload):
     return normalized
 
 
+POLICY_PRESETS = {
+    "balanced": {
+        "description": "Use registry order with normal fallback.",
+        "controls": {
+            "gateway_route_strategy": "registry",
+        },
+    },
+    "lowest_cost": {
+        "description": "Prefer the lowest estimated route cost.",
+        "controls": {
+            "gateway_route_strategy": "lowest_cost",
+        },
+    },
+    "fastest": {
+        "description": "Prefer the lowest recent average latency.",
+        "controls": {
+            "gateway_route_strategy": "fastest",
+        },
+    },
+    "tool_ready": {
+        "description": "Require tool calling support and prefer healthy providers.",
+        "controls": {
+            "gateway_route_strategy": "healthiest",
+            "gateway_required_capabilities": ["tools"],
+        },
+    },
+}
+
+
+def policy_presets_view():
+    return {
+        name: {
+            "description": preset["description"],
+            "controls": dict(preset["controls"]),
+        }
+        for name, preset in sorted(POLICY_PRESETS.items())
+    }
+
+
+def apply_policy_preset(payload):
+    policy_name = payload.get("gateway_policy")
+    if policy_name is None:
+        payload = dict(payload)
+        payload["gateway_policy_applied"] = None
+        return payload
+    if not isinstance(policy_name, str):
+        raise GatewayError("gateway_policy must be a string.", "invalid_gateway_policy", 400)
+    policy_name = policy_name.strip()
+    if policy_name not in POLICY_PRESETS:
+        raise GatewayError(
+            "Unknown gateway_policy.",
+            "unknown_gateway_policy",
+            400,
+            {"allowed": sorted(POLICY_PRESETS.keys())},
+        )
+    merged = dict(payload)
+    applied_controls = {}
+    for key, value in POLICY_PRESETS[policy_name]["controls"].items():
+        if key not in merged:
+            merged[key] = value
+            applied_controls[key] = value
+    merged["gateway_policy_applied"] = {
+        "name": policy_name,
+        "description": POLICY_PRESETS[policy_name]["description"],
+        "controls": dict(POLICY_PRESETS[policy_name]["controls"]),
+        "applied_controls": applied_controls,
+        "explicit_controls_kept": [
+            key
+            for key in POLICY_PRESETS[policy_name]["controls"]
+            if key in payload
+        ],
+    }
+    return merged
+
+
 def requested_capabilities(payload):
     capabilities = ["chat"]
     if payload.get("stream"):
@@ -1273,6 +1349,7 @@ def apply_route_strategy(server, candidates, strategy):
 
 
 def build_candidate_models(server, customer, public_model, payload):
+    payload = apply_policy_preset(payload)
     model = server.models.get(public_model)
     if not model:
         raise GatewayError(f"Unknown model: {public_model}.", "unknown_model", 404)
@@ -1285,6 +1362,7 @@ def build_candidate_models(server, customer, public_model, payload):
         "allowed_providers": requested_allowed_providers(payload),
         "required_capabilities": requested_capabilities(payload),
         "route_strategy": requested_route_strategy(payload),
+        "gateway_policy": payload.get("gateway_policy_applied"),
     }
     fallback_models = model.get("fallback_models", [])
     requested_fallbacks = False
@@ -1307,6 +1385,8 @@ def build_candidate_models(server, customer, public_model, payload):
         routing_policy["source"] = "request"
     if "gateway_route_strategy" in payload:
         routing_policy["source"] = "request"
+    if payload.get("gateway_policy_applied"):
+        routing_policy["source"] = "policy"
 
     candidates = [public_model]
     for name in fallback_models:
@@ -1361,6 +1441,7 @@ def route_decision(public_model, model_config, routing_policy, customer_id=None,
     required_capabilities = routing_policy.get("required_capabilities") or ["chat"]
     allowed_providers = routing_policy.get("allowed_providers") or ["any"]
     route_strategy = routing_policy.get("route_strategy") or "registry"
+    gateway_policy = routing_policy.get("gateway_policy")
     fallback_enabled = bool(routing_policy.get("fallback_enabled"))
     fallback_candidates = list(routing_policy.get("candidates", []))[1:]
     reasons = [
@@ -1373,6 +1454,8 @@ def route_decision(public_model, model_config, routing_policy, customer_id=None,
     ]
     if fallback_attempts:
         reasons.append(f"Previous route attempts failed: {len(fallback_attempts)}.")
+    if gateway_policy:
+        reasons.append(f"Gateway policy preset applied: {gateway_policy.get('name')}.")
     if fallback_enabled and fallback_candidates:
         reasons.append(f"Fallback candidates were available: {', '.join(fallback_candidates)}.")
     elif fallback_enabled:
@@ -1387,6 +1470,7 @@ def route_decision(public_model, model_config, routing_policy, customer_id=None,
         "resolved_model": selected_upstream,
         "provider": selected_provider,
         "policy_source": routing_policy.get("source"),
+        "gateway_policy": gateway_policy,
         "route_strategy": route_strategy,
         "candidate_scores": routing_policy.get("candidate_scores", []),
         "fallback_enabled": fallback_enabled,
@@ -3364,6 +3448,9 @@ class GatewayHandler(BaseHTTPRequestHandler):
         if path == "/v1/gateway/provider-health":
             make_json_response(self, 200, {"data": provider_health(self.server)})
             return
+        if path == "/v1/gateway/policy-presets":
+            make_json_response(self, 200, {"data": policy_presets_view()})
+            return
         if path == "/v1/gateway/model-catalog":
             make_json_response(self, 200, {"data": model_catalog(self.server)})
             return
@@ -3707,12 +3794,13 @@ class GatewayHandler(BaseHTTPRequestHandler):
         provider_text = ", ".join(routing_policy.get("allowed_providers") or ["any"])
         capability_text = ", ".join(routing_policy.get("required_capabilities") or ["chat"])
         route_strategy = routing_policy.get("route_strategy") or "registry"
+        policy_text = (routing_policy.get("gateway_policy") or {}).get("name") or "none"
         return [
             "Customer sends one OpenAI-compatible request",
             f"Gateway reads model = {public_model}",
             f"Model registry maps {public_model} to {resolved_model}",
             f"Decision summary = {public_model} -> {resolved_model}",
-            f"Routing policy source = {routing_policy.get('source')}, strategy = {route_strategy}, fallback = {fallback_text}",
+            f"Routing policy source = {routing_policy.get('source')}, policy = {policy_text}, strategy = {route_strategy}, fallback = {fallback_text}",
             f"Allowed providers = {provider_text}",
             f"Required capabilities = {capability_text}",
             "Provider adapter prepares the upstream request",

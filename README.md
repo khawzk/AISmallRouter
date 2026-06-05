@@ -173,6 +173,7 @@ The current version also supports:
 - `GET /v1/gateway/customers`
 - `GET /v1/gateway/providers`
 - `GET /v1/gateway/provider-health`
+- `GET /v1/gateway/policy-presets`
 - `GET /v1/gateway/model-catalog`
 - `POST /v1/gateway/route-preview`
 - `POST /v1/gateway/cost-estimate`
@@ -214,6 +215,7 @@ The current version also supports:
 - invoice preview with JSON and CSV output
 - request-level provider allow-list with `gateway_allowed_providers`
 - request-level route strategy with `gateway_route_strategy`
+- named policy presets with `gateway_policy`
 - customer usage reports with request count, errors, token usage, and budget state
 - request activity feed with simple filters for troubleshooting
 - request detail lookup by `request_id`
@@ -561,6 +563,43 @@ The response includes `candidate_scores` inside `route_decision`.
 This is a prototype strategy layer.
 
 Production should add stronger latency windows, cost metadata, provider SLAs, and customer policy rules.
+
+## Policy Presets
+
+The gateway has named policy presets.
+
+They are shortcuts for common routing controls.
+
+List presets:
+
+```bash
+curl http://127.0.0.1:8787/v1/gateway/policy-presets \
+  -H "Authorization: Bearer dev-admin-key"
+```
+
+Use a preset:
+
+```bash
+curl http://127.0.0.1:8787/v1/gateway/route-preview \
+  -H "Authorization: Bearer dev-admin-key" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "customer_id": "dev",
+    "model": "smart-fast",
+    "gateway_policy": "lowest_cost"
+  }'
+```
+
+Current presets:
+
+- `balanced`
+- `lowest_cost`
+- `fastest`
+- `tool_ready`
+
+If the request also sends an explicit gateway control, the explicit request value wins.
+
+For example, `gateway_route_strategy` overrides the strategy inside the preset.
 
 ## Capability Routing Control
 

@@ -73,6 +73,7 @@ The prototype supports:
 - Provider create, update, and disable actions
 - Request-level provider allow-list
 - Request-level routing strategy control
+- Named policy presets
 - Capability routing control
 - Local safety preview
 - Customer key issue preview
@@ -228,6 +229,7 @@ They help explain the control layer:
 - Route decision summary
 - Capability routing control
 - Routing strategy control
+- Policy presets
 - Safety preview before provider call
 - Cost estimate before a live request
 - Customer key issue preview
@@ -493,6 +495,31 @@ The response includes `candidate_scores`.
 This helps explain how a gateway can make routing decisions, not only store routes.
 
 Production should use stronger cost data, latency windows, provider SLAs, and customer policy rules.
+
+## What Policy Presets Show
+
+The prototype supports `gateway_policy`.
+
+A policy preset is a short name for common routing controls.
+
+Current presets:
+
+- `balanced`
+- `lowest_cost`
+- `fastest`
+- `tool_ready`
+
+For example:
+
+`tool_ready` requires tool calling support and prefers healthy providers.
+
+`lowest_cost` prefers the lowest estimated route cost.
+
+The endpoint `/v1/gateway/policy-presets` lists the available presets.
+
+If a request sends an explicit control, the explicit control wins.
+
+This helps non-technical customers choose a simple policy name instead of many technical fields.
 
 ## What Capability Routing Control Shows
 

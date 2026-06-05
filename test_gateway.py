@@ -1015,6 +1015,61 @@ class GatewayPrototypeTest(unittest.TestCase):
         self.assertEqual(status, 400)
         self.assertEqual(invalid_strategy["error"]["code"], "invalid_route_strategy")
 
+        status, presets = request_json(self.base_url, path="/v1/gateway/policy-presets")
+        self.assertEqual(status, 401)
+
+        status, presets = request_json(self.base_url, path="/v1/gateway/policy-presets", api_key="dev-admin-key")
+        self.assertEqual(status, 200)
+        self.assertIn("lowest_cost", presets["data"])
+        self.assertIn("tool_ready", presets["data"])
+
+        status, policy_preview = request_json(
+            self.base_url,
+            method="POST",
+            path="/v1/gateway/route-preview",
+            api_key="dev-admin-key",
+            payload={
+                "customer_id": "dev",
+                "model": "strategy-main",
+                "gateway_policy": "lowest_cost",
+            },
+        )
+        self.assertEqual(status, 200)
+        self.assertEqual(policy_preview["routing_policy"]["source"], "policy")
+        self.assertEqual(policy_preview["routing_policy"]["gateway_policy"]["name"], "lowest_cost")
+        self.assertEqual(policy_preview["routing_policy"]["route_strategy"], "lowest_cost")
+        self.assertEqual(policy_preview["route_decision"]["selected_public_model"], "strategy-cheap")
+
+        status, tool_policy_preview = request_json(
+            self.base_url,
+            method="POST",
+            path="/v1/gateway/route-preview",
+            api_key="dev-admin-key",
+            payload={
+                "customer_id": "dev",
+                "model": "smart-fast",
+                "gateway_policy": "tool_ready",
+            },
+        )
+        self.assertEqual(status, 200)
+        self.assertEqual(tool_policy_preview["routing_policy"]["gateway_policy"]["name"], "tool_ready")
+        self.assertIn("tools", tool_policy_preview["routing_policy"]["required_capabilities"])
+        self.assertEqual(tool_policy_preview["routing_policy"]["route_strategy"], "healthiest")
+
+        status, unknown_policy = request_json(
+            self.base_url,
+            method="POST",
+            path="/v1/gateway/route-preview",
+            api_key="dev-admin-key",
+            payload={
+                "customer_id": "dev",
+                "model": "smart-fast",
+                "gateway_policy": "unknown-policy",
+            },
+        )
+        self.assertEqual(status, 400)
+        self.assertEqual(unknown_policy["error"]["code"], "unknown_gateway_policy")
+
         status, created_provider = request_json(
             self.base_url,
             method="POST",
