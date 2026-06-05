@@ -1426,7 +1426,12 @@
           detailRequestId.value = data.gateway.request_id;
         }
         if (data.gateway && data.gateway.route_trace) {
-          renderTrace(data.gateway.route_trace);
+          const decision = data.gateway.route_decision;
+          const decisionLines = decision ? [
+            `Decision: ${decision.summary}`,
+            ...(decision.reasons || [])
+          ] : [];
+          renderTrace([...decisionLines, ...data.gateway.route_trace]);
         } else {
           routeTrace.innerHTML = '<div class="trace-item">No route trace returned.</div>';
         }
@@ -1458,7 +1463,12 @@
           return;
         }
         previewTrace.innerHTML = "";
-        [...(data.route_trace || []), ...(data.routes || []).map((route) => `${route.reason}: ${route.public_model} -> ${route.upstream_model} on ${route.provider} (${route.provider_status})`)].forEach((line, index) => {
+        const decision = data.route_decision;
+        const decisionLines = decision ? [
+          `Decision: ${decision.summary}`,
+          ...(decision.reasons || [])
+        ] : [];
+        [...decisionLines, ...(data.route_trace || []), ...(data.routes || []).map((route) => `${route.reason}: ${route.public_model} -> ${route.upstream_model} on ${route.provider} (${route.provider_status})`)].forEach((line, index) => {
           const div = document.createElement("div");
           div.className = "trace-item";
           div.innerHTML = `<strong>${index + 1}</strong>${line}`;

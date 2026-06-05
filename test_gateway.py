@@ -175,6 +175,8 @@ class GatewayPrototypeTest(unittest.TestCase):
         self.assertEqual(payload["model"], "smart-fast")
         self.assertEqual(payload["gateway"]["resolved_model"], "qwen-plus")
         self.assertIn("customer_budget", payload["gateway"])
+        self.assertEqual(payload["gateway"]["route_decision"]["summary"], "smart-fast -> qwen-plus via dashscope")
+        self.assertIn("Required capabilities", " ".join(payload["gateway"]["route_decision"]["reasons"]))
         request_id = payload["gateway"]["request_id"]
         self.assertTrue(request_id)
 
@@ -228,6 +230,8 @@ class GatewayPrototypeTest(unittest.TestCase):
         self.assertEqual(payload["gateway"]["resolved_model"], "qwen-turbo")
         self.assertEqual(payload["gateway"]["fallback_attempts"][0]["error"], "forced_failover")
         self.assertEqual(payload["gateway"]["routing_policy"]["source"], "model_registry")
+        self.assertEqual(payload["gateway"]["route_decision"]["selected_public_model"], "qwen-turbo")
+        self.assertEqual(len(payload["gateway"]["route_decision"]["fallback_attempts"]), 1)
 
     def test_request_can_disable_fallback(self):
         status, payload = request_json(
@@ -522,6 +526,8 @@ class GatewayPrototypeTest(unittest.TestCase):
         self.assertEqual(preview["routes"][0]["upstream_model"], "qwen-plus")
         self.assertIn("qwen-turbo", preview["routing_policy"]["candidates"])
         self.assertEqual(preview["routing_policy"]["required_capabilities"], ["chat"])
+        self.assertEqual(preview["route_decision"]["summary"], "smart-fast -> qwen-plus via dashscope")
+        self.assertIn("Fallback candidates", " ".join(preview["route_decision"]["reasons"]))
 
         status, preview = request_json(
             self.base_url,

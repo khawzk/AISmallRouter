@@ -142,6 +142,7 @@ Included in the prototype:
 - Basic usage tracking
 - Persistent SQLite records
 - Basic model access control
+- Basic route decision summary
 - Basic fallback routing
 - Basic request-level provider allow-list
 - Basic capability routing control
@@ -640,6 +641,7 @@ Future routing options:
 Already included in the prototype:
 
 - Fallback routing in mock mode
+- Structured route decision summary
 - Request-level provider allow-list with `gateway_allowed_providers`
 - Capability routing control with `gateway_required_capabilities`
 - Route preview before calling a provider

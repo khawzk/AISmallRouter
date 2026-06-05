@@ -189,6 +189,7 @@ The current version also supports:
 - provider readiness view for mock-ready, live-ready, and degraded providers
 - model catalog with provider status, fallback chain, usage, and pricing metadata
 - route preview dry run before a real provider call
+- structured route decision summary for support explanations
 - capability routing control for `streaming` and `tools`
 - cost estimate dry run for prompt tokens, completion tokens, and budget impact
 - customer key issue preview for safe onboarding demos
@@ -350,6 +351,17 @@ It shows:
 - provider readiness
 
 This is useful before a live demo or customer test.
+
+Route preview and chat responses include `route_decision`.
+
+It explains:
+
+- selected public model
+- resolved provider model
+- provider
+- fallback policy
+- provider and capability controls
+- simple reasons for the routing decision
 
 ## Provider Routing Control
 

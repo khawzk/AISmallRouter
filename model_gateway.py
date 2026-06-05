@@ -1106,6 +1106,47 @@ def build_candidate_models(server, customer, public_model, payload):
     return candidates, routing_policy
 
 
+def route_decision(public_model, model_config, routing_policy, customer_id=None, fallback_attempts=None):
+    fallback_attempts = fallback_attempts or []
+    selected_public_model = model_config.get("id") or public_model
+    selected_provider = model_config.get("provider")
+    selected_upstream = model_config.get("upstream_model")
+    required_capabilities = routing_policy.get("required_capabilities") or ["chat"]
+    allowed_providers = routing_policy.get("allowed_providers") or ["any"]
+    fallback_enabled = bool(routing_policy.get("fallback_enabled"))
+    fallback_candidates = list(routing_policy.get("candidates", []))[1:]
+    reasons = [
+        f"Customer requested public model {public_model}.",
+        f"The selected route is {selected_public_model} on provider {selected_provider}.",
+        f"The provider model is {selected_upstream}.",
+        f"Required capabilities: {', '.join(required_capabilities)}.",
+        f"Allowed providers: {', '.join(allowed_providers)}.",
+    ]
+    if fallback_attempts:
+        reasons.append(f"Previous route attempts failed: {len(fallback_attempts)}.")
+    if fallback_enabled and fallback_candidates:
+        reasons.append(f"Fallback candidates were available: {', '.join(fallback_candidates)}.")
+    elif fallback_enabled:
+        reasons.append("Fallback was enabled, but no extra fallback candidate was needed.")
+    else:
+        reasons.append("Fallback was disabled for this request.")
+    return {
+        "summary": f"{public_model} -> {selected_upstream} via {selected_provider}",
+        "customer_id": customer_id,
+        "requested_model": public_model,
+        "selected_public_model": selected_public_model,
+        "resolved_model": selected_upstream,
+        "provider": selected_provider,
+        "policy_source": routing_policy.get("source"),
+        "fallback_enabled": fallback_enabled,
+        "fallback_candidates": fallback_candidates,
+        "fallback_attempts": fallback_attempts,
+        "allowed_providers": allowed_providers,
+        "required_capabilities": required_capabilities,
+        "reasons": reasons,
+    }
+
+
 def route_preview(server, payload):
     public_model = payload.get("model")
     if not public_model:
@@ -1139,6 +1180,7 @@ def route_preview(server, payload):
             }
         )
     allowed = budget_state != "blocked"
+    primary_model = server.models[candidates[0]]
     return {
         "mode": "mock" if server.mock_mode else "live",
         "customer": public_customer_view(customer),
@@ -1148,6 +1190,7 @@ def route_preview(server, payload):
         "budget": budget,
         "budget_state": budget_state,
         "routing_policy": routing_policy,
+        "route_decision": route_decision(public_model, primary_model, routing_policy, customer_id),
         "routes": routes,
         "route_trace": [
             f"Customer = {customer_id}",
@@ -2662,6 +2705,7 @@ class GatewayHandler(BaseHTTPRequestHandler):
             "Customer sends one OpenAI-compatible request",
             f"Gateway reads model = {public_model}",
             f"Model registry maps {public_model} to {resolved_model}",
+            f"Decision summary = {public_model} -> {resolved_model}",
             f"Routing policy source = {routing_policy.get('source')}, fallback = {fallback_text}",
             f"Allowed providers = {provider_text}",
             f"Required capabilities = {capability_text}",
@@ -2700,6 +2744,13 @@ class GatewayHandler(BaseHTTPRequestHandler):
                         "provider": model_config["provider"],
                         "fallback_attempts": errors,
                         "routing_policy": routing_policy,
+                        "route_decision": route_decision(
+                            public_model,
+                            model_config,
+                            routing_policy,
+                            self.customer.get("id"),
+                            errors,
+                        ),
                     }
                 )
                 self.write_usage(response, public_model, model_config)

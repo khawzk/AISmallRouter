@@ -240,6 +240,7 @@ def build():
         "Request activity endpoint with simple filters for troubleshooting.",
         "Request detail lookup using gateway.request_id returned in chat responses.",
         "Config check endpoint for demo keys and missing production settings.",
+        "Structured route decision summary for support explanations.",
         "Customer key issue preview for safe onboarding demos.",
         "Invoice preview with JSON and CSV output.",
         "Capability routing control for streaming and tools.",
@@ -269,6 +270,7 @@ def build():
             ["Provider health", "Customers need to know whether a provider can serve traffic.", "Readiness view based on config and recent traffic"],
             ["Model catalog", "Customers need to understand public model names and routes.", "Catalog with provider status, fallback chain, usage, and pricing metadata"],
             ["Route preview", "Sales and support need to explain a route before spending credits.", "Dry-run endpoint and dashboard preview"],
+            ["Route decision summary", "Customers may ask why a route was chosen.", "Plain-language summary and reasons"],
             ["Provider routing control", "Some customers may want only approved providers for a request.", "gateway_allowed_providers filters route candidates"],
             ["Capability routing", "Requests may need streaming, tools, or other abilities.", "gateway_required_capabilities filters route candidates"],
             ["Cost estimate", "Customers need budget planning before live calls.", "Dry-run estimate for tokens, cost, and budget impact"],
@@ -338,6 +340,14 @@ def build():
     story.append(
         Paragraph(
             "/v1/gateway/route-preview is a dry run. It does not call the provider. It shows whether a customer can use a model, whether budget is available, which model is primary, which models are fallback routes, which provider would handle the request, and whether that provider is ready.",
+            styles["BodyCustom"],
+        )
+    )
+
+    story.append(Paragraph("Route Decision Summary", styles["H1Custom"]))
+    story.append(
+        Paragraph(
+            "Route preview and chat responses include route_decision. It explains the requested public model, selected upstream model, provider, fallback policy, provider controls, capability controls, and simple reasons for the routing decision. This is useful when a customer asks why a request used a certain model or provider.",
             styles["BodyCustom"],
         )
     )

@@ -64,6 +64,7 @@ The prototype supports:
 - Provider, customer, model, and request summary endpoints
 - Model registry
 - Model routing alias
+- Structured route decision summary
 - Fallback routing test in mock mode
 - Mock streaming
 - Customer plans with token and cost budgets
@@ -216,6 +217,7 @@ They help explain the control layer:
 - Provider health and readiness
 - Model catalog and routing plan
 - Route preview before a live request
+- Route decision summary
 - Capability routing control
 - Cost estimate before a live request
 - Customer key issue preview
@@ -332,6 +334,23 @@ It shows:
 This is useful before a customer demo.
 
 You can explain the route without spending model credits.
+
+## What Route Decision Summary Shows
+
+Route preview and chat responses include `route_decision`.
+
+It explains:
+
+- What public model the customer requested
+- What upstream model was selected
+- Which provider was used
+- Whether fallback was enabled
+- Which provider and capability controls were applied
+- Simple reasons for the routing decision
+
+This is useful for support.
+
+When a customer asks why a request used a certain route, the gateway can show the answer in plain language.
 
 ## What Provider Routing Control Shows
 

@@ -30,7 +30,7 @@ It does not spend provider credits.
 python3 test_gateway.py
 ```
 
-The test covers auth, model listing, routing, route preview, provider allow-list routing, capability routing, cost estimate, customer key issue preview, invoice preview, fallback, model access, budgets, SQLite logs, alerts, access matrix, provider health, model catalog, customer reports, request activity, request detail lookup, and admin summary endpoints.
+The test covers auth, model listing, routing, route preview, route decision summary, provider allow-list routing, capability routing, cost estimate, customer key issue preview, invoice preview, fallback, model access, budgets, SQLite logs, alerts, access matrix, provider health, model catalog, customer reports, request activity, request detail lookup, and admin summary endpoints.
 
 Open the visual dashboard:
 
@@ -98,6 +98,10 @@ curl http://127.0.0.1:8787/v1/gateway/route-preview \
     "model": "smart-fast"
 }'
 ```
+
+The response includes `route_decision`.
+
+Use it to explain why the gateway selected a model and provider.
 
 ## Preview A Route With Provider Control
 
