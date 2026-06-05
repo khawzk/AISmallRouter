@@ -147,6 +147,7 @@ Included in the prototype:
 - Basic fallback routing
 - Basic request-level provider allow-list
 - Basic capability routing control
+- Basic model route create, update, and disable workflow
 - Basic customer key issue preview
 - Basic customer key create, rotate, and disable workflow
 - Basic audit events for customer key lifecycle changes

@@ -234,6 +234,7 @@ def build():
         "Access matrix endpoint for customer and model permissions.",
         "Provider health endpoint for mock-ready, live-ready, degraded, and not-ready states.",
         "Model catalog endpoint for provider status, fallback chain, usage, and pricing metadata.",
+        "Model route create, update, and disable actions for route lifecycle demos.",
         "Route preview endpoint to dry-run model access, budget, provider readiness, and fallback order.",
         "Cost estimate endpoint to dry-run token estimate, estimated cost, and budget impact.",
         "Customer reports endpoint for request count, errors, token usage, and budget state.",
@@ -272,6 +273,7 @@ def build():
             ["Access control", "Each customer may be allowed to use different models.", "Access matrix by customer and model"],
             ["Provider health", "Customers need to know whether a provider can serve traffic.", "Readiness view based on config and recent traffic"],
             ["Model catalog", "Customers need to understand public model names and routes.", "Catalog with provider status, fallback chain, usage, and pricing metadata"],
+            ["Model route lifecycle", "Teams need to change public model routes safely.", "Local JSON-backed create, update, and disable actions"],
             ["Route preview", "Sales and support need to explain a route before spending credits.", "Dry-run endpoint and dashboard preview"],
             ["Route decision summary", "Customers may ask why a route was chosen.", "Plain-language summary and reasons"],
             ["Safety preview", "Customers may worry about secrets in prompts.", "Local preview for obvious emails, phone numbers, and secrets"],
@@ -347,6 +349,14 @@ def build():
     story.append(
         Paragraph(
             "/v1/gateway/model-catalog explains what each public model name means. It shows the upstream model, provider status, fallback chain, capabilities, pricing metadata, request count, errors, tokens, and estimated cost. This helps customers understand that smart-fast can be a simple public name while the gateway manages the real provider route behind it.",
+            styles["BodyCustom"],
+        )
+    )
+
+    story.append(Paragraph("Model Route Lifecycle", styles["H1Custom"]))
+    story.append(
+        Paragraph(
+            "The prototype can create, update, and disable public model routes. A route defines the customer-facing model name, provider, upstream model, fallback models, capabilities, and pricing metadata. These admin actions update model_registry.json, reload the local runtime, and write audit events. Production should add approval workflow, version history, rollback, and staged rollout.",
             styles["BodyCustom"],
         )
     )

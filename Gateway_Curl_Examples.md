@@ -30,7 +30,7 @@ It does not spend provider credits.
 python3 test_gateway.py
 ```
 
-The test covers auth, model listing, customer self view, customer key lifecycle, audit events, routing, route preview, route decision summary, provider allow-list routing, capability routing, safety preview, cost estimate, customer key issue preview, invoice preview, fallback, model access, budgets, SQLite logs, alerts, access matrix, provider health, model catalog, customer reports, request activity, request detail lookup, and admin summary endpoints.
+The test covers auth, model listing, customer self view, customer key lifecycle, audit events, model route lifecycle, routing, route preview, route decision summary, provider allow-list routing, capability routing, safety preview, cost estimate, customer key issue preview, invoice preview, fallback, model access, budgets, SQLite logs, alerts, access matrix, provider health, model catalog, customer reports, request activity, request detail lookup, and admin summary endpoints.
 
 Open the visual dashboard:
 
@@ -110,6 +110,51 @@ curl http://127.0.0.1:8787/v1/gateway/customers/disable \
 ```
 
 This updates `customer_keys.json` in the running prototype.
+
+## Create, Update, And Disable A Model Route
+
+Create a public model route:
+
+```bash
+curl http://127.0.0.1:8787/v1/gateway/model-routes \
+  -H "Authorization: Bearer dev-admin-key" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model_id": "customer-fast",
+    "provider": "dashscope",
+    "upstream_model": "qwen-plus",
+    "fallback_models": ["qwen-turbo"],
+    "capabilities": ["chat", "streaming"],
+    "pricing": {
+      "prompt_per_1k": 0,
+      "completion_per_1k": 0
+    }
+  }'
+```
+
+Update the route:
+
+```bash
+curl http://127.0.0.1:8787/v1/gateway/model-routes/update \
+  -H "Authorization: Bearer dev-admin-key" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model_id": "customer-fast",
+    "fallback_models": ["smart-fast"],
+    "capabilities": ["chat", "streaming", "tools"]
+  }'
+```
+
+Disable the route:
+
+```bash
+curl http://127.0.0.1:8787/v1/gateway/model-routes/disable \
+  -H "Authorization: Bearer dev-admin-key" \
+  -H "Content-Type: application/json" \
+  -d '{"model_id": "customer-fast"}'
+```
+
+This updates `model_registry.json` in the running prototype.
 
 ## Check Audit Events
 

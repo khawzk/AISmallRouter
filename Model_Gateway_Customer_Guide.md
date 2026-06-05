@@ -64,6 +64,7 @@ The prototype supports:
 - Provider, customer, model, and request summary endpoints
 - Model registry
 - Model routing alias
+- Model route create, update, and disable actions
 - Structured route decision summary
 - Fallback routing test in mock mode
 - Mock streaming
@@ -219,6 +220,7 @@ They help explain the control layer:
 - Access matrix
 - Provider health and readiness
 - Model catalog and routing plan
+- Model route lifecycle actions
 - Route preview before a live request
 - Route decision summary
 - Capability routing control
@@ -346,6 +348,31 @@ This is useful for non-technical customers.
 They can see that `smart-fast` is a simple public name.
 
 Behind it, the gateway can route to Qwen and fallback when needed.
+
+## What Model Route Lifecycle Shows
+
+The prototype includes three admin actions:
+
+- `/v1/gateway/model-routes`
+- `/v1/gateway/model-routes/update`
+- `/v1/gateway/model-routes/disable`
+
+These actions update `model_registry.json` in the local prototype.
+
+They can show a simple model route lifecycle:
+
+- Create a public model name
+- Choose the provider
+- Choose the upstream model
+- Set fallback models
+- Set capabilities
+- Disable the route when it should stop
+
+Every model route change writes an audit event.
+
+This helps explain that the gateway manages model access, not only customer keys.
+
+Production should add approval workflow, version history, rollback, and staged rollout.
 
 ## What Route Preview Shows
 

@@ -82,7 +82,9 @@ class GatewayServer:
         self.data_dir = os.path.join(self.temp_dir.name, "data")
         self.log_dir = os.path.join(self.temp_dir.name, "logs")
         self.customers_path = os.path.join(self.temp_dir.name, "customer_keys.json")
+        self.registry_path = os.path.join(self.temp_dir.name, "model_registry.json")
         shutil.copyfile(os.path.join(ROOT_DIR, "customer_keys.json"), self.customers_path)
+        shutil.copyfile(os.path.join(ROOT_DIR, "model_registry.json"), self.registry_path)
         self.process = None
 
     def __enter__(self):
@@ -99,6 +101,8 @@ class GatewayServer:
             self.log_dir,
             "--customers",
             self.customers_path,
+            "--registry",
+            self.registry_path,
         ]
         self.process = subprocess.Popen(
             command,
@@ -844,6 +848,109 @@ class GatewayPrototypeTest(unittest.TestCase):
         )
         self.assertEqual(status, 200)
         self.assertTrue(all(event["action"] == "customer.key_rotated" for event in audit["data"]))
+
+        status, created_route = request_json(
+            self.base_url,
+            method="POST",
+            path="/v1/gateway/model-routes",
+            api_key="dev-admin-key",
+            payload={
+                "model_id": "demo-managed-route",
+                "provider": "dashscope",
+                "upstream_model": "qwen-plus",
+                "fallback_models": ["smart-fast"],
+                "capabilities": ["chat", "streaming"],
+                "pricing": {"prompt_per_1k": 0, "completion_per_1k": 0},
+            },
+        )
+        self.assertEqual(status, 201)
+        self.assertEqual(created_route["object"], "model_route.created")
+        self.assertEqual(created_route["model"]["id"], "demo-managed-route")
+
+        status, model_list = request_json(self.base_url, path="/v1/models", api_key="dev-gateway-key")
+        self.assertEqual(status, 200)
+        self.assertIn("demo-managed-route", {model["id"] for model in model_list["data"]})
+
+        status, route_preview_payload = request_json(
+            self.base_url,
+            method="POST",
+            path="/v1/gateway/route-preview",
+            api_key="dev-admin-key",
+            payload={"customer_id": "dev", "model": "demo-managed-route"},
+        )
+        self.assertEqual(status, 200)
+        self.assertEqual(route_preview_payload["routes"][0]["public_model"], "demo-managed-route")
+
+        status, duplicate_route = request_json(
+            self.base_url,
+            method="POST",
+            path="/v1/gateway/model-routes",
+            api_key="dev-admin-key",
+            payload={"model_id": "demo-managed-route", "provider": "dashscope", "upstream_model": "qwen-plus"},
+        )
+        self.assertEqual(status, 409)
+        self.assertEqual(duplicate_route["error"]["code"], "model_route_already_exists")
+
+        status, bad_route = request_json(
+            self.base_url,
+            method="POST",
+            path="/v1/gateway/model-routes",
+            api_key="dev-admin-key",
+            payload={"model_id": "bad-route", "provider": "openai", "upstream_model": "gpt-4o-mini"},
+        )
+        self.assertEqual(status, 404)
+        self.assertEqual(bad_route["error"]["code"], "unknown_provider")
+
+        status, updated_route = request_json(
+            self.base_url,
+            method="POST",
+            path="/v1/gateway/model-routes/update",
+            api_key="dev-admin-key",
+            payload={
+                "model_id": "demo-managed-route",
+                "fallback_models": ["qwen-turbo"],
+                "capabilities": ["chat", "streaming", "tools"],
+            },
+        )
+        self.assertEqual(status, 200)
+        self.assertEqual(updated_route["object"], "model_route.updated")
+        self.assertEqual(updated_route["model"]["fallback_models"], ["qwen-turbo"])
+        self.assertIn("tools", updated_route["model"]["capabilities"])
+
+        status, catalog_after_update = request_json(
+            self.base_url,
+            path="/v1/gateway/model-catalog",
+            api_key="dev-admin-key",
+        )
+        self.assertEqual(status, 200)
+        route_catalog = {model["id"]: model for model in catalog_after_update["data"]}
+        self.assertEqual(route_catalog["demo-managed-route"]["fallback_models"], ["qwen-turbo"])
+
+        status, disabled_route = request_json(
+            self.base_url,
+            method="POST",
+            path="/v1/gateway/model-routes/disable",
+            api_key="dev-admin-key",
+            payload={"model_id": "demo-managed-route"},
+        )
+        self.assertEqual(status, 200)
+        self.assertEqual(disabled_route["object"], "model_route.disabled")
+        self.assertFalse(disabled_route["model"]["enabled"])
+
+        status, model_list_after_disable = request_json(self.base_url, path="/v1/models", api_key="dev-gateway-key")
+        self.assertEqual(status, 200)
+        self.assertNotIn("demo-managed-route", {model["id"] for model in model_list_after_disable["data"]})
+
+        status, route_audit = request_json(
+            self.base_url,
+            path="/v1/gateway/audit-events?target_id=demo-managed-route",
+            api_key="dev-admin-key",
+        )
+        self.assertEqual(status, 200)
+        route_actions = {event["action"] for event in route_audit["data"]}
+        self.assertIn("model_route.created", route_actions)
+        self.assertIn("model_route.updated", route_actions)
+        self.assertIn("model_route.disabled", route_actions)
 
         status, customer_usage = request_json(self.base_url, path="/v1/gateway/customer-usage", api_key="dev-admin-key")
         self.assertEqual(status, 200)

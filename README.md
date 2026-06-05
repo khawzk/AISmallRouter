@@ -180,6 +180,9 @@ The current version also supports:
 - `POST /v1/gateway/customers`
 - `POST /v1/gateway/customers/rotate-key`
 - `POST /v1/gateway/customers/disable`
+- `POST /v1/gateway/model-routes`
+- `POST /v1/gateway/model-routes/update`
+- `POST /v1/gateway/model-routes/disable`
 - `POST /v1/gateway/safety-preview`
 - `GET /v1/gateway/customer-reports`
 - `GET /v1/gateway/invoice-preview`
@@ -202,6 +205,7 @@ The current version also supports:
 - customer key issue preview for safe onboarding demos
 - persistent customer create, key rotation, and customer disable actions
 - audit events for customer key lifecycle actions
+- model route create, update, and disable actions
 - local safety preview for obvious emails, phone numbers, and secrets
 - invoice preview with JSON and CSV output
 - request-level provider allow-list with `gateway_allowed_providers`
@@ -355,6 +359,55 @@ This helps explain the routing plan.
 The customer sees a simple model name.
 
 The gateway keeps the provider details behind it.
+
+## Model Route Lifecycle
+
+The admin can create a public model route:
+
+```bash
+curl http://127.0.0.1:8787/v1/gateway/model-routes \
+  -H "Authorization: Bearer dev-admin-key" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model_id": "customer-fast",
+    "provider": "dashscope",
+    "upstream_model": "qwen-plus",
+    "fallback_models": ["qwen-turbo"],
+    "capabilities": ["chat", "streaming"],
+    "pricing": {
+      "prompt_per_1k": 0,
+      "completion_per_1k": 0
+    }
+  }'
+```
+
+The admin can update fallback, capabilities, provider, upstream model, and pricing:
+
+```bash
+curl http://127.0.0.1:8787/v1/gateway/model-routes/update \
+  -H "Authorization: Bearer dev-admin-key" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model_id": "customer-fast",
+    "fallback_models": ["smart-fast"],
+    "capabilities": ["chat", "streaming", "tools"]
+  }'
+```
+
+The admin can disable a route:
+
+```bash
+curl http://127.0.0.1:8787/v1/gateway/model-routes/disable \
+  -H "Authorization: Bearer dev-admin-key" \
+  -H "Content-Type: application/json" \
+  -d '{"model_id": "customer-fast"}'
+```
+
+This updates `model_registry.json` and reloads the local runtime.
+
+Every route change writes an audit event.
+
+Production should add approval workflow, version history, rollback, and staged rollout.
 
 ## Route Preview
 

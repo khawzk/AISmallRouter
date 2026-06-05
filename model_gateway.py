@@ -1664,6 +1664,193 @@ def customer_rotate_key(server, payload):
     }
 
 
+def load_registry_config(path):
+    data = read_json(path, {"providers": [], "models": []})
+    if not isinstance(data.get("providers", []), list) or not isinstance(data.get("models", []), list):
+        raise GatewayError("model_registry.json must contain providers and models lists.", "invalid_model_registry", 500)
+    return data
+
+
+def reload_registry_runtime(server):
+    registry = load_registry(server.registry_path)
+    server.providers = registry["providers"]
+    server.models = registry["models"]
+
+
+def find_model_config(config, model_id):
+    for index, model in enumerate(config.get("models", [])):
+        if model.get("id") == model_id:
+            return index, model
+    return None, None
+
+
+def active_provider_ids_from_config(config):
+    return {
+        provider.get("id")
+        for provider in config.get("providers", [])
+        if provider.get("id") and provider.get("enabled", True)
+    }
+
+
+def active_model_ids_from_config(config, exclude_model_id=None):
+    return {
+        model.get("id")
+        for model in config.get("models", [])
+        if model.get("id") and model.get("enabled", True) and model.get("id") != exclude_model_id
+    }
+
+
+def model_route_payload(server, payload, existing=None, config=None):
+    config = config or load_registry_config(server.registry_path)
+    existing = existing or {}
+    model_id = (payload.get("model_id") or payload.get("id") or existing.get("id") or "").strip()
+    if not model_id:
+        raise GatewayError("Missing required field: model_id.", "missing_model_id", 400)
+
+    provider_id = (payload.get("provider") or existing.get("provider") or "").strip()
+    if provider_id not in active_provider_ids_from_config(config):
+        raise GatewayError("Provider is unknown or disabled.", "unknown_provider", 404, {"provider": provider_id})
+
+    upstream_model = (payload.get("upstream_model") or existing.get("upstream_model") or "").strip()
+    if not upstream_model:
+        raise GatewayError("Missing required field: upstream_model.", "missing_upstream_model", 400)
+
+    capabilities = payload.get("capabilities", existing.get("capabilities", ["chat"]))
+    if not isinstance(capabilities, list) or not all(isinstance(item, str) for item in capabilities):
+        raise GatewayError("capabilities must be a list of strings.", "invalid_capabilities", 400)
+    capabilities = [item.strip() for item in capabilities if item.strip()]
+    if not capabilities:
+        raise GatewayError("capabilities must include at least one value.", "invalid_capabilities", 400)
+
+    fallback_models = payload.get("fallback_models", existing.get("fallback_models", []))
+    if not isinstance(fallback_models, list) or not all(isinstance(item, str) for item in fallback_models):
+        raise GatewayError("fallback_models must be a list of model ids.", "invalid_fallback_models", 400)
+    fallback_models = [item.strip() for item in fallback_models if item.strip()]
+    if model_id in fallback_models:
+        raise GatewayError("fallback_models cannot include the model itself.", "invalid_fallback_models", 400)
+    active_models = active_model_ids_from_config(config, exclude_model_id=model_id)
+    unknown_fallbacks = [name for name in fallback_models if name not in active_models]
+    if unknown_fallbacks:
+        raise GatewayError(
+            "fallback_models includes unknown or disabled model ids.",
+            "unknown_fallback_model",
+            404,
+            {"unknown_fallback_models": unknown_fallbacks},
+        )
+
+    pricing = payload.get("pricing", existing.get("pricing", {})) or {}
+    if not isinstance(pricing, dict):
+        raise GatewayError("pricing must be an object.", "invalid_pricing", 400)
+    try:
+        prompt_price = float(pricing.get("prompt_per_1k", 0))
+        completion_price = float(pricing.get("completion_per_1k", 0))
+    except (TypeError, ValueError):
+        raise GatewayError("pricing values must be numbers.", "invalid_pricing", 400)
+
+    return {
+        "id": model_id,
+        "provider": provider_id,
+        "upstream_model": upstream_model,
+        "fallback_models": fallback_models,
+        "capabilities": capabilities,
+        "pricing": {
+            "prompt_per_1k": prompt_price,
+            "completion_per_1k": completion_price,
+        },
+        "enabled": bool(payload.get("enabled", existing.get("enabled", True))),
+    }
+
+
+def model_route_public_view(model_config):
+    return {
+        "id": model_config.get("id"),
+        "provider": model_config.get("provider"),
+        "upstream_model": model_config.get("upstream_model"),
+        "fallback_models": model_config.get("fallback_models", []),
+        "capabilities": model_config.get("capabilities", []),
+        "pricing": model_config.get("pricing", {}),
+        "enabled": bool(model_config.get("enabled", True)),
+    }
+
+
+def model_route_create(server, payload):
+    config = load_registry_config(server.registry_path)
+    model_id = (payload.get("model_id") or payload.get("id") or "").strip()
+    if not model_id:
+        raise GatewayError("Missing required field: model_id.", "missing_model_id", 400)
+    _, existing = find_model_config(config, model_id)
+    if existing is not None:
+        raise GatewayError(f"Model route already exists: {model_id}.", "model_route_already_exists", 409)
+    model_config = model_route_payload(server, payload, config=config)
+    config.setdefault("models", []).append(model_config)
+    write_json(server.registry_path, config)
+    reload_registry_runtime(server)
+    write_audit_event(
+        server,
+        "model_route.created",
+        "model_route",
+        model_config["id"],
+        details=model_route_public_view(model_config),
+    )
+    return {
+        "object": "model_route.created",
+        "model": model_route_public_view(model_config),
+        "note": "This prototype stores model routes in model_registry.json. Production should use a database and approval workflow.",
+    }
+
+
+def model_route_update(server, payload):
+    config = load_registry_config(server.registry_path)
+    model_id = (payload.get("model_id") or payload.get("id") or "").strip()
+    if not model_id:
+        raise GatewayError("Missing required field: model_id.", "missing_model_id", 400)
+    index, existing = find_model_config(config, model_id)
+    if existing is None:
+        raise GatewayError(f"Unknown model route: {model_id}.", "unknown_model_route", 404)
+    model_config = model_route_payload(server, payload, existing=existing, config=config)
+    config["models"][index] = model_config
+    write_json(server.registry_path, config)
+    reload_registry_runtime(server)
+    write_audit_event(
+        server,
+        "model_route.updated",
+        "model_route",
+        model_config["id"],
+        details=model_route_public_view(model_config),
+    )
+    return {
+        "object": "model_route.updated",
+        "model": model_route_public_view(model_config),
+    }
+
+
+def model_route_disable(server, payload):
+    config = load_registry_config(server.registry_path)
+    model_id = (payload.get("model_id") or payload.get("id") or "").strip()
+    if not model_id:
+        raise GatewayError("Missing required field: model_id.", "missing_model_id", 400)
+    index, existing = find_model_config(config, model_id)
+    if existing is None:
+        raise GatewayError(f"Unknown model route: {model_id}.", "unknown_model_route", 404)
+    model_config = dict(existing)
+    model_config["enabled"] = False
+    config["models"][index] = model_config
+    write_json(server.registry_path, config)
+    reload_registry_runtime(server)
+    write_audit_event(
+        server,
+        "model_route.disabled",
+        "model_route",
+        model_id,
+        details=model_route_public_view(model_config),
+    )
+    return {
+        "object": "model_route.disabled",
+        "model": model_route_public_view(model_config),
+        "note": "The disabled route is removed from the active runtime model map.",
+    }
+
+
 def add_config_check(checks, severity, code, message, details=None):
     check = {
         "severity": severity,
@@ -3064,6 +3251,39 @@ class GatewayHandler(BaseHTTPRequestHandler):
             except GatewayError as exc:
                 make_error(self, exc.status, exc.message, exc.code, exc.details)
             return
+        if path == "/v1/gateway/model-routes":
+            if not self.authenticate_admin():
+                return
+            payload = self.read_json_body()
+            if payload is None:
+                return
+            try:
+                make_json_response(self, 201, model_route_create(self.server, payload))
+            except GatewayError as exc:
+                make_error(self, exc.status, exc.message, exc.code, exc.details)
+            return
+        if path == "/v1/gateway/model-routes/update":
+            if not self.authenticate_admin():
+                return
+            payload = self.read_json_body()
+            if payload is None:
+                return
+            try:
+                make_json_response(self, 200, model_route_update(self.server, payload))
+            except GatewayError as exc:
+                make_error(self, exc.status, exc.message, exc.code, exc.details)
+            return
+        if path == "/v1/gateway/model-routes/disable":
+            if not self.authenticate_admin():
+                return
+            payload = self.read_json_body()
+            if payload is None:
+                return
+            try:
+                make_json_response(self, 200, model_route_disable(self.server, payload))
+            except GatewayError as exc:
+                make_error(self, exc.status, exc.message, exc.code, exc.details)
+            return
         if path == "/v1/gateway/safety-preview":
             if not self.authenticate_admin():
                 return
@@ -3394,6 +3614,7 @@ def main():
     server.default_request_limit = args.request_limit
     server.default_limit_window_seconds = args.limit_window_seconds
     server.customers_path = args.customers
+    server.registry_path = args.registry
     server.usage_by_key = {}
     server.request_log_path = os.path.join(args.log_dir, "requests.jsonl")
     server.usage_log_path = os.path.join(args.log_dir, "usage.jsonl")
