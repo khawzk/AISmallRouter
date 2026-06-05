@@ -351,6 +351,19 @@ class GatewayPrototypeTest(unittest.TestCase):
         self.assertIn("dev", dashscope["byok_customers"])
         self.assertNotIn("provider_api_keys", dashscope)
 
+        status, provider_health = request_json(self.base_url, path="/v1/gateway/provider-health")
+        self.assertEqual(status, 401)
+
+        status, provider_health = request_json(self.base_url, path="/v1/gateway/provider-health", api_key="dev-admin-key")
+        self.assertEqual(status, 200)
+        dashscope_health = {provider["id"]: provider for provider in provider_health["data"]}["dashscope"]
+        self.assertIn(dashscope_health["status"], {"ready", "ready_mock", "degraded"})
+        self.assertIn("smart-fast", dashscope_health["models"])
+        self.assertIn("recent", dashscope_health)
+        self.assertGreaterEqual(dashscope_health["recent"]["requests"], 1)
+        self.assertIn("live_ready", dashscope_health)
+        self.assertIn("mock_ready", dashscope_health)
+
         status, customer_usage = request_json(self.base_url, path="/v1/gateway/customer-usage", api_key="dev-admin-key")
         self.assertEqual(status, 200)
         customer_ids = {row["id"] for row in customer_usage["data"]}

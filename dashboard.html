@@ -395,6 +395,53 @@
       gap: 12px;
     }
 
+    .health-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+    }
+
+    .health-card {
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: var(--panel-3);
+      padding: 14px;
+    }
+
+    .health-title {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      margin-bottom: 8px;
+    }
+
+    .health-title strong {
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-size: 14px;
+    }
+
+    .health-card p {
+      margin: 0 0 10px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .health-metrics {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .health-metrics span {
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 8px;
+      background: #0b0d10;
+    }
+
     .model {
       border: 1px solid var(--line);
       border-radius: 12px;
@@ -544,7 +591,8 @@
       }
 
       .stats,
-      .models {
+      .models,
+      .health-grid {
         grid-template-columns: repeat(2, 1fr);
       }
 
@@ -563,7 +611,8 @@
       }
 
       .stats,
-      .models {
+      .models,
+      .health-grid {
         grid-template-columns: 1fr;
       }
 
@@ -587,6 +636,7 @@
       </a>
       <div class="nav-links">
         <a href="#models">Models</a>
+        <a href="#health">Health</a>
         <a href="#routing">Routing</a>
         <a href="#console">Console</a>
         <a href="#quickstart">Quickstart</a>
@@ -594,6 +644,7 @@
       <div class="nav-actions">
         <a class="btn" href="/admin?admin_key=__ADMIN_API_KEY__">Admin</a>
         <a class="btn" href="/v1/gateway/status?admin_key=__ADMIN_API_KEY__">Status</a>
+        <a class="btn" href="/v1/gateway/provider-health?admin_key=__ADMIN_API_KEY__">Health</a>
         <a class="btn" href="/v1/gateway/config-check?admin_key=__ADMIN_API_KEY__">Config</a>
         <a class="btn primary" href="#console">Test request</a>
       </div>
@@ -646,6 +697,16 @@
           <div class="visual-box">More</div>
         </div>
       </article>
+    </section>
+
+    <section class="card" id="health" style="margin-bottom: 18px;">
+      <div class="card-head">
+        <h2>Provider readiness</h2>
+        <span>can each provider serve traffic?</span>
+      </div>
+      <div class="card-body">
+        <div class="health-grid" id="providerHealthList"></div>
+      </div>
     </section>
 
     <div class="grid" id="routing">
@@ -764,6 +825,7 @@
     const modeText = document.getElementById("modeText");
     const limitText = document.getElementById("limitText");
     const modelsList = document.getElementById("modelsList");
+    const providerHealthList = document.getElementById("providerHealthList");
     const modelSelect = document.getElementById("modelSelect");
     const routeTrace = document.getElementById("routeTrace");
     const output = document.getElementById("output");
@@ -801,6 +863,26 @@
       option.textContent = model.id;
       if (model.id === "smart-fast") option.selected = true;
       modelSelect.appendChild(option);
+    });
+
+    (state.provider_health || []).forEach((provider) => {
+      const recent = provider.recent || {};
+      const card = document.createElement("article");
+      card.className = "health-card";
+      const chipClass = provider.status === "ready" || provider.status === "ready_mock" ? "chip green" : "chip";
+      card.innerHTML = `
+        <div class="health-title">
+          <strong>${provider.id}</strong>
+          <span class="${chipClass}">${provider.status}</span>
+        </div>
+        <p>${provider.reason}</p>
+        <div class="health-metrics">
+          <span>Models<br><strong>${(provider.models || []).length}</strong></span>
+          <span>Recent errors<br><strong>${recent.errors || 0}</strong></span>
+          <span>Avg latency<br><strong>${recent.avg_latency_ms || 0}ms</strong></span>
+        </div>
+      `;
+      providerHealthList.appendChild(card);
     });
 
     function renderTrace(steps) {

@@ -203,6 +203,7 @@ The prototype has simple admin JSON endpoints.
 They help explain the control layer:
 
 - Provider status
+- Provider health and readiness
 - Usage by customer
 - Usage by model
 - Request summary by customer, model, provider, and error code
@@ -213,6 +214,28 @@ In the prototype, these endpoints use a separate demo admin key.
 The local demo key is `dev-admin-key`.
 
 In production, the admin key should be changed and protected.
+
+## What Provider Health Means
+
+The prototype includes `/v1/gateway/provider-health`.
+
+It answers a simple question:
+
+Can this provider serve traffic now?
+
+The endpoint checks:
+
+- Is the provider enabled?
+- Does it have at least one routed model?
+- Does live mode have a server key or customer BYOK key?
+- Are recent requests failing often?
+- What is the recent average latency?
+
+In mock mode, a provider can be `ready_mock`.
+
+That means the provider can be explained in the demo without spending credits.
+
+It does not mean the live provider key is ready.
 
 ## Why Config Check Matters
 

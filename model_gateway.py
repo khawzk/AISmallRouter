@@ -30,6 +30,7 @@ ADMIN_PATHS = {
     "/v1/gateway/usage",
     "/v1/gateway/customers",
     "/v1/gateway/providers",
+    "/v1/gateway/provider-health",
     "/v1/gateway/customer-usage",
     "/v1/gateway/model-usage",
     "/v1/gateway/request-summary",
@@ -381,6 +382,45 @@ def request_grouped_by(path, field):
     return [dict(row) for row in rows]
 
 
+def recent_provider_metrics(path, provider_id, limit=50):
+    empty = {
+        "sample_size": 0,
+        "requests": 0,
+        "errors": 0,
+        "error_rate": 0,
+        "avg_latency_ms": 0,
+        "last_code": None,
+        "last_status": None,
+    }
+    if not provider_id or not os.path.exists(path):
+        return empty
+    with sqlite3.connect(path) as conn:
+        conn.row_factory = sqlite3.Row
+        rows = conn.execute(
+            """
+            select status, code, latency_ms
+            from requests
+            where provider = ?
+            order by id desc
+            limit ?
+            """,
+            (provider_id, limit),
+        ).fetchall()
+    if not rows:
+        return empty
+    errors = sum(1 for row in rows if int(row["status"] or 0) >= 400)
+    latencies = [float(row["latency_ms"] or 0) for row in rows]
+    return {
+        "sample_size": len(rows),
+        "requests": len(rows),
+        "errors": errors,
+        "error_rate": round(errors / len(rows), 4),
+        "avg_latency_ms": round(sum(latencies) / len(latencies), 2),
+        "last_code": rows[0]["code"],
+        "last_status": rows[0]["status"],
+    }
+
+
 def customer_budget_status(path, customer):
     usage = customer_usage_summary(path, customer.get("id"))
     token_budget = customer.get("token_budget")
@@ -436,6 +476,62 @@ def provider_status(server):
                 "byok_customers": byok_customers,
                 "requests": request_by_provider.get(provider_id, {}),
                 "usage": usage_by_provider.get(provider_id, {}),
+            }
+        )
+    return rows
+
+
+def provider_health(server):
+    rows = []
+    for provider_id, provider in sorted(server.providers.items()):
+        models = [
+            public_name
+            for public_name, model in sorted(server.models.items())
+            if model.get("provider") == provider_id
+        ]
+        env_name = provider.get("api_key_env")
+        server_key_configured = bool(env_name and os.getenv(env_name))
+        byok_customers = [
+            customer["id"]
+            for customer in server.customers_by_key.values()
+            if provider_id in customer.get("provider_api_keys", {})
+        ]
+        byok_ready_customers = [
+            customer["id"]
+            for customer in server.customers_by_key.values()
+            if resolve_secret(customer.get("provider_api_keys", {}).get(provider_id))
+        ]
+        has_key_path = server_key_configured or bool(byok_ready_customers)
+        metrics = recent_provider_metrics(server.db_path, provider_id)
+        status = "ready"
+        reason = "Provider has an enabled model and a usable key path."
+        if server.mock_mode and not has_key_path:
+            status = "ready_mock"
+            reason = "Mock mode can demonstrate this provider without a paid provider key."
+        if not models:
+            status = "not_ready"
+            reason = "No enabled model is routed to this provider."
+        elif not server.mock_mode and not has_key_path:
+            status = "not_ready"
+            reason = "Live mode needs a server provider key or a customer BYOK key."
+        elif metrics["sample_size"] >= 3 and metrics["error_rate"] >= 0.5:
+            status = "degraded"
+            reason = "Recent requests show a high provider error rate."
+        rows.append(
+            {
+                "id": provider_id,
+                "name": provider.get("name", provider_id),
+                "type": provider.get("type", "openai_compatible"),
+                "status": status,
+                "reason": reason,
+                "models": models,
+                "live_ready": bool(models and has_key_path),
+                "mock_ready": bool(models),
+                "api_key_env": env_name,
+                "server_key_configured": server_key_configured,
+                "byok_customers": byok_customers,
+                "byok_ready_customers": byok_ready_customers,
+                "recent": metrics,
             }
         )
     return rows
@@ -727,6 +823,7 @@ def gateway_status(server):
         "summary": db_summary(server.db_path),
         "config_check": gateway_config_check(server),
         "provider_summary": provider_status(server),
+        "provider_health": provider_health(server),
         "usage_by_customer": usage_grouped_by(server.db_path, "customer_id"),
         "usage_by_model": usage_grouped_by(server.db_path, "model"),
         "request_limit": server.default_request_limit,
@@ -818,6 +915,21 @@ def admin_html(server):
             f"<td>{record.get('usage', {}).get('total_tokens', 0)}</td>"
             "</tr>"
         )
+    provider_health_rows = ""
+    for record in provider_health(server):
+        recent = record.get("recent", {})
+        provider_health_rows += (
+            "<tr>"
+            f"<td>{record.get('id', '')}</td>"
+            f"<td>{record.get('status', '')}</td>"
+            f"<td>{record.get('reason', '')}</td>"
+            f"<td>{record.get('live_ready', '')}</td>"
+            f"<td>{record.get('mock_ready', '')}</td>"
+            f"<td>{recent.get('requests', 0)}</td>"
+            f"<td>{recent.get('errors', 0)}</td>"
+            f"<td>{recent.get('avg_latency_ms', 0)}</td>"
+            "</tr>"
+        )
     customer_usage_rows = ""
     for record in usage_grouped_by(server.db_path, "customer_id"):
         customer_usage_rows += (
@@ -870,7 +982,7 @@ def admin_html(server):
 <body>
   <main>
     <h1>Gateway Admin</h1>
-    <p><a href="/">Dashboard</a> | <a href="/v1/gateway/status">Status JSON</a> | <a href="/v1/gateway/config-check">Config Check JSON</a> | <a href="/v1/gateway/providers">Providers JSON</a> | <a href="/v1/gateway/customer-usage">Customer Usage JSON</a> | <a href="/v1/gateway/model-usage">Model Usage JSON</a> | <a href="/v1/gateway/requests">Requests JSON</a> | <a href="/v1/gateway/usage">Usage JSON</a> | <a href="/v1/gateway/customers">Customers JSON</a></p>
+    <p><a href="/">Dashboard</a> | <a href="/v1/gateway/status">Status JSON</a> | <a href="/v1/gateway/config-check">Config Check JSON</a> | <a href="/v1/gateway/provider-health">Provider Health JSON</a> | <a href="/v1/gateway/providers">Providers JSON</a> | <a href="/v1/gateway/customer-usage">Customer Usage JSON</a> | <a href="/v1/gateway/model-usage">Model Usage JSON</a> | <a href="/v1/gateway/requests">Requests JSON</a> | <a href="/v1/gateway/usage">Usage JSON</a> | <a href="/v1/gateway/customers">Customers JSON</a></p>
     <h2>Summary</h2>
     <table>
       <tbody>
@@ -900,6 +1012,11 @@ def admin_html(server):
     <table>
       <thead><tr><th>ID</th><th>Type</th><th>Models</th><th>Key env</th><th>Server key?</th><th>BYOK customers</th><th>Total tokens</th></tr></thead>
       <tbody>{provider_rows}</tbody>
+    </table>
+    <h2>Provider Health</h2>
+    <table>
+      <thead><tr><th>ID</th><th>Status</th><th>Reason</th><th>Live ready?</th><th>Mock ready?</th><th>Recent requests</th><th>Errors</th><th>Avg latency ms</th></tr></thead>
+      <tbody>{provider_health_rows}</tbody>
     </table>
     <h2>Usage By Customer</h2>
     <table>
@@ -1265,7 +1382,7 @@ class GatewayHandler(BaseHTTPRequestHandler):
             return
         if path in ADMIN_PATHS and not self.authenticate_admin():
             return
-        self.send_response(200 if path in {"/health", "/v1/gateway/status"} else 404)
+        self.send_response(200 if path == "/health" or path in ADMIN_PATHS else 404)
         self.end_headers()
 
     def do_GET(self):
@@ -1298,6 +1415,9 @@ class GatewayHandler(BaseHTTPRequestHandler):
             return
         if path == "/v1/gateway/providers":
             make_json_response(self, 200, {"data": provider_status(self.server)})
+            return
+        if path == "/v1/gateway/provider-health":
+            make_json_response(self, 200, {"data": provider_health(self.server)})
             return
         if path == "/v1/gateway/customer-usage":
             make_json_response(self, 200, {"data": usage_grouped_by(self.server.db_path, "customer_id")})

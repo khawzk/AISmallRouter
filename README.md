@@ -168,6 +168,7 @@ The current version also supports:
 - `GET /v1/gateway/usage`
 - `GET /v1/gateway/customers`
 - `GET /v1/gateway/providers`
+- `GET /v1/gateway/provider-health`
 - `GET /v1/gateway/customer-usage`
 - `GET /v1/gateway/model-usage`
 - `GET /v1/gateway/request-summary`
@@ -175,6 +176,7 @@ The current version also supports:
 - `stream=true` Server-Sent Events
 - `gateway_force_failover=true` for fallback testing in mock mode
 - OpenAI-style `tools` request with mock tool call response
+- provider readiness view for mock-ready, live-ready, and degraded providers
 - multiple customer keys through `customer_keys.json`
 - customer plans with request limits, token budgets, and cost budgets
 - SQLite persistence for request and usage records
@@ -213,6 +215,26 @@ curl http://127.0.0.1:8787/v1/gateway/config-check \
 The config check warns about demo keys, missing live provider keys, and direct secret values in local config files.
 
 For production, change the key with `GATEWAY_ADMIN_API_KEY`.
+
+## Provider Health
+
+The gateway has a simple provider health endpoint:
+
+```bash
+curl http://127.0.0.1:8787/v1/gateway/provider-health \
+  -H "Authorization: Bearer dev-admin-key"
+```
+
+It shows:
+
+- whether a provider can be used in mock mode
+- whether a provider has a real live key path
+- which public models use that provider
+- recent request count, errors, and average latency
+
+This is not a paid provider ping.
+
+It is a local readiness view based on configuration and recent gateway traffic.
 
 ## Customer Plans And Budgets
 
@@ -494,6 +516,7 @@ The tests check:
 - Customer model access rules
 - Token budget blocking
 - Status output without leaking provider keys
+- Provider health readiness output
 - Provider, customer, model, and request summary admin endpoints
 
 ## Customer Materials
