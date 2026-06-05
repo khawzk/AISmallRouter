@@ -60,6 +60,7 @@ The prototype supports:
 - Customer integration guide
 - Operational alerts
 - Incident playbook
+- Support policy
 - Access matrix
 - OpenAI-compatible chat endpoint
 - Customer API key check
@@ -395,6 +396,30 @@ Each scenario includes:
 It is not a legal SLA.
 
 It helps sales, support, and technical teams explain the same problem in the same way.
+
+## What The Support Policy Shows
+
+The prototype includes `/v1/gateway/support-policy`.
+
+This endpoint explains support expectations.
+
+It separates support into:
+
+- prototype demo
+- technical pilot
+- production target
+
+It also explains:
+
+- P1, P2, and P3 severity
+- first checks for each severity
+- escalation path
+- customer-safe wording
+- what is not included yet
+
+It is not a legal production SLA.
+
+It helps the customer understand what can be promised now and what needs a real production contract later.
 
 ## What The Access Matrix Shows
 

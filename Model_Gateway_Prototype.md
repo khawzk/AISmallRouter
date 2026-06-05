@@ -151,6 +151,7 @@ Included in the prototype:
 - Basic customer default policy
 - Basic production readiness report
 - Basic incident playbook
+- Basic support policy
 - Basic capability routing control
 - Basic provider create, update, and disable workflow
 - Basic provider contract matrix

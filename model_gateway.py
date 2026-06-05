@@ -86,6 +86,7 @@ ADMIN_PATHS = {
     "/v1/gateway/demo-bundle",
     "/v1/gateway/production-readiness",
     "/v1/gateway/incident-playbook",
+    "/v1/gateway/support-policy",
     "/v1/gateway/request-activity",
     "/v1/gateway/model-catalog",
     "/v1/gateway/route-preview",
@@ -2977,6 +2978,129 @@ def incident_playbook(server):
     }
 
 
+def support_policy(server):
+    readiness = production_readiness(server)
+    playbook = incident_playbook(server)
+    return {
+        "object": "gateway.support_policy",
+        "mode": "mock" if server.mock_mode else "live",
+        "policy_status": "prototype",
+        "plain_english": (
+            "The current gateway can support customer demos and technical pilots, "
+            "but it is not a legal production SLA."
+        ),
+        "service_levels": [
+            {
+                "stage": "prototype_demo",
+                "goal": "Explain the model gateway concept and test local mock flows.",
+                "availability_target": "best_effort",
+                "response_time_target": "same business day when actively demoing",
+                "included": [
+                    "Mock requests",
+                    "Customer-facing dashboard",
+                    "OpenAPI and Postman handoff",
+                    "Route preview",
+                    "Readiness and incident playbook explanation",
+                ],
+                "not_included": [
+                    "Legal uptime commitment",
+                    "Automatic failover guarantee",
+                    "Production billing guarantee",
+                    "Provider SLA pass-through",
+                ],
+            },
+            {
+                "stage": "technical_pilot",
+                "goal": "Let a small customer group test controlled live or mock usage.",
+                "availability_target": "business-hours support target",
+                "response_time_target": "P1 same business day, P2 next business day, P3 planned backlog",
+                "included": [
+                    "Named customer keys",
+                    "Budget and limit controls",
+                    "Request tracing with gateway.request_id",
+                    "Provider readiness checks",
+                    "Manual fallback review",
+                ],
+                "not_included": [
+                    "24/7 support",
+                    "Guaranteed latency",
+                    "Automatic incident paging",
+                    "Final invoice or tax workflow",
+                ],
+            },
+            {
+                "stage": "production_target",
+                "goal": "Future state for real customer traffic after production hardening.",
+                "availability_target": "to be agreed in customer contract",
+                "response_time_target": "to be agreed by severity level",
+                "included": [
+                    "Secret manager",
+                    "Database-backed customer and route config",
+                    "Approval workflow",
+                    "Provider contract tests",
+                    "Monitoring and alert routing",
+                    "Billing rules",
+                    "Operational runbooks",
+                ],
+                "not_included": [
+                    "Available in the current single-file prototype",
+                    "Provider uptime beyond upstream provider agreements",
+                ],
+            },
+        ],
+        "severity_levels": [
+            {
+                "severity": "P1",
+                "meaning": "Customer production traffic is blocked or many requests are failing.",
+                "first_checks": [
+                    "/v1/gateway/alerts",
+                    "/v1/gateway/provider-health",
+                    "/v1/gateway/request-activity?status=error",
+                ],
+                "target_action": "Triage provider health, budget blocks, and recent errors before changing routes.",
+            },
+            {
+                "severity": "P2",
+                "meaning": "One customer or one model route has degraded behavior.",
+                "first_checks": [
+                    "/v1/gateway/request-detail?request_id=...",
+                    "/v1/gateway/model-catalog",
+                    "/v1/gateway/route-preview",
+                ],
+                "target_action": "Use request_id and route preview to explain the specific route decision.",
+            },
+            {
+                "severity": "P3",
+                "meaning": "Question, onboarding, documentation, or planned provider work.",
+                "first_checks": [
+                    "/v1/gateway/demo-bundle",
+                    "/v1/gateway/integration-guide",
+                    "/v1/gateway/provider-contracts",
+                ],
+                "target_action": "Use docs and contract matrix to plan the next change.",
+            },
+        ],
+        "escalation_path": [
+            "Sales or support collects customer, public model name, timestamp, and gateway.request_id if available.",
+            "Operator checks incident playbook and alerts.",
+            "Engineer checks provider contract, route decision, request detail, and recent request activity.",
+            "Business owner approves budget, pricing, or SLA changes.",
+        ],
+        "customer_safe_words": [
+            "The gateway keeps the customer API stable while we inspect the upstream route.",
+            "We can trace the request using gateway.request_id without exposing provider secrets.",
+            "The prototype shows the operating model, but production SLA terms must be agreed separately.",
+        ],
+        "current_readiness": {
+            "overall_status": readiness.get("overall_status"),
+            "prototype_only": readiness.get("prototype_only"),
+            "readiness_endpoint": "/v1/gateway/production-readiness",
+            "incident_playbook_endpoint": "/v1/gateway/incident-playbook",
+            "active_alerts": playbook.get("summary", {}).get("active_alerts", {}),
+        },
+    }
+
+
 def read_jsonl_tail(path, limit=50):
     if not os.path.exists(path):
         return []
@@ -3458,6 +3582,7 @@ def openapi_spec(server):
         "/v1/gateway/demo-bundle": "Customer demo bundle manifest",
         "/v1/gateway/production-readiness": "Production readiness report",
         "/v1/gateway/incident-playbook": "Incident response playbook",
+        "/v1/gateway/support-policy": "Support policy and SLA stage guide",
     }.items():
         paths[path] = {
             "get": {
@@ -3558,6 +3683,7 @@ def postman_collection(server):
         request_item("Provider Contracts", "GET", "/v1/gateway/provider-contracts", "admin_api_key"),
         request_item("Production Readiness", "GET", "/v1/gateway/production-readiness", "admin_api_key"),
         request_item("Incident Playbook", "GET", "/v1/gateway/incident-playbook", "admin_api_key"),
+        request_item("Support Policy", "GET", "/v1/gateway/support-policy", "admin_api_key"),
         request_item("Model Catalog", "GET", "/v1/gateway/model-catalog", "admin_api_key"),
         request_item("Audit Events", "GET", "/v1/gateway/audit-events", "admin_api_key"),
         request_item("Customer Reports", "GET", "/v1/gateway/customer-reports", "admin_api_key"),
@@ -3720,6 +3846,13 @@ def demo_bundle(server):
                 "auth": "adminBearerAuth",
             },
             {
+                "name": "Support policy",
+                "url": f"{base_url}/v1/gateway/support-policy",
+                "audience": "business and support",
+                "purpose": "Explain prototype, pilot, and production support expectations.",
+                "auth": "adminBearerAuth",
+            },
+            {
                 "name": "Postman collection",
                 "url": f"{base_url}/postman_collection.json",
                 "audience": "customer technical",
@@ -3806,6 +3939,10 @@ def demo_bundle(server):
             {
                 "name": "Incident playbook",
                 "command": f"curl {base_url}/v1/gateway/incident-playbook -H 'Authorization: Bearer {server.admin_api_key or DEFAULT_ADMIN_API_KEY}'",
+            },
+            {
+                "name": "Support policy",
+                "command": f"curl {base_url}/v1/gateway/support-policy -H 'Authorization: Bearer {server.admin_api_key or DEFAULT_ADMIN_API_KEY}'",
             },
         ],
         "production_notes": [
@@ -4541,6 +4678,9 @@ class GatewayHandler(BaseHTTPRequestHandler):
             return
         if path == "/v1/gateway/incident-playbook":
             make_json_response(self, 200, incident_playbook(self.server))
+            return
+        if path == "/v1/gateway/support-policy":
+            make_json_response(self, 200, support_policy(self.server))
             return
         if path == "/v1/gateway/requests":
             make_json_response(self, 200, {"data": db_tail(self.server.db_path, "requests", 100)})

@@ -236,6 +236,7 @@ def build():
         "Provider, customer, model, and request summary endpoints.",
         "Operational alerts endpoint with simple next steps.",
         "Incident playbook endpoint with support scenarios and customer-safe wording.",
+        "Support policy endpoint for prototype, pilot, and production support stages.",
         "Access matrix endpoint for customer and model permissions.",
         "Provider health endpoint for mock-ready, live-ready, degraded, and not-ready states.",
         "Provider create, update, and disable actions for provider lifecycle demos.",
@@ -286,6 +287,7 @@ def build():
             ["Token usage", "Billing and quota require reliable usage data.", "Stored in SQLite"],
             ["Operational alerts", "Non-technical users need a clear action list.", "Alerts with severity, area, and next step"],
             ["Incident response", "Support teams need a shared script when requests fail.", "Playbook with signals, steps, and customer wording"],
+            ["Support policy", "Customers need to know what support is promised at each stage.", "Prototype, pilot, and production support guide"],
             ["Production readiness", "Customers need to understand why demo-ready is not production-ready.", "Plain-English readiness report"],
             ["Access control", "Each customer may be allowed to use different models.", "Access matrix by customer and model"],
             ["Provider health", "Customers need to know whether a provider can serve traffic.", "Readiness view based on config and recent traffic"],
@@ -355,6 +357,14 @@ def build():
     story.append(
         Paragraph(
             "/v1/gateway/incident-playbook explains common failure scenarios in simple English. It covers provider readiness, recent request errors, customer budget blocks, demo key or secret risks, and provider contract gaps. Each scenario includes triggers, signals to check, current evidence, operator steps, and customer-safe wording. It is not a legal SLA, but it helps sales, support, and technical teams explain issues consistently.",
+            styles["BodyCustom"],
+        )
+    )
+
+    story.append(Paragraph("Support Policy", styles["H1Custom"]))
+    story.append(
+        Paragraph(
+            "/v1/gateway/support-policy explains prototype, technical pilot, and production target support expectations. It defines P1, P2, and P3 severity, first checks, escalation path, and customer-safe wording. It clearly says the current prototype is not a legal production SLA. This helps customers understand what can be promised now and what needs a real contract later.",
             styles["BodyCustom"],
         )
     )

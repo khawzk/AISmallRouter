@@ -172,6 +172,7 @@ The current version also supports:
 - `GET /v1/gateway/audit-events`
 - `GET /v1/gateway/alerts`
 - `GET /v1/gateway/incident-playbook`
+- `GET /v1/gateway/support-policy`
 - `GET /v1/gateway/access-matrix`
 - `GET /v1/gateway/requests`
 - `GET /v1/gateway/usage`
@@ -231,6 +232,7 @@ The current version also supports:
 - request detail lookup by `request_id`
 - operational alerts with next steps
 - incident playbook with support scenarios and customer-safe wording
+- support policy with prototype, pilot, and production support stages
 - production readiness report for go-live gaps
 - customer model access matrix
 - customer self-service profile with no provider secret exposure
@@ -241,6 +243,7 @@ The current version also supports:
 - disabled example provider configs for OpenAI and Anthropic
 - provider type contracts for OpenAI-compatible, Anthropic, and planned Xiaomi-style providers
 - incident playbook for provider, request, budget, key, and contract issues
+- support policy for SLA-stage discussion without pretending the prototype has a legal SLA
 - OpenAPI contract at `/openapi.json`
 - Postman collection at `/postman_collection.json`
 - demo bundle manifest at `/v1/gateway/demo-bundle`
@@ -451,6 +454,33 @@ Each scenario includes:
 It is not a legal SLA.
 
 It is a simple support playbook for demos and early customer discussions.
+
+## Support Policy
+
+The gateway has a support policy endpoint:
+
+```bash
+curl http://127.0.0.1:8787/v1/gateway/support-policy \
+  -H "Authorization: Bearer dev-admin-key"
+```
+
+It separates support expectations into:
+
+- prototype demo
+- technical pilot
+- production target
+
+It also defines:
+
+- P1, P2, and P3 severity meaning
+- first checks for each severity
+- escalation path
+- customer-safe wording
+- what is not included in the current prototype
+
+It is not a legal production SLA.
+
+It is a simple way to discuss support scope with a customer before a real contract exists.
 
 ## Access Matrix
 
