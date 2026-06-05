@@ -144,6 +144,7 @@ Included in the prototype:
 - Basic model access control
 - Basic fallback routing
 - Basic request-level provider allow-list
+- Basic customer key issue preview
 - Basic customer plan, token budget, and cost budget control
 - Basic Bring Your Own Key provider mapping
 - Provider adapter scaffolds for OpenAI-compatible APIs and Anthropic-style APIs
@@ -640,6 +641,7 @@ Already included in the prototype:
 - Request-level provider allow-list with `gateway_allowed_providers`
 - Route preview before calling a provider
 - Cost estimate before calling a provider
+- Customer key issue preview before editing customer config
 
 ## Main Technical Risks
 

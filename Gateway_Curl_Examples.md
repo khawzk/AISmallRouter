@@ -30,7 +30,7 @@ It does not spend provider credits.
 python3 test_gateway.py
 ```
 
-The test covers auth, model listing, routing, route preview, provider allow-list routing, cost estimate, fallback, model access, budgets, SQLite logs, alerts, access matrix, provider health, model catalog, customer reports, request activity, request detail lookup, and admin summary endpoints.
+The test covers auth, model listing, routing, route preview, provider allow-list routing, cost estimate, customer key issue preview, fallback, model access, budgets, SQLite logs, alerts, access matrix, provider health, model catalog, customer reports, request activity, request detail lookup, and admin summary endpoints.
 
 Open the visual dashboard:
 
@@ -129,6 +129,27 @@ curl http://127.0.0.1:8787/v1/gateway/cost-estimate \
     "model": "smart-fast",
     "prompt": "Explain the gateway.",
     "max_tokens": 256
+}'
+```
+
+## Preview A New Customer Key
+
+This generates a safe onboarding package.
+
+It does not save the customer.
+
+```bash
+curl http://127.0.0.1:8787/v1/gateway/key-issue-preview \
+  -H "Authorization: Bearer dev-admin-key" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "customer_id": "customer-demo",
+    "name": "Customer Demo",
+    "plan": "starter",
+    "allowed_models": ["smart-fast"],
+    "request_limit": 60,
+    "token_budget": 10000,
+    "cost_budget": 1.0
   }'
 ```
 

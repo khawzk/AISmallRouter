@@ -174,6 +174,7 @@ The current version also supports:
 - `GET /v1/gateway/model-catalog`
 - `POST /v1/gateway/route-preview`
 - `POST /v1/gateway/cost-estimate`
+- `POST /v1/gateway/key-issue-preview`
 - `GET /v1/gateway/customer-reports`
 - `GET /v1/gateway/request-activity`
 - `GET /v1/gateway/request-detail`
@@ -188,6 +189,7 @@ The current version also supports:
 - model catalog with provider status, fallback chain, usage, and pricing metadata
 - route preview dry run before a real provider call
 - cost estimate dry run for prompt tokens, completion tokens, and budget impact
+- customer key issue preview for safe onboarding demos
 - request-level provider allow-list with `gateway_allowed_providers`
 - customer usage reports with request count, errors, token usage, and budget state
 - request activity feed with simple filters for troubleshooting
@@ -401,6 +403,36 @@ It estimates:
 This is a planning estimate.
 
 Real provider token usage can be different.
+
+## Customer Key Issue Preview
+
+The gateway can preview a new customer key package:
+
+```bash
+curl http://127.0.0.1:8787/v1/gateway/key-issue-preview \
+  -H "Authorization: Bearer dev-admin-key" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "customer_id": "customer-demo",
+    "name": "Customer Demo",
+    "plan": "starter",
+    "allowed_models": ["smart-fast"],
+    "request_limit": 60,
+    "token_budget": 10000,
+    "cost_budget": 1.0
+  }'
+```
+
+It returns:
+
+- a generated gateway API key
+- a masked key for safe display
+- a `customer_keys.json` config snippet
+- next steps for route preview and reporting
+
+It does not save the customer.
+
+This is a safe way to explain customer onboarding without changing local config.
 
 ## Customer Reports
 

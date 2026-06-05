@@ -3,6 +3,7 @@ import argparse
 import hashlib
 import json
 import os
+import secrets
 import sqlite3
 import time
 import uuid
@@ -35,6 +36,7 @@ ADMIN_PATHS = {
     "/v1/gateway/request-activity",
     "/v1/gateway/model-catalog",
     "/v1/gateway/route-preview",
+    "/v1/gateway/key-issue-preview",
     "/v1/gateway/request-detail",
     "/v1/gateway/alerts",
     "/v1/gateway/access-matrix",
@@ -69,6 +71,14 @@ def now_unix():
 
 def key_hash(value):
     return hashlib.sha256(value.encode("utf-8")).hexdigest()[:12]
+
+
+def mask_key(value):
+    if not value:
+        return ""
+    if len(value) <= 14:
+        return value[:4] + "..."
+    return value[:8] + "..." + value[-6:]
 
 
 def resolve_secret(value):
@@ -1061,6 +1071,101 @@ def cost_estimate(server, payload):
             "would_exceed_budget": blocked_after_estimate,
         },
         "note": "This is a local estimate. Real provider token usage can differ.",
+    }
+
+
+def key_issue_preview(server, payload):
+    customer_id = (payload.get("customer_id") or "").strip()
+    if not customer_id:
+        raise GatewayError("Missing required field: customer_id.", "missing_customer_id", 400)
+    if customer_by_id(server, customer_id):
+        raise GatewayError(f"Customer already exists: {customer_id}.", "customer_already_exists", 409)
+
+    allowed_models = payload.get("allowed_models", ["smart-fast"])
+    if not isinstance(allowed_models, list) or not all(isinstance(name, str) for name in allowed_models):
+        raise GatewayError("allowed_models must be a list of model names.", "invalid_allowed_models", 400)
+    allowed_models = [name.strip() for name in allowed_models if name.strip()]
+    if not allowed_models:
+        raise GatewayError("allowed_models must include at least one model or '*'.", "invalid_allowed_models", 400)
+    unknown_models = [
+        name
+        for name in allowed_models
+        if name != "*" and name not in server.models
+    ]
+    if unknown_models:
+        raise GatewayError(
+            "allowed_models includes unknown model names.",
+            "unknown_allowed_model",
+            404,
+            {"unknown_models": unknown_models},
+        )
+
+    provider_api_keys = payload.get("provider_api_keys", {})
+    if provider_api_keys is None:
+        provider_api_keys = {}
+    if not isinstance(provider_api_keys, dict):
+        raise GatewayError("provider_api_keys must be an object.", "invalid_provider_api_keys", 400)
+    unknown_providers = [
+        provider_id
+        for provider_id in provider_api_keys
+        if provider_id not in server.providers
+    ]
+    if unknown_providers:
+        raise GatewayError(
+            "provider_api_keys includes unknown providers.",
+            "unknown_provider",
+            404,
+            {"unknown_providers": unknown_providers},
+        )
+
+    requested_api_key = payload.get("api_key")
+    if requested_api_key and requested_api_key in server.customers_by_key:
+        raise GatewayError("Gateway API key already belongs to an existing customer.", "api_key_already_exists", 409)
+    api_key = requested_api_key or "aisr_" + secrets.token_urlsafe(24)
+    while api_key in server.customers_by_key:
+        api_key = "aisr_" + secrets.token_urlsafe(24)
+    try:
+        cost_budget = float(payload.get("cost_budget", 1.0))
+    except (TypeError, ValueError):
+        raise GatewayError("cost_budget must be a number.", "invalid_cost_budget", 400)
+
+    customer_config = {
+        "id": customer_id,
+        "name": payload.get("name") or customer_id,
+        "plan": payload.get("plan") or "prototype",
+        "api_key": api_key,
+        "request_limit": bounded_int(payload.get("request_limit"), 60, minimum=1, maximum=100000),
+        "limit_window_seconds": bounded_int(payload.get("limit_window_seconds"), 60, minimum=1, maximum=86400),
+        "token_budget": bounded_int(payload.get("token_budget"), 10000, minimum=1, maximum=1000000000),
+        "cost_budget": cost_budget,
+        "allowed_models": allowed_models,
+        "enabled": True,
+    }
+    if provider_api_keys:
+        customer_config["provider_api_keys"] = provider_api_keys
+
+    public_config = dict(customer_config)
+    public_config["api_key"] = mask_key(api_key)
+    if "provider_api_keys" in public_config:
+        public_config["provider_api_keys"] = {
+            provider_id: mask_key(value) if value and not str(value).startswith("env:") else value
+            for provider_id, value in provider_api_keys.items()
+        }
+
+    return {
+        "mode": "mock" if server.mock_mode else "live",
+        "customer": public_config,
+        "generated_api_key": api_key,
+        "generated_api_key_masked": mask_key(api_key),
+        "api_key_hash": key_hash(api_key),
+        "config_snippet": customer_config,
+        "next_steps": [
+            "Give the generated API key to the customer only once.",
+            "Store config_snippet in customer_keys.json or a production customer database.",
+            "Use /v1/gateway/route-preview to confirm model access before the first live request.",
+            "Use /v1/gateway/customer-reports to review usage after testing.",
+        ],
+        "note": "This preview does not persist the customer. It is a safe demo for key issuing workflow.",
     }
 
 
@@ -2243,6 +2348,17 @@ class GatewayHandler(BaseHTTPRequestHandler):
                 return
             try:
                 make_json_response(self, 200, cost_estimate(self.server, payload))
+            except GatewayError as exc:
+                make_error(self, exc.status, exc.message, exc.code, exc.details)
+            return
+        if path == "/v1/gateway/key-issue-preview":
+            if not self.authenticate_admin():
+                return
+            payload = self.read_json_body()
+            if payload is None:
+                return
+            try:
+                make_json_response(self, 200, key_issue_preview(self.server, payload))
             except GatewayError as exc:
                 make_error(self, exc.status, exc.message, exc.code, exc.details)
             return

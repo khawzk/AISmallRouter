@@ -240,6 +240,7 @@ def build():
         "Request activity endpoint with simple filters for troubleshooting.",
         "Request detail lookup using gateway.request_id returned in chat responses.",
         "Config check endpoint for demo keys and missing production settings.",
+        "Customer key issue preview for safe onboarding demos.",
         "Request-level fallback controls for routing demos.",
         "Request-level provider allow-list for routing control demos.",
         "Mock OpenAI-style tool call response for agent demos.",
@@ -268,6 +269,7 @@ def build():
             ["Route preview", "Sales and support need to explain a route before spending credits.", "Dry-run endpoint and dashboard preview"],
             ["Provider routing control", "Some customers may want only approved providers for a request.", "gateway_allowed_providers filters route candidates"],
             ["Cost estimate", "Customers need budget planning before live calls.", "Dry-run estimate for tokens, cost, and budget impact"],
+            ["Customer onboarding", "New customers need keys, limits, and model access.", "Key issue preview creates a safe config snippet"],
             ["Customer reporting", "Customers need a simple usage and budget story.", "Per-customer report endpoint and dashboard cards"],
             ["Request troubleshooting", "Support teams need to see what happened to a request.", "Filtered request activity feed"],
             ["Request detail", "Support teams need one-request lookup.", "gateway.request_id and request detail endpoint"],
@@ -348,6 +350,14 @@ def build():
     story.append(
         Paragraph(
             "/v1/gateway/cost-estimate is a dry run. It does not call the provider. It estimates prompt tokens, completion tokens, estimated cost, and remaining budget after the estimate. This is useful for planning, but real provider token usage can differ.",
+            styles["BodyCustom"],
+        )
+    )
+
+    story.append(Paragraph("Customer Key Issue Preview", styles["H1Custom"]))
+    story.append(
+        Paragraph(
+            "/v1/gateway/key-issue-preview creates a safe customer onboarding package. It returns a generated gateway API key, a masked key for display, a customer config snippet, allowed models, limits, and next steps. It does not save the customer. In production, this would connect to a real customer database and secret manager.",
             styles["BodyCustom"],
         )
     )

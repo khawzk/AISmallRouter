@@ -1047,6 +1047,32 @@
           <div class="models" id="modelsList"></div>
         </div>
       </section>
+
+      <section class="card" id="keys">
+        <div class="card-head">
+          <h2>Customer key preview</h2>
+          <span>safe demo, no config write</span>
+        </div>
+        <div class="card-body">
+          <div class="console">
+            <label>Customer ID
+              <input id="newCustomerId" value="customer-demo">
+            </label>
+            <label>Plan
+              <input id="newCustomerPlan" value="starter">
+            </label>
+            <label>Allowed models
+              <input id="newCustomerModels" value="smart-fast">
+            </label>
+            <div class="form-actions">
+              <button id="keyPreviewButton" type="button">Preview key issue</button>
+            </div>
+          </div>
+          <div class="trace" id="keyPreviewTrace">
+            <div class="trace-item">Key issuing preview will appear here.</div>
+          </div>
+        </div>
+      </section>
     </div>
 
     <section class="quickstart" id="quickstart">
@@ -1095,6 +1121,11 @@
     const previewTrace = document.getElementById("previewTrace");
     const detailRequestId = document.getElementById("detailRequestId");
     const detailButton = document.getElementById("detailButton");
+    const newCustomerId = document.getElementById("newCustomerId");
+    const newCustomerPlan = document.getElementById("newCustomerPlan");
+    const newCustomerModels = document.getElementById("newCustomerModels");
+    const keyPreviewButton = document.getElementById("keyPreviewButton");
+    const keyPreviewTrace = document.getElementById("keyPreviewTrace");
     const routeTrace = document.getElementById("routeTrace");
     const output = document.getElementById("output");
     const sendButton = document.getElementById("sendButton");
@@ -1409,6 +1440,47 @@
         previewTrace.innerHTML = '<div class="trace-item">' + String(error) + '</div>';
       } finally {
         estimateButton.disabled = false;
+      }
+    });
+    keyPreviewButton.addEventListener("click", async () => {
+      keyPreviewButton.disabled = true;
+      keyPreviewTrace.innerHTML = '<div class="trace-item">Preparing customer key preview...</div>';
+      const allowedModels = newCustomerModels.value
+        .split(",")
+        .map((model) => model.trim())
+        .filter(Boolean);
+      try {
+        const response = await fetch("/v1/gateway/key-issue-preview?admin_key=" + encodeURIComponent(adminKey), {
+          method: "POST",
+          headers: {"Content-Type": "application/json"},
+          body: JSON.stringify({
+            customer_id: newCustomerId.value.trim(),
+            plan: newCustomerPlan.value.trim() || "starter",
+            allowed_models: allowedModels.length ? allowedModels : ["smart-fast"]
+          })
+        });
+        const data = await response.json();
+        if (!response.ok) {
+          keyPreviewTrace.innerHTML = `<div class="trace-item">${data.error ? data.error.message : "Key preview failed."}</div>`;
+          return;
+        }
+        keyPreviewTrace.innerHTML = "";
+        [
+          `customer = ${data.customer.id} / ${data.customer.plan}`,
+          `one-time key = ${data.generated_api_key_masked}`,
+          `models = ${data.customer.allowed_models.join(", ")}`,
+          `limits = ${data.customer.request_limit} requests / ${data.customer.limit_window_seconds}s`,
+          data.note
+        ].forEach((line, index) => {
+          const div = document.createElement("div");
+          div.className = "trace-item";
+          div.innerHTML = `<strong>${index + 1}</strong>${line}`;
+          keyPreviewTrace.appendChild(div);
+        });
+      } catch (error) {
+        keyPreviewTrace.innerHTML = '<div class="trace-item">' + String(error) + '</div>';
+      } finally {
+        keyPreviewButton.disabled = false;
       }
     });
     detailButton.addEventListener("click", async () => {

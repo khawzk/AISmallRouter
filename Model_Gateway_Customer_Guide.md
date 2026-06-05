@@ -69,6 +69,7 @@ The prototype supports:
 - Customer plans with token and cost budgets
 - Bring Your Own Key provider mapping
 - Request-level provider allow-list
+- Customer key issue preview
 - Provider adapter scaffolds for OpenAI and Claude
 - Automated mock regression test
 - Mock mode
@@ -214,6 +215,7 @@ They help explain the control layer:
 - Model catalog and routing plan
 - Route preview before a live request
 - Cost estimate before a live request
+- Customer key issue preview
 - Customer usage reports
 - Request activity feed
 - Request detail lookup
@@ -367,6 +369,27 @@ This helps explain budget planning.
 The estimate is not exact.
 
 Real provider token usage can be different.
+
+## What Customer Key Issue Preview Shows
+
+The prototype includes `/v1/gateway/key-issue-preview`.
+
+It creates a safe customer onboarding package.
+
+It does not save the customer.
+
+It shows:
+
+- A generated gateway API key
+- A masked key for display
+- A customer config snippet
+- Allowed models
+- Request and budget limits
+- Next steps before live testing
+
+This helps explain how a customer would be added to the gateway.
+
+In production, this would connect to a real customer database and secret manager.
 
 ## What Customer Reports Show
 
@@ -554,6 +577,7 @@ It is a demo of the control layer that full billing would need.
 - Add token and cost budgets
 - Add a simple admin page
 - Add request-level provider allow-list
+- Add customer key issue preview
 
 ### Phase 4: More Providers
 

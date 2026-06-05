@@ -548,6 +548,68 @@ class GatewayPrototypeTest(unittest.TestCase):
         self.assertIn("budget_after_estimate", estimate)
         self.assertFalse(estimate["budget_after_estimate"]["would_exceed_budget"])
 
+        status, key_preview = request_json(
+            self.base_url,
+            method="POST",
+            path="/v1/gateway/key-issue-preview",
+            payload={"customer_id": "customer-a", "allowed_models": ["smart-fast"]},
+        )
+        self.assertEqual(status, 401)
+
+        status, key_preview = request_json(
+            self.base_url,
+            method="POST",
+            path="/v1/gateway/key-issue-preview",
+            api_key="dev-admin-key",
+            payload={
+                "customer_id": "customer-a",
+                "name": "Customer A",
+                "plan": "starter",
+                "allowed_models": ["smart-fast"],
+                "request_limit": 12,
+                "token_budget": 900,
+                "cost_budget": 0.25,
+            },
+        )
+        self.assertEqual(status, 200)
+        self.assertEqual(key_preview["customer"]["id"], "customer-a")
+        self.assertEqual(key_preview["customer"]["api_key"], key_preview["generated_api_key_masked"])
+        self.assertTrue(key_preview["generated_api_key"].startswith("aisr_"))
+        self.assertEqual(key_preview["config_snippet"]["allowed_models"], ["smart-fast"])
+        self.assertNotEqual(key_preview["config_snippet"]["api_key"], key_preview["customer"]["api_key"])
+        self.assertIn("does not persist", key_preview["note"])
+        self.assertTrue(any("route-preview" in step for step in key_preview["next_steps"]))
+
+        status, key_preview = request_json(
+            self.base_url,
+            method="POST",
+            path="/v1/gateway/key-issue-preview",
+            api_key="dev-admin-key",
+            payload={"customer_id": "dev", "allowed_models": ["smart-fast"]},
+        )
+        self.assertEqual(status, 409)
+        self.assertEqual(key_preview["error"]["code"], "customer_already_exists")
+
+        status, key_preview = request_json(
+            self.base_url,
+            method="POST",
+            path="/v1/gateway/key-issue-preview",
+            api_key="dev-admin-key",
+            payload={"customer_id": "customer-key-conflict", "api_key": "dev-gateway-key", "allowed_models": ["smart-fast"]},
+        )
+        self.assertEqual(status, 409)
+        self.assertEqual(key_preview["error"]["code"], "api_key_already_exists")
+
+        status, key_preview = request_json(
+            self.base_url,
+            method="POST",
+            path="/v1/gateway/key-issue-preview",
+            api_key="dev-admin-key",
+            payload={"customer_id": "customer-b", "allowed_models": ["missing-model"]},
+        )
+        self.assertEqual(status, 404)
+        self.assertEqual(key_preview["error"]["code"], "unknown_allowed_model")
+
         status, customer_usage = request_json(self.base_url, path="/v1/gateway/customer-usage", api_key="dev-admin-key")
         self.assertEqual(status, 200)
         customer_ids = {row["id"] for row in customer_usage["data"]}
