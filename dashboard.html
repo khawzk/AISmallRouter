@@ -442,6 +442,87 @@
       background: #0b0d10;
     }
 
+    .report-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+    }
+
+    .report-card {
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: var(--panel-3);
+      padding: 14px;
+    }
+
+    .report-top {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      align-items: start;
+      margin-bottom: 12px;
+    }
+
+    .report-top strong {
+      display: block;
+      font-size: 15px;
+    }
+
+    .report-top span {
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .report-metrics {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+
+    .report-metrics span {
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 8px;
+      color: var(--muted);
+      font-size: 12px;
+      background: #0b0d10;
+    }
+
+    .bar {
+      height: 8px;
+      border-radius: 999px;
+      background: #0b0d10;
+      border: 1px solid var(--line);
+      overflow: hidden;
+      margin-bottom: 8px;
+    }
+
+    .bar-fill {
+      display: block;
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, var(--green), var(--blue));
+    }
+
+    .recent-list {
+      display: grid;
+      gap: 6px;
+      margin-top: 10px;
+    }
+
+    .recent-row {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      border: 1px solid var(--line);
+      border-radius: 9px;
+      padding: 7px 8px;
+      color: var(--muted);
+      font-size: 12px;
+      background: #0b0d10;
+    }
+
     .model {
       border: 1px solid var(--line);
       border-radius: 12px;
@@ -592,7 +673,8 @@
 
       .stats,
       .models,
-      .health-grid {
+      .health-grid,
+      .report-grid {
         grid-template-columns: repeat(2, 1fr);
       }
 
@@ -612,7 +694,8 @@
 
       .stats,
       .models,
-      .health-grid {
+      .health-grid,
+      .report-grid {
         grid-template-columns: 1fr;
       }
 
@@ -637,6 +720,7 @@
       <div class="nav-links">
         <a href="#models">Models</a>
         <a href="#health">Health</a>
+        <a href="#reports">Reports</a>
         <a href="#routing">Routing</a>
         <a href="#console">Console</a>
         <a href="#quickstart">Quickstart</a>
@@ -645,6 +729,7 @@
         <a class="btn" href="/admin?admin_key=__ADMIN_API_KEY__">Admin</a>
         <a class="btn" href="/v1/gateway/status?admin_key=__ADMIN_API_KEY__">Status</a>
         <a class="btn" href="/v1/gateway/provider-health?admin_key=__ADMIN_API_KEY__">Health</a>
+        <a class="btn" href="/v1/gateway/customer-reports?admin_key=__ADMIN_API_KEY__">Reports</a>
         <a class="btn" href="/v1/gateway/config-check?admin_key=__ADMIN_API_KEY__">Config</a>
         <a class="btn primary" href="#console">Test request</a>
       </div>
@@ -706,6 +791,16 @@
       </div>
       <div class="card-body">
         <div class="health-grid" id="providerHealthList"></div>
+      </div>
+    </section>
+
+    <section class="card" id="reports" style="margin-bottom: 18px;">
+      <div class="card-head">
+        <h2>Customer usage reports</h2>
+        <span>requests, tokens, and budget state</span>
+      </div>
+      <div class="card-body">
+        <div class="report-grid" id="customerReportList"></div>
       </div>
     </section>
 
@@ -826,6 +921,7 @@
     const limitText = document.getElementById("limitText");
     const modelsList = document.getElementById("modelsList");
     const providerHealthList = document.getElementById("providerHealthList");
+    const customerReportList = document.getElementById("customerReportList");
     const modelSelect = document.getElementById("modelSelect");
     const routeTrace = document.getElementById("routeTrace");
     const output = document.getElementById("output");
@@ -883,6 +979,48 @@
         </div>
       `;
       providerHealthList.appendChild(card);
+    });
+
+    function tokenPercent(report) {
+      const budget = report.budget || {};
+      if (!budget.token_budget) return 0;
+      const used = ((budget.usage || {}).total_tokens || 0);
+      return Math.max(0, Math.min(100, Math.round((used / budget.token_budget) * 100)));
+    }
+
+    (state.customer_reports || []).forEach((report) => {
+      const budget = report.budget || {};
+      const usage = budget.usage || {};
+      const summary = report.request_summary || {};
+      const percent = tokenPercent(report);
+      const recent = (report.recent_requests || []).slice(0, 3);
+      const card = document.createElement("article");
+      card.className = "report-card";
+      const chipClass = report.budget_state === "ok" || report.budget_state === "unlimited" ? "chip green" : "chip";
+      const recentHtml = recent.length ? recent.map((item) => `
+        <div class="recent-row">
+          <span>${item.model || "-"}</span>
+          <span>${item.code || "-"} / ${Math.round(item.latency_ms || 0)}ms</span>
+        </div>
+      `).join("") : '<div class="recent-row"><span>No requests yet</span><span>-</span></div>';
+      card.innerHTML = `
+        <div class="report-top">
+          <div>
+            <strong>${report.id}</strong>
+            <span>${report.plan}</span>
+          </div>
+          <span class="${chipClass}">${report.budget_state}</span>
+        </div>
+        <div class="report-metrics">
+          <span>Requests<br><strong>${summary.requests || 0}</strong></span>
+          <span>Errors<br><strong>${summary.errors || 0}</strong></span>
+          <span>Tokens<br><strong>${usage.total_tokens || 0}</strong></span>
+        </div>
+        <div class="bar" aria-label="Token budget used"><span class="bar-fill" style="width:${percent}%"></span></div>
+        <p style="margin:0;color:var(--muted);font-size:12px;">Remaining tokens: ${budget.remaining_tokens == null ? "-" : budget.remaining_tokens}</p>
+        <div class="recent-list">${recentHtml}</div>
+      `;
+      customerReportList.appendChild(card);
     });
 
     function renderTrace(steps) {

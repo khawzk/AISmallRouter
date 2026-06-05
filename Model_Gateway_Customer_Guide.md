@@ -204,6 +204,7 @@ They help explain the control layer:
 
 - Provider status
 - Provider health and readiness
+- Customer usage reports
 - Usage by customer
 - Usage by model
 - Request summary by customer, model, provider, and error code
@@ -236,6 +237,27 @@ In mock mode, a provider can be `ready_mock`.
 That means the provider can be explained in the demo without spending credits.
 
 It does not mean the live provider key is ready.
+
+## What Customer Reports Show
+
+The prototype includes `/v1/gateway/customer-reports`.
+
+It shows one report per customer.
+
+The report answers:
+
+- How many requests did this customer send?
+- How many errors happened?
+- How many tokens were used?
+- How much budget is left?
+- Which models and providers were used?
+- What were the recent requests?
+
+This is important for business conversations.
+
+A model gateway is not only a technical router.
+
+It is also a control and reporting layer for customers.
 
 ## Why Config Check Matters
 

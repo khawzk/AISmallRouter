@@ -327,6 +327,10 @@ class GatewayPrototypeTest(unittest.TestCase):
         self.assertIn("budget", customers["dev"])
         self.assertIn("dashscope", customers["dev"]["byok_providers"])
         self.assertNotIn("provider_api_keys", customers["dev"])
+        reports = {report["id"]: report for report in payload["customer_reports"]}
+        self.assertIn("dev", reports)
+        self.assertIn("budget_state", reports["dev"])
+        self.assertNotIn("provider_api_keys", reports["dev"])
 
     def test_admin_summary_endpoints(self):
         request_json(
@@ -368,6 +372,19 @@ class GatewayPrototypeTest(unittest.TestCase):
         self.assertEqual(status, 200)
         customer_ids = {row["id"] for row in customer_usage["data"]}
         self.assertIn("dev", customer_ids)
+
+        status, customer_reports = request_json(self.base_url, path="/v1/gateway/customer-reports")
+        self.assertEqual(status, 401)
+
+        status, customer_reports = request_json(self.base_url, path="/v1/gateway/customer-reports", api_key="dev-admin-key")
+        self.assertEqual(status, 200)
+        reports = {row["id"]: row for row in customer_reports["data"]}
+        self.assertIn("dev", reports)
+        self.assertIn("request_summary", reports["dev"])
+        self.assertGreaterEqual(reports["dev"]["request_summary"]["requests"], 1)
+        self.assertIn("usage_by_model", reports["dev"])
+        self.assertIn("recent_requests", reports["dev"])
+        self.assertNotIn("provider_api_keys", reports["dev"])
 
         status, model_usage = request_json(self.base_url, path="/v1/gateway/model-usage", api_key="dev-admin-key")
         self.assertEqual(status, 200)

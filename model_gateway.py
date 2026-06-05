@@ -31,6 +31,7 @@ ADMIN_PATHS = {
     "/v1/gateway/customers",
     "/v1/gateway/providers",
     "/v1/gateway/provider-health",
+    "/v1/gateway/customer-reports",
     "/v1/gateway/customer-usage",
     "/v1/gateway/model-usage",
     "/v1/gateway/request-summary",
@@ -440,6 +441,118 @@ def customer_budget_status(path, customer):
     }
 
 
+def customer_budget_state(budget):
+    token_budget = budget.get("token_budget")
+    cost_budget = budget.get("cost_budget")
+    remaining_tokens = budget.get("remaining_tokens")
+    remaining_cost = budget.get("remaining_cost")
+    states = []
+    if token_budget is not None and remaining_tokens is not None:
+        if remaining_tokens <= 0:
+            states.append("blocked")
+        elif remaining_tokens <= max(1, int(token_budget) * 0.2):
+            states.append("warning")
+        else:
+            states.append("ok")
+    if cost_budget is not None and remaining_cost is not None:
+        if remaining_cost <= 0:
+            states.append("blocked")
+        elif remaining_cost <= float(cost_budget) * 0.2:
+            states.append("warning")
+        else:
+            states.append("ok")
+    if "blocked" in states:
+        return "blocked"
+    if "warning" in states:
+        return "warning"
+    if "ok" in states:
+        return "ok"
+    return "unlimited"
+
+
+def customer_dimension_usage(path, customer_id, field):
+    allowed = {"model", "provider"}
+    if field not in allowed or not customer_id or not os.path.exists(path):
+        return []
+    with sqlite3.connect(path) as conn:
+        conn.row_factory = sqlite3.Row
+        rows = conn.execute(
+            f"""
+            select
+                {field} as id,
+                count(*) as usage_records,
+                coalesce(sum(total_tokens), 0) as total_tokens,
+                coalesce(sum(estimated_cost), 0) as estimated_cost
+            from usage_records
+            where customer_id = ?
+            group by {field}
+            order by total_tokens desc
+            """,
+            (customer_id,),
+        ).fetchall()
+    return [dict(row) for row in rows]
+
+
+def customer_recent_requests(path, customer_id, limit=5):
+    if not customer_id or not os.path.exists(path):
+        return []
+    with sqlite3.connect(path) as conn:
+        conn.row_factory = sqlite3.Row
+        rows = conn.execute(
+            """
+            select
+                created, request_id, model, resolved_model, provider,
+                status, code, latency_ms, mock_mode
+            from requests
+            where customer_id = ?
+            order by id desc
+            limit ?
+            """,
+            (customer_id, limit),
+        ).fetchall()
+    return [dict(row) for row in rows]
+
+
+def customer_reports(server):
+    request_by_customer = {
+        row["id"]: row
+        for row in request_grouped_by(server.db_path, "customer_id")
+        if row.get("id") is not None
+    }
+    rows = []
+    for customer in sorted(server.customers_by_key.values(), key=lambda item: item.get("id", "")):
+        customer_id = customer["id"]
+        budget = customer_budget_status(server.db_path, customer)
+        request_summary = request_by_customer.get(
+            customer_id,
+            {
+                "id": customer_id,
+                "requests": 0,
+                "avg_latency_ms": 0,
+                "errors": 0,
+            },
+        )
+        request_count = int(request_summary.get("requests") or 0)
+        error_count = int(request_summary.get("errors") or 0)
+        rows.append(
+            {
+                **public_customer_view(customer),
+                "request_summary": {
+                    "requests": request_count,
+                    "errors": error_count,
+                    "error_rate": round(error_count / request_count, 4) if request_count else 0,
+                    "avg_latency_ms": round(float(request_summary.get("avg_latency_ms") or 0), 2),
+                },
+                "budget": budget,
+                "budget_state": customer_budget_state(budget),
+                "usage_by_model": customer_dimension_usage(server.db_path, customer_id, "model"),
+                "usage_by_provider": customer_dimension_usage(server.db_path, customer_id, "provider"),
+                "recent_requests": customer_recent_requests(server.db_path, customer_id),
+            }
+        )
+    return rows
+
+
 def provider_status(server):
     rows = []
     request_by_provider = {
@@ -824,6 +937,7 @@ def gateway_status(server):
         "config_check": gateway_config_check(server),
         "provider_summary": provider_status(server),
         "provider_health": provider_health(server),
+        "customer_reports": customer_reports(server),
         "usage_by_customer": usage_grouped_by(server.db_path, "customer_id"),
         "usage_by_model": usage_grouped_by(server.db_path, "model"),
         "request_limit": server.default_request_limit,
@@ -940,6 +1054,23 @@ def admin_html(server):
             f"<td>{record.get('estimated_cost', 0)}</td>"
             "</tr>"
         )
+    customer_report_rows = ""
+    for record in customer_reports(server):
+        budget = record.get("budget", {})
+        summary = record.get("request_summary", {})
+        customer_report_rows += (
+            "<tr>"
+            f"<td>{record.get('id', '')}</td>"
+            f"<td>{record.get('plan', '')}</td>"
+            f"<td>{record.get('budget_state', '')}</td>"
+            f"<td>{summary.get('requests', 0)}</td>"
+            f"<td>{summary.get('errors', 0)}</td>"
+            f"<td>{summary.get('avg_latency_ms', 0)}</td>"
+            f"<td>{budget.get('usage', {}).get('total_tokens', 0)}</td>"
+            f"<td>{budget.get('remaining_tokens', '')}</td>"
+            f"<td>{budget.get('remaining_cost', '')}</td>"
+            "</tr>"
+        )
     model_usage_rows = ""
     for record in usage_grouped_by(server.db_path, "model"):
         model_usage_rows += (
@@ -982,7 +1113,7 @@ def admin_html(server):
 <body>
   <main>
     <h1>Gateway Admin</h1>
-    <p><a href="/">Dashboard</a> | <a href="/v1/gateway/status">Status JSON</a> | <a href="/v1/gateway/config-check">Config Check JSON</a> | <a href="/v1/gateway/provider-health">Provider Health JSON</a> | <a href="/v1/gateway/providers">Providers JSON</a> | <a href="/v1/gateway/customer-usage">Customer Usage JSON</a> | <a href="/v1/gateway/model-usage">Model Usage JSON</a> | <a href="/v1/gateway/requests">Requests JSON</a> | <a href="/v1/gateway/usage">Usage JSON</a> | <a href="/v1/gateway/customers">Customers JSON</a></p>
+    <p><a href="/">Dashboard</a> | <a href="/v1/gateway/status">Status JSON</a> | <a href="/v1/gateway/config-check">Config Check JSON</a> | <a href="/v1/gateway/provider-health">Provider Health JSON</a> | <a href="/v1/gateway/customer-reports">Customer Reports JSON</a> | <a href="/v1/gateway/providers">Providers JSON</a> | <a href="/v1/gateway/customer-usage">Customer Usage JSON</a> | <a href="/v1/gateway/model-usage">Model Usage JSON</a> | <a href="/v1/gateway/requests">Requests JSON</a> | <a href="/v1/gateway/usage">Usage JSON</a> | <a href="/v1/gateway/customers">Customers JSON</a></p>
     <h2>Summary</h2>
     <table>
       <tbody>
@@ -1022,6 +1153,11 @@ def admin_html(server):
     <table>
       <thead><tr><th>Customer</th><th>Usage records</th><th>Total tokens</th><th>Est. cost</th></tr></thead>
       <tbody>{customer_usage_rows}</tbody>
+    </table>
+    <h2>Customer Reports</h2>
+    <table>
+      <thead><tr><th>Customer</th><th>Plan</th><th>Budget state</th><th>Requests</th><th>Errors</th><th>Avg latency ms</th><th>Total tokens</th><th>Remaining tokens</th><th>Remaining cost</th></tr></thead>
+      <tbody>{customer_report_rows}</tbody>
     </table>
     <h2>Usage By Model</h2>
     <table>
@@ -1418,6 +1554,9 @@ class GatewayHandler(BaseHTTPRequestHandler):
             return
         if path == "/v1/gateway/provider-health":
             make_json_response(self, 200, {"data": provider_health(self.server)})
+            return
+        if path == "/v1/gateway/customer-reports":
+            make_json_response(self, 200, {"data": customer_reports(self.server)})
             return
         if path == "/v1/gateway/customer-usage":
             make_json_response(self, 200, {"data": usage_grouped_by(self.server.db_path, "customer_id")})

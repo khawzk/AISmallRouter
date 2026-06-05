@@ -169,6 +169,7 @@ The current version also supports:
 - `GET /v1/gateway/customers`
 - `GET /v1/gateway/providers`
 - `GET /v1/gateway/provider-health`
+- `GET /v1/gateway/customer-reports`
 - `GET /v1/gateway/customer-usage`
 - `GET /v1/gateway/model-usage`
 - `GET /v1/gateway/request-summary`
@@ -177,6 +178,7 @@ The current version also supports:
 - `gateway_force_failover=true` for fallback testing in mock mode
 - OpenAI-style `tools` request with mock tool call response
 - provider readiness view for mock-ready, live-ready, and degraded providers
+- customer usage reports with request count, errors, token usage, and budget state
 - multiple customer keys through `customer_keys.json`
 - customer plans with request limits, token budgets, and cost budgets
 - SQLite persistence for request and usage records
@@ -235,6 +237,33 @@ It shows:
 This is not a paid provider ping.
 
 It is a local readiness view based on configuration and recent gateway traffic.
+
+## Customer Reports
+
+The gateway has a customer report endpoint:
+
+```bash
+curl http://127.0.0.1:8787/v1/gateway/customer-reports \
+  -H "Authorization: Bearer dev-admin-key"
+```
+
+It shows one report per customer.
+
+Each report includes:
+
+- plan name
+- request count
+- error count
+- token usage
+- remaining token and cost budget
+- top models and providers used by that customer
+- recent requests for quick troubleshooting
+
+This helps explain the business layer.
+
+The customer does not only buy model access.
+
+The customer also needs limits, reports, and accountability.
 
 ## Customer Plans And Budgets
 
@@ -517,6 +546,7 @@ The tests check:
 - Token budget blocking
 - Status output without leaking provider keys
 - Provider health readiness output
+- Customer usage report output
 - Provider, customer, model, and request summary admin endpoints
 
 ## Customer Materials
