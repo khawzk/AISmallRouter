@@ -15,6 +15,7 @@ DEFAULT_REGISTRY_PATH = "model_registry.json"
 DEFAULT_GATEWAY_API_KEY = "dev-gateway-key"
 DEFAULT_REQUEST_LIMIT = 60
 DEFAULT_LIMIT_WINDOW_SECONDS = 60
+DEFAULT_DASHBOARD_PATH = "dashboard.html"
 
 
 def load_registry(path):
@@ -104,6 +105,11 @@ def gateway_status(server):
 
 def dashboard_html(server):
     state = json.dumps(gateway_status(server))
+    dashboard_path = os.getenv("GATEWAY_DASHBOARD_PATH", DEFAULT_DASHBOARD_PATH)
+    if os.path.exists(dashboard_path):
+        with open(dashboard_path, "r", encoding="utf-8") as file:
+            return file.read().replace("__GATEWAY_STATE__", state)
+
     return f"""<!doctype html>
 <html lang="en">
 <head>

@@ -1,0 +1,956 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>AI Model Gateway Demo</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #f5f7fb;
+      --surface: #ffffff;
+      --surface-2: #f9fafc;
+      --ink: #141a24;
+      --muted: #667386;
+      --line: #dce2ea;
+      --line-strong: #c6cfdb;
+      --blue: #1769ff;
+      --blue-soft: #eaf2ff;
+      --green: #168454;
+      --green-soft: #e9f7ef;
+      --amber: #a45f00;
+      --amber-soft: #fff4df;
+      --violet: #6554d9;
+      --violet-soft: #f0edff;
+      --shadow: 0 16px 44px rgba(20, 26, 36, 0.08);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-width: 320px;
+      background:
+        linear-gradient(180deg, #ffffff 0, #f5f7fb 360px),
+        var(--bg);
+      color: var(--ink);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    button,
+    input,
+    select,
+    textarea {
+      font: inherit;
+      letter-spacing: 0;
+    }
+
+    .app {
+      display: grid;
+      grid-template-columns: 248px minmax(0, 1fr);
+      min-height: 100vh;
+    }
+
+    .sidebar {
+      position: sticky;
+      top: 0;
+      height: 100vh;
+      border-right: 1px solid var(--line);
+      background: rgba(255, 255, 255, 0.92);
+      padding: 22px;
+    }
+
+    .brand {
+      display: grid;
+      gap: 4px;
+      margin-bottom: 28px;
+    }
+
+    .brand-title {
+      font-size: 18px;
+      font-weight: 760;
+    }
+
+    .brand-subtitle {
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.4;
+    }
+
+    .nav {
+      display: grid;
+      gap: 8px;
+    }
+
+    .nav a {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      min-height: 38px;
+      border-radius: 8px;
+      padding: 0 10px;
+      color: #334155;
+      text-decoration: none;
+      font-size: 14px;
+    }
+
+    .nav a:first-child {
+      background: var(--blue-soft);
+      color: #124cb8;
+      font-weight: 700;
+    }
+
+    .server-card {
+      position: absolute;
+      left: 22px;
+      right: 22px;
+      bottom: 22px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--surface);
+      padding: 12px;
+    }
+
+    .server-card strong {
+      display: block;
+      margin-bottom: 6px;
+      font-size: 13px;
+    }
+
+    .server-card span {
+      display: block;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.45;
+    }
+
+    main {
+      padding: 30px;
+    }
+
+    .hero {
+      display: grid;
+      grid-template-columns: minmax(0, 1.25fr) minmax(340px, 0.75fr);
+      gap: 20px;
+      align-items: stretch;
+      margin-bottom: 20px;
+    }
+
+    .hero-copy {
+      display: grid;
+      align-content: center;
+      min-height: 250px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--surface);
+      box-shadow: var(--shadow);
+      padding: 28px;
+    }
+
+    .eyebrow {
+      color: var(--blue);
+      font-size: 13px;
+      font-weight: 760;
+      margin-bottom: 10px;
+    }
+
+    h1 {
+      margin: 0 0 12px;
+      max-width: 720px;
+      font-size: 38px;
+      line-height: 1.08;
+      letter-spacing: 0;
+    }
+
+    .lead {
+      max-width: 760px;
+      color: var(--muted);
+      font-size: 16px;
+      line-height: 1.58;
+    }
+
+    .status-panel {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--surface);
+      padding: 20px;
+      box-shadow: var(--shadow);
+    }
+
+    .status-grid {
+      display: grid;
+      gap: 10px;
+      margin-top: 18px;
+    }
+
+    .status-row {
+      display: grid;
+      grid-template-columns: 104px 1fr;
+      gap: 12px;
+      align-items: center;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--surface-2);
+      padding: 10px;
+    }
+
+    .status-row b {
+      font-size: 13px;
+    }
+
+    .status-row span {
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .pill {
+      display: inline-flex;
+      width: fit-content;
+      align-items: center;
+      min-height: 26px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      padding: 0 10px;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+
+    .pill.good {
+      color: var(--green);
+      background: var(--green-soft);
+      border-color: #bde5cd;
+    }
+
+    .pill.warn {
+      color: var(--amber);
+      background: var(--amber-soft);
+      border-color: #efd097;
+    }
+
+    .metrics {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+
+    .metric {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--surface);
+      padding: 16px;
+    }
+
+    .metric b {
+      display: block;
+      margin-bottom: 4px;
+      font-size: 24px;
+      line-height: 1.1;
+    }
+
+    .metric span {
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.4;
+    }
+
+    .section-title {
+      display: flex;
+      justify-content: space-between;
+      gap: 14px;
+      align-items: flex-end;
+      margin-bottom: 14px;
+    }
+
+    .section-title h2 {
+      margin: 0;
+      font-size: 20px;
+      letter-spacing: 0;
+    }
+
+    .section-title p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.45;
+      text-align: right;
+    }
+
+    .panel {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--surface);
+      padding: 18px;
+      margin-bottom: 20px;
+    }
+
+    .architecture {
+      display: grid;
+      grid-template-columns: repeat(6, minmax(120px, 1fr));
+      gap: 10px;
+    }
+
+    .arch-step {
+      min-height: 132px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--surface-2);
+      padding: 13px;
+      display: grid;
+      align-content: start;
+      gap: 8px;
+    }
+
+    .arch-step:nth-child(2) {
+      background: var(--blue-soft);
+      border-color: #c8dafb;
+    }
+
+    .arch-step:nth-child(3) {
+      background: var(--green-soft);
+      border-color: #c7e8d4;
+    }
+
+    .arch-step:nth-child(4) {
+      background: var(--violet-soft);
+      border-color: #d7d0ff;
+    }
+
+    .arch-step:nth-child(5) {
+      background: var(--amber-soft);
+      border-color: #f0d69f;
+    }
+
+    .arch-step b {
+      font-size: 13px;
+    }
+
+    .arch-step span {
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.45;
+    }
+
+    .route-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      align-items: stretch;
+    }
+
+    .route-map {
+      display: grid;
+      gap: 10px;
+    }
+
+    .route-hop {
+      display: grid;
+      grid-template-columns: 34px 1fr auto;
+      gap: 10px;
+      align-items: center;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--surface-2);
+      padding: 12px;
+    }
+
+    .hop-index {
+      display: grid;
+      place-items: center;
+      width: 30px;
+      height: 30px;
+      border-radius: 999px;
+      background: #ffffff;
+      border: 1px solid var(--line-strong);
+      color: #334155;
+      font-size: 12px;
+      font-weight: 800;
+    }
+
+    .route-hop.active {
+      border-color: #bad1ff;
+      background: var(--blue-soft);
+    }
+
+    .route-hop.final {
+      border-color: #bde5cd;
+      background: var(--green-soft);
+    }
+
+    .hop-text b {
+      display: block;
+      margin-bottom: 3px;
+      font-size: 14px;
+    }
+
+    .hop-text span {
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .hop-tag {
+      color: #334155;
+      font-size: 12px;
+      font-weight: 700;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: #ffffff;
+      padding: 5px 8px;
+      white-space: nowrap;
+    }
+
+    .route-explain {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #101827;
+      color: #e5edf7;
+      padding: 16px;
+      display: grid;
+      align-content: start;
+      gap: 12px;
+    }
+
+    .route-explain h3 {
+      margin: 0;
+      font-size: 16px;
+    }
+
+    .route-explain p {
+      color: #aebace;
+      font-size: 13px;
+      line-height: 1.55;
+    }
+
+    .mapping {
+      display: grid;
+      grid-template-columns: 1fr auto 1fr;
+      gap: 10px;
+      align-items: center;
+      margin-top: 4px;
+    }
+
+    .mapping-box {
+      border: 1px solid #334155;
+      border-radius: 8px;
+      background: #172235;
+      padding: 12px;
+    }
+
+    .mapping-box small {
+      display: block;
+      color: #93a4ba;
+      margin-bottom: 4px;
+    }
+
+    .mapping-box b {
+      color: #ffffff;
+      font-size: 18px;
+    }
+
+    .arrow {
+      color: #8db7ff;
+      font-weight: 900;
+    }
+
+    .workspace {
+      display: grid;
+      grid-template-columns: minmax(300px, 0.8fr) minmax(0, 1.2fr);
+      gap: 16px;
+    }
+
+    .models {
+      display: grid;
+      gap: 10px;
+    }
+
+    .model-item {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 12px;
+      background: var(--surface-2);
+    }
+
+    .model-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 8px;
+    }
+
+    .model-top b {
+      font-size: 15px;
+    }
+
+    .model-meta {
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.45;
+    }
+
+    .console {
+      display: grid;
+      gap: 11px;
+    }
+
+    label {
+      display: grid;
+      gap: 6px;
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 650;
+    }
+
+    input,
+    select,
+    textarea {
+      width: 100%;
+      border: 1px solid var(--line-strong);
+      border-radius: 8px;
+      background: #ffffff;
+      color: var(--ink);
+      padding: 10px 11px;
+      outline: none;
+    }
+
+    input:focus,
+    select:focus,
+    textarea:focus {
+      border-color: var(--blue);
+      box-shadow: 0 0 0 3px rgba(23, 105, 255, 0.12);
+    }
+
+    textarea {
+      min-height: 96px;
+      resize: vertical;
+      line-height: 1.45;
+    }
+
+    .button-row {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+
+    button {
+      border: 0;
+      border-radius: 8px;
+      min-height: 40px;
+      padding: 0 14px;
+      background: var(--blue);
+      color: #ffffff;
+      font-weight: 800;
+      cursor: pointer;
+    }
+
+    button.secondary {
+      border: 1px solid var(--line-strong);
+      background: #ffffff;
+      color: #334155;
+    }
+
+    button:disabled {
+      opacity: 0.58;
+      cursor: wait;
+    }
+
+    .result {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+      gap: 12px;
+      margin-top: 12px;
+    }
+
+    .result-block {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      overflow: hidden;
+      background: var(--surface-2);
+    }
+
+    .result-head {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      border-bottom: 1px solid var(--line);
+      padding: 10px 12px;
+      font-size: 13px;
+      font-weight: 800;
+    }
+
+    pre {
+      margin: 0;
+      min-height: 220px;
+      max-height: 360px;
+      overflow: auto;
+      background: #101827;
+      color: #e5edf7;
+      padding: 12px;
+      font-size: 12px;
+      line-height: 1.45;
+    }
+
+    .trace-list {
+      display: grid;
+      gap: 8px;
+      padding: 12px;
+    }
+
+    .trace-item {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #ffffff;
+      padding: 10px;
+      color: #334155;
+      font-size: 13px;
+      line-height: 1.45;
+    }
+
+    .explain {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 12px;
+      margin-bottom: 22px;
+    }
+
+    .explain-item {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--surface);
+      padding: 16px;
+    }
+
+    .explain-item b {
+      display: block;
+      margin-bottom: 6px;
+    }
+
+    .explain-item span {
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.5;
+    }
+
+    @media (max-width: 1080px) {
+      .app {
+        grid-template-columns: 1fr;
+      }
+
+      .sidebar {
+        position: static;
+        height: auto;
+        border-right: 0;
+        border-bottom: 1px solid var(--line);
+      }
+
+      .server-card {
+        position: static;
+        margin-top: 18px;
+      }
+
+      .hero,
+      .route-grid,
+      .workspace,
+      .result {
+        grid-template-columns: 1fr;
+      }
+
+      .architecture,
+      .metrics,
+      .explain {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+    }
+
+    @media (max-width: 680px) {
+      main {
+        padding: 18px;
+      }
+
+      h1 {
+        font-size: 30px;
+      }
+
+      .architecture,
+      .metrics,
+      .explain {
+        grid-template-columns: 1fr;
+      }
+
+      .section-title {
+        display: grid;
+      }
+
+      .section-title p {
+        text-align: left;
+      }
+
+      .route-hop {
+        grid-template-columns: 34px 1fr;
+      }
+
+      .hop-tag {
+        grid-column: 2;
+        width: fit-content;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="brand-title">Model Gateway</div>
+        <div class="brand-subtitle">Prototype dashboard for customer explanation and route simulation.</div>
+      </div>
+      <nav class="nav" aria-label="Dashboard sections">
+        <a href="#overview">Overview <span>01</span></a>
+        <a href="#architecture">Architecture <span>02</span></a>
+        <a href="#routing">Route demo <span>03</span></a>
+        <a href="#console">Test console <span>04</span></a>
+      </nav>
+      <div class="server-card">
+        <strong>Local demo</strong>
+        <span>Runs on localhost. Mock mode shows routing without calling a paid provider.</span>
+      </div>
+    </aside>
+
+    <main>
+      <section class="hero" id="overview">
+        <div class="hero-copy">
+          <div class="eyebrow">OpenAI-compatible entry point</div>
+          <h1>One customer API, many model providers behind the scenes.</h1>
+          <p class="lead">This dashboard shows how a request enters the gateway, passes customer controls, maps a public model name to a real upstream model, and returns a standard response.</p>
+        </div>
+        <div class="status-panel">
+          <div class="section-title">
+            <h2>Gateway status</h2>
+          </div>
+          <span class="pill good">Server online</span>
+          <div class="status-grid">
+            <div class="status-row"><b>Mode</b><span id="modeText">Loading</span></div>
+            <div class="status-row"><b>Limit</b><span id="limitText">Loading</span></div>
+            <div class="status-row"><b>Provider</b><span>DashScope / Qwen first</span></div>
+            <div class="status-row"><b>Spend</b><span>Mock mode uses zero provider credits</span></div>
+          </div>
+        </div>
+      </section>
+
+      <div class="metrics">
+        <div class="metric"><b>1</b><span>OpenAI-compatible customer API</span></div>
+        <div class="metric"><b id="modelCount">2</b><span>Public model names in registry</span></div>
+        <div class="metric"><b>0</b><span>Provider calls in mock mode</span></div>
+        <div class="metric"><b>5</b><span>Visible steps in the route path</span></div>
+      </div>
+
+      <section class="panel" id="architecture">
+        <div class="section-title">
+          <h2>Layered architecture</h2>
+          <p>Customers only need to understand the first two layers. The platform handles the rest.</p>
+        </div>
+        <div class="architecture">
+          <div class="arch-step"><b>1. Customer systems</b><span>Website, backend service, internal tool, or AI agent.</span></div>
+          <div class="arch-step"><b>2. One simple API</b><span>OpenAI-compatible request format for easy adoption.</span></div>
+          <div class="arch-step"><b>3. Entry control</b><span>API keys, request limits, usage checks, and logs.</span></div>
+          <div class="arch-step"><b>4. Model control</b><span>Model registry, route rules, aliases, and future fallback.</span></div>
+          <div class="arch-step"><b>5. Provider adapter</b><span>Translates gateway requests to provider-specific requests.</span></div>
+          <div class="arch-step"><b>6. Model provider</b><span>Qwen today, more providers later.</span></div>
+        </div>
+      </section>
+
+      <section class="panel" id="routing">
+        <div class="section-title">
+          <h2>Route simulation</h2>
+          <p>This is the part customers usually need to see: the gateway hides the provider decision.</p>
+        </div>
+        <div class="route-grid">
+          <div class="route-map">
+            <div class="route-hop">
+              <div class="hop-index">1</div>
+              <div class="hop-text"><b>Customer request</b><span>The app asks for model <strong>smart-fast</strong>.</span></div>
+              <div class="hop-tag">public model</div>
+            </div>
+            <div class="route-hop active">
+              <div class="hop-index">2</div>
+              <div class="hop-text"><b>Gateway entry control</b><span>The gateway checks API key and request limit.</span></div>
+              <div class="hop-tag">control</div>
+            </div>
+            <div class="route-hop active">
+              <div class="hop-index">3</div>
+              <div class="hop-text"><b>Model registry</b><span>The registry maps <strong>smart-fast</strong> to <strong>qwen-plus</strong>.</span></div>
+              <div class="hop-tag">routing</div>
+            </div>
+            <div class="route-hop">
+              <div class="hop-index">4</div>
+              <div class="hop-text"><b>Provider adapter</b><span>The adapter prepares a DashScope-compatible request.</span></div>
+              <div class="hop-tag">adapter</div>
+            </div>
+            <div class="route-hop final">
+              <div class="hop-index">5</div>
+              <div class="hop-text"><b>Response</b><span>Mock mode returns a simulated answer and route trace.</span></div>
+              <div class="hop-tag">zero spend</div>
+            </div>
+          </div>
+          <div class="route-explain">
+            <h3>What is being simulated?</h3>
+            <p>The customer sees one model name. The gateway decides which real provider model should answer. Today the route is simple and local. Later it can include cost, speed, region, customer plan, and fallback rules.</p>
+            <div class="mapping">
+              <div class="mapping-box"><small>Customer asks for</small><b>smart-fast</b></div>
+              <div class="arrow">-></div>
+              <div class="mapping-box"><small>Gateway routes to</small><b>qwen-plus</b></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <div class="explain">
+        <div class="explain-item"><b>Customer value</b><span>One integration point instead of learning every provider API.</span></div>
+        <div class="explain-item"><b>Operator value</b><span>Keys, limits, logs, routing, and model access in one control layer.</span></div>
+        <div class="explain-item"><b>Future value</b><span>Add OpenAI, Claude, Xiaomi, fallback, usage records, and billing step by step.</span></div>
+      </div>
+
+      <section class="panel" id="console">
+        <div class="section-title">
+          <h2>Demo workspace</h2>
+          <p>Send a test request and read the returned route trace.</p>
+        </div>
+        <div class="workspace">
+          <div>
+            <h2>Available models</h2>
+            <div class="models" id="models"></div>
+          </div>
+          <div class="console">
+            <label>Gateway API key
+              <input id="apiKey" value="dev-gateway-key" autocomplete="off">
+            </label>
+            <label>Model
+              <select id="modelSelect"></select>
+            </label>
+            <label>Prompt
+              <textarea id="prompt">Explain this gateway in one short sentence.</textarea>
+            </label>
+            <div class="button-row">
+              <button id="sendButton" type="button">Send test request</button>
+              <button class="secondary" id="resetButton" type="button">Reset prompt</button>
+            </div>
+          </div>
+        </div>
+        <div class="result">
+          <div class="result-block">
+            <div class="result-head"><span>Route trace</span><span id="traceStatus">waiting</span></div>
+            <div class="trace-list" id="routeTrace">
+              <div class="trace-item">Send a request to see how the gateway routes it.</div>
+            </div>
+          </div>
+          <div class="result-block">
+            <div class="result-head"><span>Raw response</span><span>JSON</span></div>
+            <pre id="output">The response will appear here.</pre>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script>
+    const state = __GATEWAY_STATE__;
+    const modeText = document.getElementById("modeText");
+    const limitText = document.getElementById("limitText");
+    const modelCount = document.getElementById("modelCount");
+    const modelsEl = document.getElementById("models");
+    const modelSelect = document.getElementById("modelSelect");
+    const output = document.getElementById("output");
+    const routeTrace = document.getElementById("routeTrace");
+    const traceStatus = document.getElementById("traceStatus");
+    const button = document.getElementById("sendButton");
+    const resetButton = document.getElementById("resetButton");
+    const promptInput = document.getElementById("prompt");
+
+    modeText.innerHTML = state.mode === "mock"
+      ? '<span class="pill good">mock mode</span>'
+      : '<span class="pill warn">live mode</span>';
+    limitText.textContent = `${state.request_limit} requests per ${state.limit_window_seconds}s`;
+    modelCount.textContent = state.models.length;
+
+    state.models.forEach((model) => {
+      const item = document.createElement("div");
+      item.className = "model-item";
+      item.innerHTML = `
+        <div class="model-top">
+          <b>${model.id}</b>
+          <span class="pill">${model.provider}</span>
+        </div>
+        <div class="model-meta">Upstream model: ${model.upstream_model}</div>
+        <div class="model-meta">Capabilities: ${model.capabilities.join(", ")}</div>
+      `;
+      modelsEl.appendChild(item);
+
+      const option = document.createElement("option");
+      option.value = model.id;
+      option.textContent = model.id;
+      if (model.id === "smart-fast") option.selected = true;
+      modelSelect.appendChild(option);
+    });
+
+    function renderTrace(steps) {
+      routeTrace.innerHTML = "";
+      steps.forEach((step, index) => {
+        const item = document.createElement("div");
+        item.className = "trace-item";
+        item.textContent = `${index + 1}. ${step}`;
+        routeTrace.appendChild(item);
+      });
+    }
+
+    async function sendTestRequest() {
+      button.disabled = true;
+      traceStatus.textContent = "running";
+      output.textContent = "Sending request...";
+      routeTrace.innerHTML = '<div class="trace-item">Checking API key and usage limit...</div>';
+      try {
+        const response = await fetch("/v1/chat/completions", {
+          method: "POST",
+          headers: {
+            "Authorization": "Bearer " + document.getElementById("apiKey").value,
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({
+            model: modelSelect.value,
+            messages: [
+              { role: "user", content: promptInput.value }
+            ],
+            stream: false
+          })
+        });
+        const data = await response.json();
+        output.textContent = JSON.stringify(data, null, 2);
+        if (data.gateway && data.gateway.route_trace) {
+          renderTrace(data.gateway.route_trace);
+          traceStatus.textContent = "complete";
+        } else {
+          routeTrace.innerHTML = '<div class="trace-item">No gateway route trace returned.</div>';
+          traceStatus.textContent = "missing";
+        }
+      } catch (error) {
+        output.textContent = String(error);
+        routeTrace.innerHTML = '<div class="trace-item">Request failed before route trace was available.</div>';
+        traceStatus.textContent = "failed";
+      } finally {
+        button.disabled = false;
+      }
+    }
+
+    button.addEventListener("click", sendTestRequest);
+    resetButton.addEventListener("click", () => {
+      promptInput.value = "Explain this gateway in one short sentence.";
+      output.textContent = "The response will appear here.";
+      traceStatus.textContent = "waiting";
+      routeTrace.innerHTML = '<div class="trace-item">Send a request to see how the gateway routes it.</div>';
+    });
+  </script>
+</body>
+</html>
