@@ -591,6 +591,106 @@
       font-size: 12px;
     }
 
+    .demo-board {
+      display: grid;
+      grid-template-columns: minmax(280px, 0.78fr) minmax(0, 1.22fr);
+      gap: 16px;
+    }
+
+    .demo-panel,
+    .demo-step,
+    .question-card {
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: var(--panel-3);
+      padding: 14px;
+    }
+
+    .demo-panel h3,
+    .demo-step h3,
+    .question-card h3 {
+      margin: 0 0 8px;
+      font-size: 15px;
+      letter-spacing: 0;
+    }
+
+    .demo-panel p,
+    .demo-step p,
+    .question-card p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .demo-list {
+      display: grid;
+      gap: 8px;
+      margin: 12px 0 0;
+      padding: 0;
+      list-style: none;
+    }
+
+    .demo-list li {
+      border: 1px solid var(--line);
+      border-radius: 9px;
+      padding: 8px 9px;
+      color: var(--muted);
+      font-size: 12px;
+      background: #0b0d10;
+    }
+
+    .demo-timeline {
+      display: grid;
+      gap: 10px;
+    }
+
+    .demo-step {
+      display: grid;
+      grid-template-columns: 72px 1fr;
+      gap: 12px;
+      align-items: start;
+    }
+
+    .demo-minute {
+      display: grid;
+      place-items: center;
+      min-height: 42px;
+      border: 1px solid rgba(65, 217, 157, 0.45);
+      border-radius: 10px;
+      color: var(--green);
+      background: rgba(65, 217, 157, 0.08);
+      font-size: 12px;
+      font-weight: 800;
+    }
+
+    .demo-links {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 10px;
+    }
+
+    .demo-link {
+      border: 1px solid var(--line-2);
+      border-radius: 999px;
+      padding: 5px 9px;
+      color: var(--muted);
+      font-size: 12px;
+      background: #0b0d10;
+    }
+
+    .demo-link:hover {
+      color: var(--green);
+      border-color: rgba(65, 217, 157, 0.45);
+    }
+
+    .question-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 12px;
+      margin-top: 16px;
+    }
+
     .model {
       border: 1px solid var(--line);
       border-radius: 12px;
@@ -751,6 +851,7 @@
 
       .grid,
       .feature-grid,
+      .demo-board,
       .quickstart {
         grid-template-columns: 1fr;
       }
@@ -791,6 +892,11 @@
         grid-template-columns: 1fr;
       }
 
+      .demo-step,
+      .question-grid {
+        grid-template-columns: 1fr;
+      }
+
       .chip {
         grid-column: 2;
         width: fit-content;
@@ -814,6 +920,7 @@
         <a href="#health">Health</a>
         <a href="#reports">Reports</a>
         <a href="#activity">Activity</a>
+        <a href="#demo-script">Demo Script</a>
         <a href="#routing">Routing</a>
         <a href="#console">Console</a>
         <a href="#quickstart">Quickstart</a>
@@ -826,6 +933,7 @@
         <a class="btn" href="/v1/gateway/customer-reports?admin_key=__ADMIN_API_KEY__">Reports</a>
         <a class="btn" href="/v1/gateway/request-activity?admin_key=__ADMIN_API_KEY__">Activity</a>
         <a class="btn" href="/v1/gateway/config-check?admin_key=__ADMIN_API_KEY__">Config</a>
+        <a class="btn" href="/v1/gateway/demo-script?admin_key=__ADMIN_API_KEY__">Script</a>
         <a class="btn primary" href="#console">Test request</a>
       </div>
     </nav>
@@ -887,6 +995,33 @@
           <div class="visual-box">More</div>
         </div>
       </article>
+    </section>
+
+    <section class="card" id="demo-script" style="margin-bottom: 18px;">
+      <div class="card-head">
+        <h2>Presenter mode</h2>
+        <span>15 minute customer walkthrough</span>
+      </div>
+      <div class="card-body">
+        <div class="demo-board">
+          <aside class="demo-panel">
+            <h3 id="demoScriptTitle">Customer demo script</h3>
+            <p id="demoScriptOpening">Loading the customer walkthrough...</p>
+            <ul class="demo-list" id="demoScriptChecklist"></ul>
+            <div class="demo-links" id="demoScriptPackage"></div>
+          </aside>
+          <div class="demo-timeline" id="demoScriptSteps">
+            <article class="demo-step">
+              <div class="demo-minute">0-15</div>
+              <div>
+                <h3>Loading walkthrough</h3>
+                <p>The gateway will load the presenter script from the admin API.</p>
+              </div>
+            </article>
+          </div>
+        </div>
+        <div class="question-grid" id="demoScriptQuestions"></div>
+      </div>
     </section>
 
     <section class="card" id="health" style="margin-bottom: 18px;">
@@ -1153,6 +1288,21 @@
     const resetButton = document.getElementById("resetButton");
     const promptInput = document.getElementById("prompt");
     const redactSensitive = document.getElementById("redactSensitive");
+    const demoScriptTitle = document.getElementById("demoScriptTitle");
+    const demoScriptOpening = document.getElementById("demoScriptOpening");
+    const demoScriptChecklist = document.getElementById("demoScriptChecklist");
+    const demoScriptPackage = document.getElementById("demoScriptPackage");
+    const demoScriptSteps = document.getElementById("demoScriptSteps");
+    const demoScriptQuestions = document.getElementById("demoScriptQuestions");
+
+    function escapeHtml(value) {
+      return String(value == null ? "" : value)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+    }
 
     modelCount.textContent = String(state.models.length);
     customerCount.textContent = String((state.customers || []).length);
@@ -1383,6 +1533,74 @@
         activityList.appendChild(row);
       });
     }
+
+    async function loadDemoScript() {
+      try {
+        const response = await fetch("/v1/gateway/demo-script?admin_key=" + encodeURIComponent(adminKey));
+        const script = await response.json();
+        if (!response.ok) {
+          throw new Error(script.error ? script.error.message : "Could not load demo script.");
+        }
+
+        demoScriptTitle.textContent = script.title || "Customer demo script";
+        demoScriptOpening.textContent = script.opening_line || script.plain_english || "";
+
+        demoScriptChecklist.innerHTML = "";
+        (script.before_demo_checklist || []).slice(0, 5).forEach((item) => {
+          const li = document.createElement("li");
+          li.textContent = item;
+          demoScriptChecklist.appendChild(li);
+        });
+
+        demoScriptPackage.innerHTML = "";
+        (script.follow_up_package || []).forEach((item) => {
+          const link = document.createElement("a");
+          link.className = "demo-link";
+          link.href = String(item).startsWith("http") ? item : "#quickstart";
+          link.textContent = item;
+          demoScriptPackage.appendChild(link);
+        });
+
+        demoScriptSteps.innerHTML = "";
+        (script.steps || []).forEach((step) => {
+          const article = document.createElement("article");
+          article.className = "demo-step";
+          const show = step.show || "";
+          const showHref = String(show).startsWith("http") ? show : show || "#";
+          article.innerHTML = `
+            <div class="demo-minute">${escapeHtml(step.minute || "")}</div>
+            <div>
+              <h3>${escapeHtml(step.title || "")}</h3>
+              <p>${escapeHtml(step.talk_track || "")}</p>
+              <div class="demo-links">
+                <a class="demo-link" href="${escapeHtml(showHref)}">Show endpoint</a>
+                <span class="demo-link">${escapeHtml(step.proof_point || "")}</span>
+              </div>
+            </div>
+          `;
+          demoScriptSteps.appendChild(article);
+        });
+
+        demoScriptQuestions.innerHTML = "";
+        (script.likely_questions || []).forEach((item) => {
+          const article = document.createElement("article");
+          article.className = "question-card";
+          article.innerHTML = `
+            <h3>${escapeHtml(item.question || "")}</h3>
+            <p>${escapeHtml(item.answer || "")}</p>
+            <div class="demo-links">
+              <a class="demo-link" href="${escapeHtml(item.show || "#")}">Reference</a>
+            </div>
+          `;
+          demoScriptQuestions.appendChild(article);
+        });
+      } catch (error) {
+        demoScriptOpening.textContent = String(error);
+        demoScriptSteps.innerHTML = '<article class="demo-step"><div class="demo-minute">error</div><div><h3>Script unavailable</h3><p>Open /v1/gateway/demo-script with the admin key to inspect the JSON directly.</p></div></article>';
+      }
+    }
+
+    loadDemoScript();
 
     function renderTrace(steps) {
       routeTrace.innerHTML = "";

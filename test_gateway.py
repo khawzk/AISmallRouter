@@ -1697,6 +1697,14 @@ class GatewayPrototypeTest(unittest.TestCase):
         self.assertEqual(response.status, 200)
         self.assertIn("Gateway Admin", html)
 
+    def test_dashboard_exposes_presenter_mode(self):
+        status, html = request_text(self.base_url, path="/")
+        self.assertEqual(status, 200)
+        self.assertIn("Presenter mode", html)
+        self.assertIn("demoScriptSteps", html)
+        self.assertIn("/v1/gateway/demo-script?admin_key=", html)
+        self.assertIn("15 minute customer walkthrough", html)
+
     def test_config_check_reports_demo_warnings(self):
         status, payload = request_json(self.base_url, path="/v1/gateway/config-check")
         self.assertEqual(status, 401)

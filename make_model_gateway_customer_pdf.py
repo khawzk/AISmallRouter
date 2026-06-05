@@ -424,7 +424,7 @@ def build():
     story.append(Paragraph("Demo Script", styles["H1Custom"]))
     story.append(
         Paragraph(
-            "/v1/gateway/demo-script gives a 15 minute customer walkthrough. It tells the presenter what to say first, which endpoint to show, how to explain routing, how to answer common objections, and how to close with a small pilot. This helps non-technical customers understand the project without reading code.",
+            "/v1/gateway/demo-script gives a 15 minute customer walkthrough. The dashboard also shows this as Presenter mode. It tells the presenter what to say first, which endpoint to show, how to explain routing, how to answer common objections, and how to close with a small pilot. This helps non-technical customers understand the project without reading code.",
             styles["BodyCustom"],
         )
     )

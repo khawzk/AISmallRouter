@@ -527,6 +527,8 @@ The prototype includes `/v1/gateway/demo-script`.
 
 This endpoint gives a 15 minute customer walkthrough.
 
+The dashboard also shows this as Presenter mode.
+
 It tells the presenter:
 
 - what to say first

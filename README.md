@@ -318,6 +318,7 @@ It points to:
 - the OpenAPI contract
 - the Postman collection
 - the customer guide PDF
+- the dashboard presenter mode
 - a recommended demo order
 - safe curl examples
 - production notes
@@ -615,6 +616,8 @@ curl http://127.0.0.1:8787/v1/gateway/demo-script \
 ```
 
 It gives a 15 minute customer walkthrough.
+
+The dashboard also renders this as **Presenter mode** so a non-technical customer can follow the story without reading JSON.
 
 It tells the presenter:
 
