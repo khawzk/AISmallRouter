@@ -30,7 +30,7 @@ It does not spend provider credits.
 python3 test_gateway.py
 ```
 
-The test covers auth, model listing, routing, route preview, route decision summary, provider allow-list routing, capability routing, safety preview, cost estimate, customer key issue preview, invoice preview, fallback, model access, budgets, SQLite logs, alerts, access matrix, provider health, model catalog, customer reports, request activity, request detail lookup, and admin summary endpoints.
+The test covers auth, model listing, customer self view, routing, route preview, route decision summary, provider allow-list routing, capability routing, safety preview, cost estimate, customer key issue preview, invoice preview, fallback, model access, budgets, SQLite logs, alerts, access matrix, provider health, model catalog, customer reports, request activity, request detail lookup, and admin summary endpoints.
 
 Open the visual dashboard:
 
@@ -56,6 +56,19 @@ python3 model_gateway.py --mock \
 
 ```bash
 curl http://127.0.0.1:8787/v1/models \
+  -H "Authorization: Bearer dev-gateway-key"
+```
+
+## Check Customer Self View
+
+This uses a customer gateway key, not the admin key.
+
+It shows the customer's allowed models, budget state, usage, recent requests, and invoice preview.
+
+It does not show provider secrets.
+
+```bash
+curl http://127.0.0.1:8787/v1/gateway/me \
   -H "Authorization: Bearer dev-gateway-key"
 ```
 

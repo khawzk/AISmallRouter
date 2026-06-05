@@ -148,6 +148,7 @@ Included in the prototype:
 - Basic request-level provider allow-list
 - Basic capability routing control
 - Basic customer key issue preview
+- Basic customer self-service profile
 - Basic invoice preview with CSV export
 - Basic customer plan, token budget, and cost budget control
 - Basic Bring Your Own Key provider mapping

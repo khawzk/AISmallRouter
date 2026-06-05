@@ -758,6 +758,37 @@ class GatewayPrototypeTest(unittest.TestCase):
         self.assertIn("recent_requests", reports["dev"])
         self.assertNotIn("provider_api_keys", reports["dev"])
 
+        status, self_view = request_json(self.base_url, path="/v1/gateway/me")
+        self.assertEqual(status, 401)
+        self.assertEqual(self_view["error"]["code"], "missing_auth")
+
+        status, self_view = request_json(self.base_url, path="/v1/gateway/me", api_key="wrong-key")
+        self.assertEqual(status, 401)
+        self.assertEqual(self_view["error"]["code"], "invalid_api_key")
+
+        status, self_view = request_json(self.base_url, path="/v1/gateway/me", api_key="dev-gateway-key")
+        self.assertEqual(status, 200)
+        self.assertEqual(self_view["object"], "customer.gateway_profile")
+        self.assertEqual(self_view["customer"]["id"], "dev")
+        self.assertIn("budget", self_view)
+        self.assertIn("budget_state", self_view)
+        self.assertIn("invoice_preview", self_view)
+        self.assertIn("usage_by_model", self_view)
+        self.assertIn("recent_requests", self_view)
+        self.assertNotIn("api_key", json.dumps(self_view))
+        self.assertNotIn("provider_api_keys", json.dumps(self_view))
+        self.assertGreaterEqual(len(self_view["models"]), 1)
+
+        status, limited_view = request_json(self.base_url, path="/v1/gateway/me", api_key="demo-limited-key")
+        self.assertEqual(status, 200)
+        limited_models = {model["id"] for model in limited_view["models"]}
+        self.assertEqual(limited_models, {"smart-fast"})
+        self.assertEqual(limited_view["models"][0]["usage"]["scope"], "this_customer")
+        self.assertEqual(limited_view["models"][0]["usage"]["total_tokens"], 0)
+        self.assertGreaterEqual(limited_view["model_access"]["blocked_count"], 1)
+        self.assertEqual(len(limited_view["invoice_preview"]["data"]), 1)
+        self.assertEqual(limited_view["invoice_preview"]["data"][0]["customer"]["id"], "demo-limited")
+
         status, invoice = request_json(self.base_url, path="/v1/gateway/invoice-preview")
         self.assertEqual(status, 401)
 

@@ -223,6 +223,7 @@ They help explain the control layer:
 - Safety preview before provider call
 - Cost estimate before a live request
 - Customer key issue preview
+- Customer self view
 - Customer usage reports
 - Invoice preview
 - Request activity feed
@@ -237,6 +238,32 @@ In the prototype, these endpoints use a separate demo admin key.
 The local demo key is `dev-admin-key`.
 
 In production, the admin key should be changed and protected.
+
+## What Customer Self View Shows
+
+The prototype includes `/v1/gateway/me`.
+
+This endpoint is for the customer, not the admin.
+
+The customer uses their own gateway key.
+
+It shows:
+
+- customer name and plan
+- allowed public models
+- budget state
+- usage by model
+- usage by provider
+- recent requests
+- invoice preview for this customer
+
+It does not show raw API keys.
+
+It does not show provider API keys.
+
+This is useful because a non-technical customer can ask:
+
+> What can I use, and how much have I used?
 
 ## What Operational Alerts Show
 

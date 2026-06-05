@@ -152,6 +152,7 @@ The first prototype should be small.
 It should support:
 
 - `GET /v1/models`
+- `GET /v1/gateway/me`
 - `POST /v1/chat/completions`
 - OpenAI-compatible request and response format
 - Simple model registry
@@ -184,6 +185,7 @@ The current version also supports:
 - `GET /v1/gateway/model-usage`
 - `GET /v1/gateway/request-summary`
 - `GET /v1/gateway/config-check`
+- customer self-service view for allowed models, budget, usage, and invoice preview
 - `stream=true` Server-Sent Events
 - `gateway_force_failover=true` for fallback testing in mock mode
 - OpenAI-style `tools` request with mock tool call response
@@ -202,6 +204,7 @@ The current version also supports:
 - request detail lookup by `request_id`
 - operational alerts with next steps
 - customer model access matrix
+- customer self-service profile with no provider secret exposure
 - multiple customer keys through `customer_keys.json`
 - customer plans with request limits, token budgets, and cost budgets
 - SQLite persistence for request and usage records
@@ -240,6 +243,26 @@ curl http://127.0.0.1:8787/v1/gateway/config-check \
 The config check warns about demo keys, missing live provider keys, and direct secret values in local config files.
 
 For production, change the key with `GATEWAY_ADMIN_API_KEY`.
+
+## Customer Self View
+
+A customer can check their own gateway profile with their own gateway key.
+
+```bash
+curl http://127.0.0.1:8787/v1/gateway/me \
+  -H "Authorization: Bearer dev-gateway-key"
+```
+
+This shows:
+
+- who the customer is
+- which public models the customer can use
+- current request, token, and cost budget state
+- usage by model and provider
+- recent requests
+- invoice preview for this customer
+
+It does not expose the raw customer API key or provider API keys.
 
 ## Operational Alerts
 

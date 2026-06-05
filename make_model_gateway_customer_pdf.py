@@ -277,6 +277,7 @@ def build():
             ["Capability routing", "Requests may need streaming, tools, or other abilities.", "gateway_required_capabilities filters route candidates"],
             ["Cost estimate", "Customers need budget planning before live calls.", "Dry-run estimate for tokens, cost, and budget impact"],
             ["Customer onboarding", "New customers need keys, limits, and model access.", "Key issue preview creates a safe config snippet"],
+            ["Customer self-service", "Customers need to see their own access, usage, and budget.", "Customer self view with no provider secret exposure"],
             ["Invoice preview", "Customers need a simple billing story.", "Estimated invoice preview with CSV export"],
             ["Customer reporting", "Customers need a simple usage and budget story.", "Per-customer report endpoint and dashboard cards"],
             ["Request troubleshooting", "Support teams need to see what happened to a request.", "Filtered request activity feed"],
@@ -310,6 +311,14 @@ def build():
     story.append(
         Paragraph(
             "/v1/gateway/alerts combines config warnings, provider readiness, customer budget state, and recent request errors. Each alert includes severity, area, message, and a simple next step. This helps non-technical users understand what needs attention before a live demo.",
+            styles["BodyCustom"],
+        )
+    )
+
+    story.append(Paragraph("Customer Self View", styles["H1Custom"]))
+    story.append(
+        Paragraph(
+            "/v1/gateway/me lets a customer use their own gateway key to see their own plan, allowed models, budget state, usage, recent requests, and invoice preview. It does not expose raw customer API keys or provider API keys. This is useful when the customer asks: what can I use, and how much have I used?",
             styles["BodyCustom"],
         )
     )

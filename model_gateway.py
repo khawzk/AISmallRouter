@@ -824,6 +824,48 @@ def invoice_preview_csv(invoice_payload):
     return output.getvalue()
 
 
+def customer_self_view(server, customer):
+    customer_id = customer["id"]
+    catalog = model_catalog(server)
+    usage_by_model = customer_dimension_usage(server.db_path, customer_id, "model")
+    usage_by_model_map = {row["id"]: row for row in usage_by_model}
+    allowed_models = []
+    for model in catalog:
+        if not customer_model_allowed(customer, model["id"]):
+            continue
+        model_view = dict(model)
+        customer_usage = usage_by_model_map.get(model["id"], {})
+        model_view["usage"] = {
+            "usage_records": int(customer_usage.get("usage_records") or 0),
+            "total_tokens": int(customer_usage.get("total_tokens") or 0),
+            "estimated_cost": float(customer_usage.get("estimated_cost") or 0),
+            "scope": "this_customer",
+        }
+        allowed_models.append(model_view)
+    invoice = invoice_preview(server, customer_id)
+    report = customer_reports(server)
+    current_report = next((row for row in report if row.get("id") == customer_id), {})
+    budget = customer_budget_status(server.db_path, customer)
+    return {
+        "object": "customer.gateway_profile",
+        "mode": "mock" if server.mock_mode else "live",
+        "customer": public_customer_view(customer),
+        "budget": budget,
+        "budget_state": customer_budget_state(budget),
+        "models": allowed_models,
+        "model_access": {
+            "allowed_count": len(allowed_models),
+            "blocked_count": max(0, len(catalog) - len(allowed_models)),
+        },
+        "request_summary": current_report.get("request_summary", {}),
+        "usage_by_model": usage_by_model,
+        "usage_by_provider": customer_dimension_usage(server.db_path, customer_id, "provider"),
+        "recent_requests": customer_recent_requests(server.db_path, customer_id),
+        "invoice_preview": invoice,
+        "note": "This is a customer self-service view. It shows only this customer's access, usage, budget, and invoice preview. It does not expose provider secrets.",
+    }
+
+
 def provider_status(server):
     rows = []
     request_by_provider = {
@@ -2566,6 +2608,11 @@ class GatewayHandler(BaseHTTPRequestHandler):
             return
         if path == "/health":
             make_json_response(self, 200, {"status": "ok"})
+            return
+        if path == "/v1/gateway/me":
+            if not self.authenticate():
+                return
+            make_json_response(self, 200, customer_self_view(self.server, self.customer))
             return
         if path == "/v1/gateway/status":
             make_json_response(self, 200, gateway_status(self.server))
