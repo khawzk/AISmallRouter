@@ -65,6 +65,7 @@ The prototype supports:
 - Executive brief
 - Roadmap
 - Decision guide
+- FAQ
 - Access matrix
 - OpenAI-compatible chat endpoint
 - Customer API key check
@@ -500,6 +501,24 @@ It compares:
 - OpenRouter-like marketplace
 
 It explains what each option is good at, what it does not solve, and when to choose it.
+
+## What The FAQ Shows
+
+The prototype includes `/v1/gateway/faq`.
+
+This endpoint answers common customer questions.
+
+Examples:
+
+- Is this just an API Gateway?
+- Why start with Qwen?
+- Is this an OpenRouter clone?
+- Will customer prompts or provider keys be exposed?
+- How do we control cost?
+- What happens if a provider fails?
+- Is this ready for production?
+
+It helps sales, support, and technical teams answer in the same simple language.
 
 ## What The Access Matrix Shows
 

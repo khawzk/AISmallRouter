@@ -91,6 +91,7 @@ ADMIN_PATHS = {
     "/v1/gateway/executive-brief",
     "/v1/gateway/roadmap",
     "/v1/gateway/decision-guide",
+    "/v1/gateway/faq",
     "/v1/gateway/request-activity",
     "/v1/gateway/model-catalog",
     "/v1/gateway/route-preview",
@@ -3483,6 +3484,79 @@ def decision_guide(server):
     }
 
 
+def gateway_faq(server):
+    readiness = production_readiness(server)
+    return {
+        "object": "gateway.faq",
+        "title": "AISmallRouter Customer FAQ",
+        "mode": "mock" if server.mock_mode else "live",
+        "plain_english": "Use this FAQ when a business or technical customer asks common questions about the model gateway.",
+        "questions": [
+            {
+                "question": "Is this just an API Gateway?",
+                "short_answer": "No. A normal API Gateway controls HTTP traffic. A Model Gateway also handles AI-specific model routing, provider adapters, usage, fallback, and customer policy.",
+                "show": ["/v1/gateway/decision-guide", "/v1/gateway/provider-contracts"],
+            },
+            {
+                "question": "Why start with Alibaba Cloud Model Studio / Qwen?",
+                "short_answer": "Because we already have a usable key and can test the routing idea with low cost and low risk before adding more providers.",
+                "show": ["/v1/models", "/v1/gateway/route-preview"],
+            },
+            {
+                "question": "Is this an OpenRouter clone?",
+                "short_answer": "No. OpenRouter is a useful public reference for multi-model routing ideas. This prototype is a smaller customer-controlled gateway focused on our own customer access, routing, and reporting needs.",
+                "show": ["/v1/gateway/decision-guide", "/v1/gateway/roadmap"],
+            },
+            {
+                "question": "Will customer prompts or provider keys be exposed?",
+                "short_answer": "The prototype avoids exposing provider secrets in customer views. Production should add a real secret manager, stronger retention policy, and approved data handling rules.",
+                "show": ["/v1/gateway/me", "/v1/gateway/config-check", "/v1/gateway/production-readiness"],
+            },
+            {
+                "question": "Can customers bring their own provider key?",
+                "short_answer": "The prototype supports a simple BYOK mapping through environment variables. Production should move this to a secure customer database and secret manager.",
+                "show": ["/v1/gateway/me", "/v1/gateway/provider-health"],
+            },
+            {
+                "question": "How do we control cost?",
+                "short_answer": "The gateway can show token budgets, cost budgets, cost estimates, customer reports, and invoice preview. Current billing is an estimate, not a legal invoice.",
+                "show": ["/v1/gateway/cost-estimate", "/v1/gateway/customer-reports", "/v1/gateway/invoice-preview"],
+            },
+            {
+                "question": "What happens if a provider fails?",
+                "short_answer": "The gateway can explain provider health, fallback candidates, request errors, and route decisions. Production should add stronger monitoring and automated operations.",
+                "show": ["/v1/gateway/provider-health", "/v1/gateway/incident-playbook", "/v1/gateway/route-preview"],
+            },
+            {
+                "question": "Can we add OpenAI, Claude, Xiaomi, or other providers later?",
+                "short_answer": "Yes, but each provider needs a contract check for auth, request shape, response shape, streaming, tools, usage, and errors.",
+                "show": ["/v1/gateway/provider-contracts", "/v1/gateway/roadmap"],
+            },
+            {
+                "question": "Is this ready for production?",
+                "short_answer": "Not yet. It is ready for explanation, mock demos, and careful technical pilots. Production needs secrets, database, monitoring, billing, approval workflow, and SLA work.",
+                "show": ["/v1/gateway/production-readiness", "/v1/gateway/support-policy", "/v1/gateway/pilot-checklist"],
+            },
+            {
+                "question": "What is the next customer step?",
+                "short_answer": "Use the executive brief to align on value, then run a small technical pilot with mock mode first.",
+                "show": ["/v1/gateway/executive-brief", "/v1/gateway/pilot-checklist"],
+            },
+        ],
+        "suggested_demo_order": [
+            "/v1/gateway/executive-brief",
+            "/v1/gateway/decision-guide",
+            "/v1/gateway/provider-contracts",
+            "/v1/gateway/pilot-checklist",
+            "/v1/gateway/production-readiness",
+        ],
+        "current_readiness": {
+            "overall_status": readiness.get("overall_status"),
+            "prototype_only": readiness.get("prototype_only"),
+        },
+    }
+
+
 def read_jsonl_tail(path, limit=50):
     if not os.path.exists(path):
         return []
@@ -3969,6 +4043,7 @@ def openapi_spec(server):
         "/v1/gateway/executive-brief": "Executive customer brief",
         "/v1/gateway/roadmap": "Prototype to production roadmap",
         "/v1/gateway/decision-guide": "AI gateway build or buy decision guide",
+        "/v1/gateway/faq": "Customer FAQ",
     }.items():
         paths[path] = {
             "get": {
@@ -4074,6 +4149,7 @@ def postman_collection(server):
         request_item("Executive Brief", "GET", "/v1/gateway/executive-brief", "admin_api_key"),
         request_item("Roadmap", "GET", "/v1/gateway/roadmap", "admin_api_key"),
         request_item("Decision Guide", "GET", "/v1/gateway/decision-guide", "admin_api_key"),
+        request_item("FAQ", "GET", "/v1/gateway/faq", "admin_api_key"),
         request_item("Model Catalog", "GET", "/v1/gateway/model-catalog", "admin_api_key"),
         request_item("Audit Events", "GET", "/v1/gateway/audit-events", "admin_api_key"),
         request_item("Customer Reports", "GET", "/v1/gateway/customer-reports", "admin_api_key"),
@@ -4271,6 +4347,13 @@ def demo_bundle(server):
                 "auth": "adminBearerAuth",
             },
             {
+                "name": "FAQ",
+                "url": f"{base_url}/v1/gateway/faq",
+                "audience": "business and technical",
+                "purpose": "Answer common customer questions about API Gateway, OpenRouter, cost, safety, providers, pilot, and production gaps.",
+                "auth": "adminBearerAuth",
+            },
+            {
                 "name": "Postman collection",
                 "url": f"{base_url}/postman_collection.json",
                 "audience": "customer technical",
@@ -4377,6 +4460,10 @@ def demo_bundle(server):
             {
                 "name": "Decision guide",
                 "command": f"curl {base_url}/v1/gateway/decision-guide -H 'Authorization: Bearer {server.admin_api_key or DEFAULT_ADMIN_API_KEY}'",
+            },
+            {
+                "name": "FAQ",
+                "command": f"curl {base_url}/v1/gateway/faq -H 'Authorization: Bearer {server.admin_api_key or DEFAULT_ADMIN_API_KEY}'",
             },
         ],
         "production_notes": [
@@ -5127,6 +5214,9 @@ class GatewayHandler(BaseHTTPRequestHandler):
             return
         if path == "/v1/gateway/decision-guide":
             make_json_response(self, 200, decision_guide(self.server))
+            return
+        if path == "/v1/gateway/faq":
+            make_json_response(self, 200, gateway_faq(self.server))
             return
         if path == "/v1/gateway/requests":
             make_json_response(self, 200, {"data": db_tail(self.server.db_path, "requests", 100)})

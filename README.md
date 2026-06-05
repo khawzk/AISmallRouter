@@ -177,6 +177,7 @@ The current version also supports:
 - `GET /v1/gateway/executive-brief`
 - `GET /v1/gateway/roadmap`
 - `GET /v1/gateway/decision-guide`
+- `GET /v1/gateway/faq`
 - `GET /v1/gateway/access-matrix`
 - `GET /v1/gateway/requests`
 - `GET /v1/gateway/usage`
@@ -241,6 +242,7 @@ The current version also supports:
 - executive brief for non-technical customer stakeholders
 - roadmap from prototype to pilot, production hardening, and multi-provider expansion
 - decision guide comparing API Gateway, managed AI Gateway, custom Model Gateway, and OpenRouter-like options
+- FAQ for common customer questions and objections
 - production readiness report for go-live gaps
 - customer model access matrix
 - customer self-service profile with no provider secret exposure
@@ -256,6 +258,7 @@ The current version also supports:
 - executive brief for business value, demo story, risks, and next step
 - roadmap for phased prototype-to-production planning
 - decision guide for build-or-buy gateway discussion
+- FAQ for API Gateway, OpenRouter, cost, safety, provider, pilot, and production questions
 - OpenAPI contract at `/openapi.json`
 - Postman collection at `/postman_collection.json`
 - demo bundle manifest at `/v1/gateway/demo-bundle`
@@ -579,6 +582,25 @@ It compares:
 - OpenRouter-like marketplace
 
 It explains what each option is good at, what it does not solve, and when to choose it.
+
+## FAQ
+
+The gateway has a FAQ endpoint:
+
+```bash
+curl http://127.0.0.1:8787/v1/gateway/faq \
+  -H "Authorization: Bearer dev-admin-key"
+```
+
+It answers common questions:
+
+- Is this just an API Gateway?
+- Why start with Qwen?
+- Is this an OpenRouter clone?
+- Will customer prompts or provider keys be exposed?
+- How do we control cost?
+- What happens if a provider fails?
+- Is this ready for production?
 
 ## Access Matrix
 

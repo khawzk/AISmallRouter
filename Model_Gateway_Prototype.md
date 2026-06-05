@@ -156,6 +156,7 @@ Included in the prototype:
 - Basic executive brief
 - Basic roadmap
 - Basic decision guide
+- Basic FAQ
 - Basic capability routing control
 - Basic provider create, update, and disable workflow
 - Basic provider contract matrix
