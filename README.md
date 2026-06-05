@@ -1362,6 +1362,7 @@ http://127.0.0.1:8787/
 The dashboard is designed for customer explanation. It shows:
 
 - The layered architecture
+- A visual architecture map from customer systems to model providers
 - Gateway entry control
 - Model routing
 - Provider adapters

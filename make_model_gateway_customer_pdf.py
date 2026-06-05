@@ -206,6 +206,12 @@ def build():
     )
     layers.setStyle(table_style())
     story.append(layers)
+    story.append(
+        Paragraph(
+            "The dashboard also shows this as a visual architecture map, so non-technical customers can follow the layers from customer systems to model providers.",
+            styles["BodyCustom"],
+        )
+    )
 
     story.append(Paragraph("How Route Simulation Works", styles["H1Custom"]))
     story.append(

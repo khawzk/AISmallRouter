@@ -259,6 +259,7 @@ http://127.0.0.1:8790/
 
 The dashboard shows:
 
+- Layered architecture map
 - Operational alerts
 - Access matrix
 - One API for customers

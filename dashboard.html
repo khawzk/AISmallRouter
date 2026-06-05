@@ -282,6 +282,58 @@
       font-weight: 900;
     }
 
+    .architecture-map {
+      display: grid;
+      grid-template-columns: repeat(6, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .arch-layer {
+      position: relative;
+      min-height: 174px;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: var(--panel-3);
+      padding: 14px;
+    }
+
+    .arch-layer:not(:last-child)::after {
+      content: "->";
+      position: absolute;
+      right: -18px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--green);
+      font-weight: 900;
+      z-index: 2;
+    }
+
+    .arch-layer strong {
+      display: block;
+      margin-bottom: 6px;
+      font-size: 13px;
+    }
+
+    .arch-layer p {
+      margin: 0 0 10px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .arch-items {
+      display: grid;
+      gap: 6px;
+    }
+
+    .arch-items span {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 6px 7px;
+      color: var(--muted);
+      background: #0b0d10;
+      font-size: 11px;
+    }
+
     .route-flow {
       display: grid;
       gap: 12px;
@@ -851,9 +903,22 @@
 
       .grid,
       .feature-grid,
+      .architecture-map,
       .demo-board,
       .quickstart {
         grid-template-columns: 1fr;
+      }
+
+      .arch-layer {
+        min-height: auto;
+      }
+
+      .arch-layer:not(:last-child)::after {
+        content: "down";
+        right: 14px;
+        top: auto;
+        bottom: -18px;
+        transform: none;
       }
 
       .stats,
@@ -916,6 +981,7 @@
         <span>ModelGateway</span>
       </a>
       <div class="nav-links">
+        <a href="#architecture">Architecture</a>
         <a href="#models">Models</a>
         <a href="#health">Health</a>
         <a href="#reports">Reports</a>
@@ -965,6 +1031,47 @@
       </div>
       <div class="card-body">
         <div class="alert-list" id="alertList"></div>
+      </div>
+    </section>
+
+    <section class="card" id="architecture" style="margin-bottom: 18px;">
+      <div class="card-head">
+        <h2>Layered architecture map</h2>
+        <span>from customer request to model provider</span>
+      </div>
+      <div class="card-body">
+        <div class="architecture-map" aria-label="Layered architecture map">
+          <article class="arch-layer">
+            <strong>1. Customer systems</strong>
+            <p>Apps, backend services, and agents call one API.</p>
+            <div class="arch-items"><span>website</span><span>backend</span><span>agent</span></div>
+          </article>
+          <article class="arch-layer">
+            <strong>2. Unified API</strong>
+            <p>One OpenAI-compatible request format.</p>
+            <div class="arch-items"><span>/v1/models</span><span>/v1/chat/completions</span></div>
+          </article>
+          <article class="arch-layer">
+            <strong>3. Entry controls</strong>
+            <p>Customer keys, limits, budgets, and safety preview.</p>
+            <div class="arch-items"><span>auth</span><span>budget</span><span>audit</span></div>
+          </article>
+          <article class="arch-layer">
+            <strong>4. Model control</strong>
+            <p>Public model names map to upstream routes.</p>
+            <div class="arch-items"><span>registry</span><span>route policy</span><span>fallback</span></div>
+          </article>
+          <article class="arch-layer">
+            <strong>5. Provider adapters</strong>
+            <p>Each provider needs request and response normalization.</p>
+            <div class="arch-items"><span>Qwen</span><span>OpenAI-compatible</span><span>Claude</span></div>
+          </article>
+          <article class="arch-layer">
+            <strong>6. Model providers</strong>
+            <p>Real upstream models serve the final response.</p>
+            <div class="arch-items"><span>Model Studio</span><span>OpenAI</span><span>Anthropic</span><span>Xiaomi later</span></div>
+          </article>
+        </div>
       </div>
     </section>
 
