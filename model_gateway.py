@@ -88,6 +88,7 @@ ADMIN_PATHS = {
     "/v1/gateway/incident-playbook",
     "/v1/gateway/support-policy",
     "/v1/gateway/pilot-checklist",
+    "/v1/gateway/executive-brief",
     "/v1/gateway/request-activity",
     "/v1/gateway/model-catalog",
     "/v1/gateway/route-preview",
@@ -3213,6 +3214,59 @@ def pilot_checklist(server):
     }
 
 
+def executive_brief(server):
+    readiness = production_readiness(server)
+    support = support_policy(server)
+    pilot = pilot_checklist(server)
+    return {
+        "object": "gateway.executive_brief",
+        "title": "AISmallRouter Executive Brief",
+        "audience": "business and non-technical customer stakeholders",
+        "mode": "mock" if server.mock_mode else "live",
+        "one_sentence": "AISmallRouter gives customers one simple model API while the gateway manages provider routing, customer controls, usage, and support evidence behind the scenes.",
+        "why_it_matters": [
+            "Customers do not need to learn every provider API.",
+            "The platform can hide upstream model and provider changes behind public model names.",
+            "Support can trace requests with gateway.request_id.",
+            "Business teams can explain cost, access, pilot scope, and production gaps clearly.",
+        ],
+        "what_the_demo_proves": [
+            "One OpenAI-compatible customer API.",
+            "Model alias routing from smart-fast to Qwen.",
+            "Customer keys, limits, allowed models, and budget views.",
+            "Provider readiness, route preview, fallback, and policy controls.",
+            "OpenAPI, Postman, customer guide PDF, and integration guide handoff.",
+        ],
+        "what_is_not_production_yet": [
+            "No legal production SLA.",
+            "No production secret manager or customer database.",
+            "No automated incident paging.",
+            "Provider contracts still need live tests before broad rollout.",
+            "Billing is an estimate, not a legal invoice.",
+        ],
+        "recommended_customer_story": [
+            "Start with the dashboard and explain one API for many providers.",
+            "Show /v1/models and /v1/gateway/me to explain customer access.",
+            "Show route preview and provider contracts to explain why this is more than an API Gateway.",
+            "Show production readiness, support policy, and pilot checklist to set honest expectations.",
+            "Give the technical team OpenAPI, Postman, and the integration guide.",
+        ],
+        "pilot_recommendation": pilot.get("recommended_scope", {}),
+        "support_position": {
+            "policy_status": support.get("policy_status"),
+            "plain_english": support.get("plain_english"),
+            "support_policy": "/v1/gateway/support-policy",
+        },
+        "readiness_position": {
+            "overall_status": readiness.get("overall_status"),
+            "prototype_only": readiness.get("prototype_only"),
+            "production_readiness": "/v1/gateway/production-readiness",
+        },
+        "customer_next_step": "Run a small technical pilot with mock mode first, then test live Qwen only when the customer needs a real provider result.",
+        "internal_next_step": "Name owners for production readiness gaps before promising live customer traffic.",
+    }
+
+
 def read_jsonl_tail(path, limit=50):
     if not os.path.exists(path):
         return []
@@ -3696,6 +3750,7 @@ def openapi_spec(server):
         "/v1/gateway/incident-playbook": "Incident response playbook",
         "/v1/gateway/support-policy": "Support policy and SLA stage guide",
         "/v1/gateway/pilot-checklist": "Customer pilot checklist",
+        "/v1/gateway/executive-brief": "Executive customer brief",
     }.items():
         paths[path] = {
             "get": {
@@ -3798,6 +3853,7 @@ def postman_collection(server):
         request_item("Incident Playbook", "GET", "/v1/gateway/incident-playbook", "admin_api_key"),
         request_item("Support Policy", "GET", "/v1/gateway/support-policy", "admin_api_key"),
         request_item("Pilot Checklist", "GET", "/v1/gateway/pilot-checklist", "admin_api_key"),
+        request_item("Executive Brief", "GET", "/v1/gateway/executive-brief", "admin_api_key"),
         request_item("Model Catalog", "GET", "/v1/gateway/model-catalog", "admin_api_key"),
         request_item("Audit Events", "GET", "/v1/gateway/audit-events", "admin_api_key"),
         request_item("Customer Reports", "GET", "/v1/gateway/customer-reports", "admin_api_key"),
@@ -3974,6 +4030,13 @@ def demo_bundle(server):
                 "auth": "adminBearerAuth",
             },
             {
+                "name": "Executive brief",
+                "url": f"{base_url}/v1/gateway/executive-brief",
+                "audience": "business and non-technical",
+                "purpose": "Show a one-page business summary, demo story, risks, and next step.",
+                "auth": "adminBearerAuth",
+            },
+            {
                 "name": "Postman collection",
                 "url": f"{base_url}/postman_collection.json",
                 "audience": "customer technical",
@@ -4068,6 +4131,10 @@ def demo_bundle(server):
             {
                 "name": "Pilot checklist",
                 "command": f"curl {base_url}/v1/gateway/pilot-checklist -H 'Authorization: Bearer {server.admin_api_key or DEFAULT_ADMIN_API_KEY}'",
+            },
+            {
+                "name": "Executive brief",
+                "command": f"curl {base_url}/v1/gateway/executive-brief -H 'Authorization: Bearer {server.admin_api_key or DEFAULT_ADMIN_API_KEY}'",
             },
         ],
         "production_notes": [
@@ -4809,6 +4876,9 @@ class GatewayHandler(BaseHTTPRequestHandler):
             return
         if path == "/v1/gateway/pilot-checklist":
             make_json_response(self, 200, pilot_checklist(self.server))
+            return
+        if path == "/v1/gateway/executive-brief":
+            make_json_response(self, 200, executive_brief(self.server))
             return
         if path == "/v1/gateway/requests":
             make_json_response(self, 200, {"data": db_tail(self.server.db_path, "requests", 100)})

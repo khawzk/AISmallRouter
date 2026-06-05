@@ -182,6 +182,7 @@ class GatewayPrototypeTest(unittest.TestCase):
             "/v1/gateway/incident-playbook",
             "/v1/gateway/support-policy",
             "/v1/gateway/pilot-checklist",
+            "/v1/gateway/executive-brief",
         ]:
             self.assertIn(path, spec["paths"])
         self.assertEqual(
@@ -214,6 +215,7 @@ class GatewayPrototypeTest(unittest.TestCase):
         self.assertIn("Incident Playbook", admin_names)
         self.assertIn("Support Policy", admin_names)
         self.assertIn("Pilot Checklist", admin_names)
+        self.assertIn("Executive Brief", admin_names)
         self.assertIn("Create Customer", admin_names)
         chat = next(item for item in folders["Customer API"]["item"] if item["name"] == "Chat Completion")
         self.assertEqual(chat["request"]["auth"]["bearer"][0]["value"], "{{gateway_api_key}}")
@@ -236,6 +238,7 @@ class GatewayPrototypeTest(unittest.TestCase):
         self.assertIn(f"{self.base_url}/v1/gateway/incident-playbook", entry_urls)
         self.assertIn(f"{self.base_url}/v1/gateway/support-policy", entry_urls)
         self.assertIn(f"{self.base_url}/v1/gateway/pilot-checklist", entry_urls)
+        self.assertIn(f"{self.base_url}/v1/gateway/executive-brief", entry_urls)
         self.assertIn("Model_Gateway_Customer_Guide.pdf", entry_urls)
         self.assertGreaterEqual(len(bundle["recommended_demo_flow"]), 5)
         self.assertGreaterEqual(len(bundle["quick_commands"]), 4)
@@ -324,6 +327,23 @@ class GatewayPrototypeTest(unittest.TestCase):
         self.assertIn("productionize", checklist["exit_decision"])
         self.assertEqual(checklist["current_context"]["demo_bundle"], "/v1/gateway/demo-bundle")
         self.assertNotIn("DASHSCOPE_API_KEY", json.dumps(checklist))
+
+    def test_executive_brief_summarizes_business_story(self):
+        status, payload = request_json(self.base_url, path="/v1/gateway/executive-brief", api_key="dev-gateway-key")
+        self.assertEqual(status, 401)
+        self.assertEqual(payload["error"]["code"], "invalid_admin_key")
+
+        status, brief = request_json(self.base_url, path="/v1/gateway/executive-brief", api_key="dev-admin-key")
+        self.assertEqual(status, 200)
+        self.assertEqual(brief["object"], "gateway.executive_brief")
+        self.assertIn("one simple model API", brief["one_sentence"])
+        self.assertGreaterEqual(len(brief["why_it_matters"]), 4)
+        self.assertGreaterEqual(len(brief["what_the_demo_proves"]), 5)
+        self.assertIn("No legal production SLA.", brief["what_is_not_production_yet"])
+        self.assertGreaterEqual(len(brief["recommended_customer_story"]), 5)
+        self.assertEqual(brief["support_position"]["support_policy"], "/v1/gateway/support-policy")
+        self.assertEqual(brief["readiness_position"]["production_readiness"], "/v1/gateway/production-readiness")
+        self.assertNotIn("DASHSCOPE_API_KEY", json.dumps(brief))
 
     def test_production_readiness_summarizes_go_live_gaps(self):
         status, payload = request_json(self.base_url, path="/v1/gateway/production-readiness", api_key="dev-gateway-key")

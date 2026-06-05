@@ -153,6 +153,7 @@ Included in the prototype:
 - Basic incident playbook
 - Basic support policy
 - Basic pilot checklist
+- Basic executive brief
 - Basic capability routing control
 - Basic provider create, update, and disable workflow
 - Basic provider contract matrix

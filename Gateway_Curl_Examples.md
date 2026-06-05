@@ -30,7 +30,7 @@ It does not spend provider credits.
 python3 test_gateway.py
 ```
 
-The test covers auth, OpenAPI contract, Postman collection, demo bundle, customer integration guide, production readiness, provider contracts, incident playbook, support policy, pilot checklist, model listing, customer self view, customer key lifecycle, audit events, provider lifecycle, model route lifecycle, routing, route strategy, policy presets, route preview, route decision summary, provider allow-list routing, capability routing, safety preview, cost estimate, customer key issue preview, invoice preview, fallback, model access, budgets, SQLite logs, alerts, access matrix, provider health, model catalog, customer reports, request activity, request detail lookup, and admin summary endpoints.
+The test covers auth, OpenAPI contract, Postman collection, demo bundle, customer integration guide, production readiness, provider contracts, incident playbook, support policy, pilot checklist, executive brief, model listing, customer self view, customer key lifecycle, audit events, provider lifecycle, model route lifecycle, routing, route strategy, policy presets, route preview, route decision summary, provider allow-list routing, capability routing, safety preview, cost estimate, customer key issue preview, invoice preview, fallback, model access, budgets, SQLite logs, alerts, access matrix, provider health, model catalog, customer reports, request activity, request detail lookup, and admin summary endpoints.
 
 Open the visual dashboard:
 
@@ -89,6 +89,13 @@ Fetch the pilot checklist:
 
 ```bash
 curl http://127.0.0.1:8787/v1/gateway/pilot-checklist \
+  -H "Authorization: Bearer dev-admin-key"
+```
+
+Fetch the executive brief:
+
+```bash
+curl http://127.0.0.1:8787/v1/gateway/executive-brief \
   -H "Authorization: Bearer dev-admin-key"
 ```
 
@@ -750,6 +757,9 @@ curl http://127.0.0.1:8787/v1/gateway/support-policy \
 
 curl http://127.0.0.1:8787/v1/gateway/pilot-checklist \
   -H "Authorization: Bearer dev-admin-key"
+
+curl http://127.0.0.1:8787/v1/gateway/executive-brief \
+  -H "Authorization: Bearer dev-admin-key"
 ```
 
 The JSON endpoints read from SQLite.
@@ -763,6 +773,8 @@ The incident playbook explains common failure scenarios, operator steps, and cus
 The support policy explains prototype, pilot, and production support expectations.
 
 The pilot checklist explains what to prepare before, during, and after a customer trial.
+
+The executive brief explains the business story for non-technical stakeholders.
 
 In this prototype, admin endpoints use the demo admin key `dev-admin-key`.
 

@@ -62,6 +62,7 @@ The prototype supports:
 - Incident playbook
 - Support policy
 - Pilot checklist
+- Executive brief
 - Access matrix
 - OpenAI-compatible chat endpoint
 - Customer API key check
@@ -439,6 +440,25 @@ It explains:
 - stop, extend, or productionize decision
 
 It helps keep the pilot small, honest, and measurable.
+
+## What The Executive Brief Shows
+
+The prototype includes `/v1/gateway/executive-brief`.
+
+This endpoint is for non-technical stakeholders.
+
+It explains:
+
+- one-sentence value
+- why the gateway matters
+- what the demo proves
+- what is not production-ready yet
+- recommended customer story
+- pilot recommendation
+- support and readiness position
+- next step
+
+This helps a business customer understand the direction before reading technical details.
 
 ## What The Access Matrix Shows
 

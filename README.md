@@ -174,6 +174,7 @@ The current version also supports:
 - `GET /v1/gateway/incident-playbook`
 - `GET /v1/gateway/support-policy`
 - `GET /v1/gateway/pilot-checklist`
+- `GET /v1/gateway/executive-brief`
 - `GET /v1/gateway/access-matrix`
 - `GET /v1/gateway/requests`
 - `GET /v1/gateway/usage`
@@ -235,6 +236,7 @@ The current version also supports:
 - incident playbook with support scenarios and customer-safe wording
 - support policy with prototype, pilot, and production support stages
 - pilot checklist for before, during, and after a customer trial
+- executive brief for non-technical customer stakeholders
 - production readiness report for go-live gaps
 - customer model access matrix
 - customer self-service profile with no provider secret exposure
@@ -247,6 +249,7 @@ The current version also supports:
 - incident playbook for provider, request, budget, key, and contract issues
 - support policy for SLA-stage discussion without pretending the prototype has a legal SLA
 - pilot checklist for scope, roles, success criteria, and exit decision
+- executive brief for business value, demo story, risks, and next step
 - OpenAPI contract at `/openapi.json`
 - Postman collection at `/postman_collection.json`
 - demo bundle manifest at `/v1/gateway/demo-bundle`
@@ -507,6 +510,28 @@ It covers:
 - stop, extend, or productionize decision
 
 It helps keep a customer pilot small, honest, and measurable.
+
+## Executive Brief
+
+The gateway has an executive brief endpoint:
+
+```bash
+curl http://127.0.0.1:8787/v1/gateway/executive-brief \
+  -H "Authorization: Bearer dev-admin-key"
+```
+
+It is a short business summary for non-technical stakeholders.
+
+It explains:
+
+- one-sentence value
+- why the gateway matters
+- what the demo proves
+- what is not production-ready yet
+- recommended customer story
+- pilot recommendation
+- support and readiness position
+- next step
 
 ## Access Matrix
 
