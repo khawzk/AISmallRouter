@@ -56,6 +56,7 @@ The prototype supports:
 - Visual dashboard
 - OpenAPI contract
 - Postman collection
+- Demo bundle manifest
 - Operational alerts
 - Access matrix
 - OpenAI-compatible chat endpoint
@@ -149,6 +150,25 @@ It includes demo variables for:
 - admin key
 
 This helps a customer technical team click through the main demo requests faster.
+
+The prototype also includes `/v1/gateway/demo-bundle`.
+
+This is a simple demo manifest.
+
+It lists:
+
+- dashboard URL
+- customer self view
+- OpenAPI contract
+- Postman collection
+- customer guide PDF
+- recommended demo order
+- safe curl examples
+- production notes
+
+This helps a business team understand the story first.
+
+Then the technical team can use the API contract and Postman collection.
 
 ## Why This Is Not Just An API Gateway
 

@@ -175,6 +175,7 @@ class GatewayPrototypeTest(unittest.TestCase):
             "/v1/gateway/providers",
             "/v1/gateway/model-routes",
             "/v1/gateway/audit-events",
+            "/v1/gateway/demo-bundle",
         ]:
             self.assertIn(path, spec["paths"])
         self.assertEqual(
@@ -205,6 +206,24 @@ class GatewayPrototypeTest(unittest.TestCase):
         chat = next(item for item in folders["Customer API"]["item"] if item["name"] == "Chat Completion")
         self.assertEqual(chat["request"]["auth"]["bearer"][0]["value"], "{{gateway_api_key}}")
         self.assertIn("gateway_policy", chat["request"]["body"]["raw"])
+
+    def test_demo_bundle_manifest_lists_handoff_materials(self):
+        status, payload = request_json(self.base_url, path="/v1/gateway/demo-bundle", api_key="dev-gateway-key")
+        self.assertEqual(status, 401)
+        self.assertEqual(payload["error"]["code"], "invalid_admin_key")
+
+        status, bundle = request_json(self.base_url, path="/v1/gateway/demo-bundle", api_key="dev-admin-key")
+        self.assertEqual(status, 200)
+        self.assertEqual(bundle["object"], "gateway.demo_bundle")
+        self.assertEqual(bundle["demo_keys"]["customer_key"], "dev-gateway-key")
+        entry_urls = {item.get("url") or item.get("path") for item in bundle["entry_points"]}
+        self.assertIn(f"{self.base_url}/openapi.json", entry_urls)
+        self.assertIn(f"{self.base_url}/postman_collection.json", entry_urls)
+        self.assertIn("Model_Gateway_Customer_Guide.pdf", entry_urls)
+        self.assertGreaterEqual(len(bundle["recommended_demo_flow"]), 5)
+        self.assertGreaterEqual(len(bundle["quick_commands"]), 4)
+        self.assertIn("Replace demo keys before production.", bundle["production_notes"])
+        self.assertNotIn("DASHSCOPE_API_KEY", json.dumps(bundle))
 
     def test_models_requires_valid_gateway_key(self):
         status, payload = request_json(self.base_url, path="/v1/models", api_key="wrong-key")

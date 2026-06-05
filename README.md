@@ -166,6 +166,7 @@ The current version also supports:
 - `GET /admin`
 - `GET /openapi.json`
 - `GET /postman_collection.json`
+- `GET /v1/gateway/demo-bundle`
 - `GET /v1/gateway/status`
 - `GET /v1/gateway/audit-events`
 - `GET /v1/gateway/alerts`
@@ -231,6 +232,7 @@ The current version also supports:
 - disabled example provider configs for OpenAI and Anthropic
 - OpenAPI contract at `/openapi.json`
 - Postman collection at `/postman_collection.json`
+- demo bundle manifest at `/v1/gateway/demo-bundle`
 
 ## API Contract
 
@@ -265,6 +267,28 @@ The collection includes demo variables:
 - `admin_api_key`
 
 It groups requests into Customer API and Admin Control Plane folders.
+
+The gateway also exposes an admin demo bundle:
+
+```bash
+curl http://127.0.0.1:8787/v1/gateway/demo-bundle \
+  -H "Authorization: Bearer dev-admin-key"
+```
+
+The demo bundle is a simple JSON manifest.
+
+It points to:
+
+- the visual dashboard
+- the customer self view
+- the OpenAPI contract
+- the Postman collection
+- the customer guide PDF
+- a recommended demo order
+- safe curl examples
+- production notes
+
+This helps a non-technical customer understand the story first, then gives their technical team the right artifacts.
 
 ## Admin Access
 

@@ -38,6 +38,7 @@ ADMIN_PATHS = {
     "/v1/gateway/provider-health",
     "/v1/gateway/customer-reports",
     "/v1/gateway/policy-presets",
+    "/v1/gateway/demo-bundle",
     "/v1/gateway/request-activity",
     "/v1/gateway/model-catalog",
     "/v1/gateway/route-preview",
@@ -2932,6 +2933,7 @@ def openapi_spec(server):
         "/v1/gateway/invoice-preview": "Invoice preview JSON or CSV",
         "/v1/gateway/model-usage": "Usage grouped by model",
         "/v1/gateway/request-summary": "Request summary by dimensions",
+        "/v1/gateway/demo-bundle": "Customer demo bundle manifest",
     }.items():
         paths[path] = {
             "get": {
@@ -3125,6 +3127,120 @@ def postman_collection(server):
         "item": [
             {"name": "Customer API", "item": customer_items},
             {"name": "Admin Control Plane", "item": admin_items},
+        ],
+    }
+
+
+def demo_bundle(server):
+    base_url = f"http://{server.server_address[0]}:{server.server_address[1]}"
+    return {
+        "object": "gateway.demo_bundle",
+        "name": "AISmallRouter Customer Demo Bundle",
+        "mode": "mock" if server.mock_mode else "live",
+        "base_url": base_url,
+        "demo_keys": {
+            "customer_key": DEFAULT_GATEWAY_API_KEY,
+            "admin_key": server.admin_api_key or DEFAULT_ADMIN_API_KEY,
+            "note": "Local demo keys only. Change them before production use.",
+        },
+        "entry_points": [
+            {
+                "name": "Visual dashboard",
+                "url": f"{base_url}/",
+                "audience": "non-technical",
+                "purpose": "Show the gateway concept, request route, model catalog, and local console.",
+            },
+            {
+                "name": "Customer self view",
+                "url": f"{base_url}/v1/gateway/me",
+                "audience": "customer technical",
+                "purpose": "Show what one customer can use and how much they have used.",
+                "auth": "customerBearerAuth",
+            },
+            {
+                "name": "OpenAPI contract",
+                "url": f"{base_url}/openapi.json",
+                "audience": "customer technical",
+                "purpose": "Import or inspect the API contract.",
+            },
+            {
+                "name": "Postman collection",
+                "url": f"{base_url}/postman_collection.json",
+                "audience": "customer technical",
+                "purpose": "Click through common demo requests quickly.",
+            },
+            {
+                "name": "Customer guide PDF",
+                "path": "Model_Gateway_Customer_Guide.pdf",
+                "audience": "business and technical",
+                "purpose": "Simple English explanation of the direction, architecture, and hard parts.",
+            },
+        ],
+        "recommended_demo_flow": [
+            {
+                "step": 1,
+                "title": "Explain the one API idea",
+                "show": "/",
+                "talk_track": "Customer apps call one OpenAI-compatible API while the gateway manages providers and routes.",
+            },
+            {
+                "step": 2,
+                "title": "Show models and customer access",
+                "show": "/v1/models and /v1/gateway/me",
+                "talk_track": "The customer sees public model names and their own access, not provider secrets.",
+            },
+            {
+                "step": 3,
+                "title": "Preview route decision",
+                "show": "/v1/gateway/route-preview",
+                "talk_track": "Route preview explains provider, fallback, capability, policy, and cost-aware decisions before spending credits.",
+            },
+            {
+                "step": 4,
+                "title": "Run a mock chat request",
+                "show": "/v1/chat/completions",
+                "talk_track": "Mock mode returns a provider-like response and route trace without paid model usage.",
+            },
+            {
+                "step": 5,
+                "title": "Show control plane",
+                "show": "/v1/gateway/status",
+                "talk_track": "Admin views show provider health, customer usage, alerts, audit events, and invoice preview.",
+            },
+            {
+                "step": 6,
+                "title": "Hand off technical artifacts",
+                "show": "/openapi.json and /postman_collection.json",
+                "talk_track": "The customer technical team can import the contract or Postman collection.",
+            },
+        ],
+        "quick_commands": [
+            {
+                "name": "List models",
+                "command": f"curl {base_url}/v1/models -H 'Authorization: Bearer {DEFAULT_GATEWAY_API_KEY}'",
+            },
+            {
+                "name": "Customer self view",
+                "command": f"curl {base_url}/v1/gateway/me -H 'Authorization: Bearer {DEFAULT_GATEWAY_API_KEY}'",
+            },
+            {
+                "name": "Route preview",
+                "command": f"curl {base_url}/v1/gateway/route-preview -H 'Authorization: Bearer {server.admin_api_key or DEFAULT_ADMIN_API_KEY}' -H 'Content-Type: application/json' -d '{{\"customer_id\":\"dev\",\"model\":\"smart-fast\",\"gateway_policy\":\"lowest_cost\"}}'",
+            },
+            {
+                "name": "Mock chat",
+                "command": f"curl {base_url}/v1/chat/completions -H 'Authorization: Bearer {DEFAULT_GATEWAY_API_KEY}' -H 'Content-Type: application/json' -d '{{\"model\":\"smart-fast\",\"messages\":[{{\"role\":\"user\",\"content\":\"Explain this gateway in one sentence.\"}}]}}'",
+            },
+            {
+                "name": "Gateway status",
+                "command": f"curl {base_url}/v1/gateway/status -H 'Authorization: Bearer {server.admin_api_key or DEFAULT_ADMIN_API_KEY}'",
+            },
+        ],
+        "production_notes": [
+            "Replace demo keys before production.",
+            "Move customer, provider, and route config from local JSON to a database.",
+            "Store provider secrets in a secret manager.",
+            "Add approval workflow, audit retention, billing rules, and deployment controls.",
         ],
     }
 
@@ -3877,6 +3993,9 @@ class GatewayHandler(BaseHTTPRequestHandler):
             return
         if path == "/v1/gateway/policy-presets":
             make_json_response(self, 200, {"data": policy_presets_view()})
+            return
+        if path == "/v1/gateway/demo-bundle":
+            make_json_response(self, 200, demo_bundle(self.server))
             return
         if path == "/v1/gateway/model-catalog":
             make_json_response(self, 200, {"data": model_catalog(self.server)})
