@@ -72,6 +72,7 @@ The prototype supports:
 - Bring Your Own Key provider mapping
 - Provider create, update, and disable actions
 - Request-level provider allow-list
+- Request-level routing strategy control
 - Capability routing control
 - Local safety preview
 - Customer key issue preview
@@ -226,6 +227,7 @@ They help explain the control layer:
 - Route preview before a live request
 - Route decision summary
 - Capability routing control
+- Routing strategy control
 - Safety preview before provider call
 - Cost estimate before a live request
 - Customer key issue preview
@@ -462,6 +464,35 @@ It is also a control layer.
 The customer can keep one model name.
 
 The gateway can control which provider is allowed behind that model name.
+
+## What Routing Strategy Shows
+
+The prototype supports `gateway_route_strategy`.
+
+This lets a request say:
+
+Choose the route order using this strategy.
+
+Supported strategies:
+
+- `registry`
+- `lowest_cost`
+- `fastest`
+- `healthiest`
+
+`registry` uses the order in `model_registry.json`.
+
+`lowest_cost` tries the lowest estimated price first.
+
+`fastest` uses recent average latency.
+
+`healthiest` uses provider health status.
+
+The response includes `candidate_scores`.
+
+This helps explain how a gateway can make routing decisions, not only store routes.
+
+Production should use stronger cost data, latency windows, provider SLAs, and customer policy rules.
 
 ## What Capability Routing Control Shows
 

@@ -1171,6 +1171,107 @@ def requested_capabilities(payload):
     return capabilities
 
 
+def requested_route_strategy(payload):
+    strategy = payload.get("gateway_route_strategy", "registry")
+    if not isinstance(strategy, str):
+        raise GatewayError(
+            "gateway_route_strategy must be a string.",
+            "invalid_route_strategy",
+            400,
+        )
+    strategy = strategy.strip() or "registry"
+    allowed = {"registry", "lowest_cost", "fastest", "healthiest"}
+    if strategy not in allowed:
+        raise GatewayError(
+            "gateway_route_strategy must be registry, lowest_cost, fastest, or healthiest.",
+            "invalid_route_strategy",
+            400,
+            {"allowed": sorted(allowed)},
+        )
+    return strategy
+
+
+def route_cost_score(model_config):
+    pricing = model_config.get("pricing", {})
+    return float(pricing.get("prompt_per_1k", 0)) + float(pricing.get("completion_per_1k", 0))
+
+
+def route_latency_scores(path):
+    return {
+        row["id"]: float(row.get("avg_latency_ms") or 0)
+        for row in request_grouped_by(path, "model")
+        if row.get("id") is not None
+    }
+
+
+def route_health_scores(server):
+    order = {"ready": 0, "ready_mock": 1, "degraded": 2, "not_ready": 3}
+    return {
+        row["id"]: order.get(row.get("status"), 9)
+        for row in provider_health(server)
+    }
+
+
+def score_route_candidates(server, candidates):
+    latency_by_model = route_latency_scores(server.db_path)
+    health_by_provider = route_health_scores(server)
+    scores = []
+    for index, name in enumerate(candidates):
+        model = server.models[name]
+        provider_id = model.get("provider")
+        latency = latency_by_model.get(name)
+        scores.append(
+            {
+                "model": name,
+                "provider": provider_id,
+                "registry_index": index,
+                "cost_score": route_cost_score(model),
+                "latency_ms": latency,
+                "health_score": health_by_provider.get(provider_id, 9),
+            }
+        )
+    return scores
+
+
+def apply_route_strategy(server, candidates, strategy):
+    scores = score_route_candidates(server, candidates)
+    if strategy == "registry":
+        return candidates, scores
+    score_by_model = {score["model"]: score for score in scores}
+    if strategy == "lowest_cost":
+        ordered = sorted(
+            candidates,
+            key=lambda name: (
+                score_by_model[name]["cost_score"],
+                score_by_model[name]["health_score"],
+                score_by_model[name]["registry_index"],
+            ),
+        )
+    elif strategy == "fastest":
+        ordered = sorted(
+            candidates,
+            key=lambda name: (
+                score_by_model[name]["latency_ms"] is None,
+                score_by_model[name]["latency_ms"] if score_by_model[name]["latency_ms"] is not None else 999999999,
+                score_by_model[name]["health_score"],
+                score_by_model[name]["registry_index"],
+            ),
+        )
+    elif strategy == "healthiest":
+        ordered = sorted(
+            candidates,
+            key=lambda name: (
+                score_by_model[name]["health_score"],
+                score_by_model[name]["cost_score"],
+                score_by_model[name]["registry_index"],
+            ),
+        )
+    else:
+        ordered = candidates
+    ordered_scores = [score_by_model[name] for name in ordered]
+    return ordered, ordered_scores
+
+
 def build_candidate_models(server, customer, public_model, payload):
     model = server.models.get(public_model)
     if not model:
@@ -1183,6 +1284,7 @@ def build_candidate_models(server, customer, public_model, payload):
         "requested_fallback_models": None,
         "allowed_providers": requested_allowed_providers(payload),
         "required_capabilities": requested_capabilities(payload),
+        "route_strategy": requested_route_strategy(payload),
     }
     fallback_models = model.get("fallback_models", [])
     requested_fallbacks = False
@@ -1202,6 +1304,8 @@ def build_candidate_models(server, customer, public_model, payload):
         fallback_models = []
         routing_policy["source"] = "request"
     if "gateway_required_capabilities" in payload:
+        routing_policy["source"] = "request"
+    if "gateway_route_strategy" in payload:
         routing_policy["source"] = "request"
 
     candidates = [public_model]
@@ -1242,6 +1346,9 @@ def build_candidate_models(server, customer, public_model, payload):
             400,
             {"required_capabilities": required_capabilities, "requested_model": public_model},
         )
+    routing_policy["candidates_before_strategy"] = list(candidates)
+    candidates, scores = apply_route_strategy(server, candidates, routing_policy["route_strategy"])
+    routing_policy["candidate_scores"] = scores
     routing_policy["candidates"] = candidates
     return candidates, routing_policy
 
@@ -1253,12 +1360,14 @@ def route_decision(public_model, model_config, routing_policy, customer_id=None,
     selected_upstream = model_config.get("upstream_model")
     required_capabilities = routing_policy.get("required_capabilities") or ["chat"]
     allowed_providers = routing_policy.get("allowed_providers") or ["any"]
+    route_strategy = routing_policy.get("route_strategy") or "registry"
     fallback_enabled = bool(routing_policy.get("fallback_enabled"))
     fallback_candidates = list(routing_policy.get("candidates", []))[1:]
     reasons = [
         f"Customer requested public model {public_model}.",
         f"The selected route is {selected_public_model} on provider {selected_provider}.",
         f"The provider model is {selected_upstream}.",
+        f"Route strategy: {route_strategy}.",
         f"Required capabilities: {', '.join(required_capabilities)}.",
         f"Allowed providers: {', '.join(allowed_providers)}.",
     ]
@@ -1278,6 +1387,8 @@ def route_decision(public_model, model_config, routing_policy, customer_id=None,
         "resolved_model": selected_upstream,
         "provider": selected_provider,
         "policy_source": routing_policy.get("source"),
+        "route_strategy": route_strategy,
+        "candidate_scores": routing_policy.get("candidate_scores", []),
         "fallback_enabled": fallback_enabled,
         "fallback_candidates": fallback_candidates,
         "fallback_attempts": fallback_attempts,
@@ -3595,12 +3706,13 @@ class GatewayHandler(BaseHTTPRequestHandler):
             fallback_text = ", ".join(routing_policy.get("candidates", [])[1:]) or "none"
         provider_text = ", ".join(routing_policy.get("allowed_providers") or ["any"])
         capability_text = ", ".join(routing_policy.get("required_capabilities") or ["chat"])
+        route_strategy = routing_policy.get("route_strategy") or "registry"
         return [
             "Customer sends one OpenAI-compatible request",
             f"Gateway reads model = {public_model}",
             f"Model registry maps {public_model} to {resolved_model}",
             f"Decision summary = {public_model} -> {resolved_model}",
-            f"Routing policy source = {routing_policy.get('source')}, fallback = {fallback_text}",
+            f"Routing policy source = {routing_policy.get('source')}, strategy = {route_strategy}, fallback = {fallback_text}",
             f"Allowed providers = {provider_text}",
             f"Required capabilities = {capability_text}",
             "Provider adapter prepares the upstream request",

@@ -251,6 +251,7 @@ def build():
         "Capability routing control for streaming and tools.",
         "Request-level fallback controls for routing demos.",
         "Request-level provider allow-list for routing control demos.",
+        "Request-level route strategy for registry, lowest cost, fastest, and healthiest routing.",
         "Mock OpenAI-style tool call response for agent demos.",
         "Simple customer plans with token and cost budgets.",
         "Bring Your Own Key mapping through environment variables.",
@@ -280,6 +281,7 @@ def build():
             ["Route decision summary", "Customers may ask why a route was chosen.", "Plain-language summary and reasons"],
             ["Safety preview", "Customers may worry about secrets in prompts.", "Local preview for obvious emails, phone numbers, and secrets"],
             ["Provider routing control", "Some customers may want only approved providers for a request.", "gateway_allowed_providers filters route candidates"],
+            ["Route strategy", "Customers may want cost, latency, or health-aware routing.", "Request-level route strategy reorders candidates"],
             ["Capability routing", "Requests may need streaming, tools, or other abilities.", "gateway_required_capabilities filters route candidates"],
             ["Cost estimate", "Customers need budget planning before live calls.", "Dry-run estimate for tokens, cost, and budget impact"],
             ["Customer onboarding", "New customers need keys, limits, and model access.", "Key issue preview creates a safe config snippet"],
@@ -399,6 +401,14 @@ def build():
     story.append(
         Paragraph(
             "The prototype supports gateway_allowed_providers. This lets a request say: only use these providers for this route. For example, route preview can allow only dashscope. If no route matches the allowed provider list, the gateway returns a clear error. This helps customers understand that the gateway is a control layer, not only a normal API proxy.",
+            styles["BodyCustom"],
+        )
+    )
+
+    story.append(Paragraph("Routing Strategy", styles["H1Custom"]))
+    story.append(
+        Paragraph(
+            "The prototype supports gateway_route_strategy. Supported values are registry, lowest_cost, fastest, and healthiest. The strategy reorders route candidates before the provider call. Route preview and chat responses include candidate_scores in route_decision. This helps explain cost-aware, latency-aware, and health-aware routing. Production should use stronger cost data, latency windows, provider SLAs, and customer policy rules.",
             styles["BodyCustom"],
         )
     )

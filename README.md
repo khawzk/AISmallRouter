@@ -213,6 +213,7 @@ The current version also supports:
 - local safety preview for obvious emails, phone numbers, and secrets
 - invoice preview with JSON and CSV output
 - request-level provider allow-list with `gateway_allowed_providers`
+- request-level route strategy with `gateway_route_strategy`
 - customer usage reports with request count, errors, token usage, and budget state
 - request activity feed with simple filters for troubleshooting
 - request detail lookup by `request_id`
@@ -526,6 +527,40 @@ Can this customer use this model through these providers?
 If no route matches the provider list, the gateway returns a clear error.
 
 This is similar to the routing-control idea used by model router products.
+
+## Routing Strategy
+
+The gateway can reorder route candidates for one request.
+
+Use `gateway_route_strategy`.
+
+Supported values:
+
+- `registry`: use the order in `model_registry.json`
+- `lowest_cost`: try the lowest estimated price first
+- `fastest`: try the route with the best recent average latency first
+- `healthiest`: try the route with the best provider health first
+
+Example:
+
+```bash
+curl http://127.0.0.1:8787/v1/gateway/route-preview \
+  -H "Authorization: Bearer dev-admin-key" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "customer_id": "dev",
+    "model": "smart-fast",
+    "gateway_route_strategy": "lowest_cost"
+  }'
+```
+
+This does not call the provider.
+
+The response includes `candidate_scores` inside `route_decision`.
+
+This is a prototype strategy layer.
+
+Production should add stronger latency windows, cost metadata, provider SLAs, and customer policy rules.
 
 ## Capability Routing Control
 

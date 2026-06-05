@@ -952,6 +952,69 @@ class GatewayPrototypeTest(unittest.TestCase):
         self.assertIn("model_route.updated", route_actions)
         self.assertIn("model_route.disabled", route_actions)
 
+        status, cheap_route = request_json(
+            self.base_url,
+            method="POST",
+            path="/v1/gateway/model-routes",
+            api_key="dev-admin-key",
+            payload={
+                "model_id": "strategy-cheap",
+                "provider": "dashscope",
+                "upstream_model": "qwen-turbo",
+                "capabilities": ["chat"],
+                "pricing": {"prompt_per_1k": 0.001, "completion_per_1k": 0.001},
+            },
+        )
+        self.assertEqual(status, 201)
+
+        status, expensive_route = request_json(
+            self.base_url,
+            method="POST",
+            path="/v1/gateway/model-routes",
+            api_key="dev-admin-key",
+            payload={
+                "model_id": "strategy-main",
+                "provider": "dashscope",
+                "upstream_model": "qwen-plus",
+                "fallback_models": ["strategy-cheap"],
+                "capabilities": ["chat"],
+                "pricing": {"prompt_per_1k": 0.02, "completion_per_1k": 0.02},
+            },
+        )
+        self.assertEqual(status, 201)
+
+        status, strategy_preview = request_json(
+            self.base_url,
+            method="POST",
+            path="/v1/gateway/route-preview",
+            api_key="dev-admin-key",
+            payload={
+                "customer_id": "dev",
+                "model": "strategy-main",
+                "gateway_route_strategy": "lowest_cost",
+            },
+        )
+        self.assertEqual(status, 200)
+        self.assertEqual(strategy_preview["routing_policy"]["route_strategy"], "lowest_cost")
+        self.assertEqual(strategy_preview["routing_policy"]["candidates"], ["strategy-cheap", "strategy-main"])
+        self.assertEqual(strategy_preview["route_decision"]["selected_public_model"], "strategy-cheap")
+        self.assertEqual(strategy_preview["routes"][0]["public_model"], "strategy-cheap")
+        self.assertIn("candidate_scores", strategy_preview["route_decision"])
+
+        status, invalid_strategy = request_json(
+            self.base_url,
+            method="POST",
+            path="/v1/gateway/route-preview",
+            api_key="dev-admin-key",
+            payload={
+                "customer_id": "dev",
+                "model": "strategy-main",
+                "gateway_route_strategy": "random",
+            },
+        )
+        self.assertEqual(status, 400)
+        self.assertEqual(invalid_strategy["error"]["code"], "invalid_route_strategy")
+
         status, created_provider = request_json(
             self.base_url,
             method="POST",
