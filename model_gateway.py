@@ -1010,6 +1010,27 @@ def requested_allowed_providers(payload):
     return normalized
 
 
+def requested_capabilities(payload):
+    capabilities = ["chat"]
+    if payload.get("stream"):
+        capabilities.append("streaming")
+    if payload.get("tools"):
+        capabilities.append("tools")
+    if "gateway_required_capabilities" in payload:
+        requested = payload.get("gateway_required_capabilities")
+        if not isinstance(requested, list) or not all(isinstance(name, str) for name in requested):
+            raise GatewayError(
+                "gateway_required_capabilities must be a list of capability names.",
+                "invalid_capability_policy",
+                400,
+            )
+        for capability in requested:
+            capability = capability.strip()
+            if capability and capability not in capabilities:
+                capabilities.append(capability)
+    return capabilities
+
+
 def build_candidate_models(server, customer, public_model, payload):
     model = server.models.get(public_model)
     if not model:
@@ -1021,6 +1042,7 @@ def build_candidate_models(server, customer, public_model, payload):
         "fallback_enabled": not bool(payload.get("gateway_disable_fallback")),
         "requested_fallback_models": None,
         "allowed_providers": requested_allowed_providers(payload),
+        "required_capabilities": requested_capabilities(payload),
     }
     fallback_models = model.get("fallback_models", [])
     requested_fallbacks = False
@@ -1038,6 +1060,8 @@ def build_candidate_models(server, customer, public_model, payload):
         routing_policy["requested_fallback_models"] = requested
     if not routing_policy["fallback_enabled"]:
         fallback_models = []
+        routing_policy["source"] = "request"
+    if "gateway_required_capabilities" in payload:
         routing_policy["source"] = "request"
 
     candidates = [public_model]
@@ -1065,6 +1089,19 @@ def build_candidate_models(server, customer, public_model, payload):
                 400,
                 {"allowed_providers": allowed_providers, "requested_model": public_model},
             )
+    required_capabilities = routing_policy["required_capabilities"]
+    candidates = [
+        name
+        for name in candidates
+        if set(required_capabilities).issubset(set(server.models[name].get("capabilities", [])))
+    ]
+    if not candidates:
+        raise GatewayError(
+            "No route candidate supports the required capabilities.",
+            "no_capability_route",
+            400,
+            {"required_capabilities": required_capabilities, "requested_model": public_model},
+        )
     routing_policy["candidates"] = candidates
     return candidates, routing_policy
 
@@ -1096,6 +1133,7 @@ def route_preview(server, payload):
                 "provider_name": provider.get("name", provider_id),
                 "provider_status": health.get("status", "unknown"),
                 "capabilities": model.get("capabilities", []),
+                "capability_match": True,
                 "pricing": model.get("pricing", {}),
                 "reason": "primary route" if index == 0 else "fallback route",
             }
@@ -1117,6 +1155,7 @@ def route_preview(server, payload):
             f"Access allowed = {customer_model_allowed(customer, public_model)}",
             f"Budget state = {budget_state}",
             f"Allowed providers = {', '.join(routing_policy.get('allowed_providers') or ['any'])}",
+            f"Required capabilities = {', '.join(routing_policy.get('required_capabilities') or ['chat'])}",
             f"Route candidates = {', '.join(candidates)}",
         ],
     }
@@ -2618,12 +2657,14 @@ class GatewayHandler(BaseHTTPRequestHandler):
         if routing_policy.get("fallback_enabled"):
             fallback_text = ", ".join(routing_policy.get("candidates", [])[1:]) or "none"
         provider_text = ", ".join(routing_policy.get("allowed_providers") or ["any"])
+        capability_text = ", ".join(routing_policy.get("required_capabilities") or ["chat"])
         return [
             "Customer sends one OpenAI-compatible request",
             f"Gateway reads model = {public_model}",
             f"Model registry maps {public_model} to {resolved_model}",
             f"Routing policy source = {routing_policy.get('source')}, fallback = {fallback_text}",
             f"Allowed providers = {provider_text}",
+            f"Required capabilities = {capability_text}",
             "Provider adapter prepares the upstream request",
         ]
 

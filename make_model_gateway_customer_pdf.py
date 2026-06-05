@@ -242,6 +242,7 @@ def build():
         "Config check endpoint for demo keys and missing production settings.",
         "Customer key issue preview for safe onboarding demos.",
         "Invoice preview with JSON and CSV output.",
+        "Capability routing control for streaming and tools.",
         "Request-level fallback controls for routing demos.",
         "Request-level provider allow-list for routing control demos.",
         "Mock OpenAI-style tool call response for agent demos.",
@@ -269,6 +270,7 @@ def build():
             ["Model catalog", "Customers need to understand public model names and routes.", "Catalog with provider status, fallback chain, usage, and pricing metadata"],
             ["Route preview", "Sales and support need to explain a route before spending credits.", "Dry-run endpoint and dashboard preview"],
             ["Provider routing control", "Some customers may want only approved providers for a request.", "gateway_allowed_providers filters route candidates"],
+            ["Capability routing", "Requests may need streaming, tools, or other abilities.", "gateway_required_capabilities filters route candidates"],
             ["Cost estimate", "Customers need budget planning before live calls.", "Dry-run estimate for tokens, cost, and budget impact"],
             ["Customer onboarding", "New customers need keys, limits, and model access.", "Key issue preview creates a safe config snippet"],
             ["Invoice preview", "Customers need a simple billing story.", "Estimated invoice preview with CSV export"],
@@ -344,6 +346,14 @@ def build():
     story.append(
         Paragraph(
             "The prototype supports gateway_allowed_providers. This lets a request say: only use these providers for this route. For example, route preview can allow only dashscope. If no route matches the allowed provider list, the gateway returns a clear error. This helps customers understand that the gateway is a control layer, not only a normal API proxy.",
+            styles["BodyCustom"],
+        )
+    )
+
+    story.append(Paragraph("Capability Routing Control", styles["H1Custom"]))
+    story.append(
+        Paragraph(
+            "The prototype supports gateway_required_capabilities. This lets route preview or a real request require abilities such as streaming or tools. stream=true requires streaming. A tools request requires tools. If no route supports the required ability, the gateway returns a clear no_capability_route error. This explains why model metadata matters in a real gateway.",
             styles["BodyCustom"],
         )
     )

@@ -189,6 +189,7 @@ The current version also supports:
 - provider readiness view for mock-ready, live-ready, and degraded providers
 - model catalog with provider status, fallback chain, usage, and pricing metadata
 - route preview dry run before a real provider call
+- capability routing control for `streaming` and `tools`
 - cost estimate dry run for prompt tokens, completion tokens, and budget impact
 - customer key issue preview for safe onboarding demos
 - invoice preview with JSON and CSV output
@@ -376,6 +377,30 @@ Can this customer use this model through these providers?
 If no route matches the provider list, the gateway returns a clear error.
 
 This is similar to the routing-control idea used by model router products.
+
+## Capability Routing Control
+
+The gateway can check required model capabilities before a provider call.
+
+Example:
+
+```bash
+curl http://127.0.0.1:8787/v1/gateway/route-preview \
+  -H "Authorization: Bearer dev-admin-key" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "customer_id": "dev",
+    "model": "smart-fast",
+    "gateway_required_capabilities": ["tools"]
+  }'
+```
+
+The gateway also detects capabilities from chat requests:
+
+- `stream=true` requires `streaming`
+- `tools` requires `tools`
+
+If no route can support the required capability, the gateway returns `no_capability_route`.
 
 ## Cost Estimate
 

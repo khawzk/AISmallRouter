@@ -32,7 +32,7 @@
       "provider": "dashscope",
       "upstream_model": "qwen-plus",
       "fallback_models": ["qwen-turbo"],
-      "capabilities": ["chat", "streaming"],
+      "capabilities": ["chat", "streaming", "tools"],
       "pricing": {
         "prompt_per_1k": 0,
         "completion_per_1k": 0
@@ -44,7 +44,7 @@
       "provider": "dashscope",
       "upstream_model": "qwen-plus",
       "fallback_models": ["qwen-turbo"],
-      "capabilities": ["chat", "streaming"],
+      "capabilities": ["chat", "streaming", "tools"],
       "pricing": {
         "prompt_per_1k": 0,
         "completion_per_1k": 0

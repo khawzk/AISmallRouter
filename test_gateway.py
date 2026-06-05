@@ -335,6 +335,8 @@ class GatewayPrototypeTest(unittest.TestCase):
         self.assertEqual(tool_call["type"], "function")
         self.assertEqual(tool_call["function"]["name"], "get_weather")
         self.assertEqual(payload["gateway"]["tool_support"], "mock_tool_call")
+        self.assertIn("tools", payload["gateway"]["routing_policy"]["required_capabilities"])
+        self.assertEqual(payload["gateway"]["routing_policy"]["candidates"], ["smart-fast"])
 
     def test_anthropic_tool_normalization(self):
         tools = [
@@ -519,6 +521,29 @@ class GatewayPrototypeTest(unittest.TestCase):
         self.assertEqual(preview["routes"][0]["public_model"], "smart-fast")
         self.assertEqual(preview["routes"][0]["upstream_model"], "qwen-plus")
         self.assertIn("qwen-turbo", preview["routing_policy"]["candidates"])
+        self.assertEqual(preview["routing_policy"]["required_capabilities"], ["chat"])
+
+        status, preview = request_json(
+            self.base_url,
+            method="POST",
+            path="/v1/gateway/route-preview",
+            api_key="dev-admin-key",
+            payload={"customer_id": "dev", "model": "smart-fast", "gateway_required_capabilities": ["tools"]},
+        )
+        self.assertEqual(status, 200)
+        self.assertEqual(preview["routing_policy"]["required_capabilities"], ["chat", "tools"])
+        self.assertEqual(preview["routing_policy"]["candidates"], ["smart-fast"])
+        self.assertTrue(all("tools" in route["capabilities"] for route in preview["routes"]))
+
+        status, preview = request_json(
+            self.base_url,
+            method="POST",
+            path="/v1/gateway/route-preview",
+            api_key="dev-admin-key",
+            payload={"customer_id": "dev", "model": "smart-fast", "gateway_required_capabilities": ["vision"]},
+        )
+        self.assertEqual(status, 400)
+        self.assertEqual(preview["error"]["code"], "no_capability_route")
 
         status, preview = request_json(
             self.base_url,

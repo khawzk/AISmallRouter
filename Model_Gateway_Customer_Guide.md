@@ -69,6 +69,7 @@ The prototype supports:
 - Customer plans with token and cost budgets
 - Bring Your Own Key provider mapping
 - Request-level provider allow-list
+- Capability routing control
 - Customer key issue preview
 - Invoice preview with CSV export
 - Provider adapter scaffolds for OpenAI and Claude
@@ -215,6 +216,7 @@ They help explain the control layer:
 - Provider health and readiness
 - Model catalog and routing plan
 - Route preview before a live request
+- Capability routing control
 - Cost estimate before a live request
 - Customer key issue preview
 - Customer usage reports
@@ -350,6 +352,27 @@ It is also a control layer.
 The customer can keep one model name.
 
 The gateway can control which provider is allowed behind that model name.
+
+## What Capability Routing Control Shows
+
+The prototype supports `gateway_required_capabilities`.
+
+This lets a route preview say:
+
+Only use models that support these abilities.
+
+For example:
+
+- `stream=true` needs `streaming`
+- `tools` needs `tools`
+
+If no route supports the required ability, the gateway returns a clear error.
+
+This helps customers understand why a gateway needs model metadata.
+
+It is not only choosing a provider.
+
+It is checking whether the provider route can do the job.
 
 ## What Cost Estimate Shows
 
@@ -603,6 +626,7 @@ It is a demo of the control layer that full billing would need.
 - Add token and cost budgets
 - Add a simple admin page
 - Add request-level provider allow-list
+- Add capability routing control
 - Add customer key issue preview
 - Add invoice preview with CSV export
 

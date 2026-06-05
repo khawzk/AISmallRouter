@@ -144,6 +144,7 @@ Included in the prototype:
 - Basic model access control
 - Basic fallback routing
 - Basic request-level provider allow-list
+- Basic capability routing control
 - Basic customer key issue preview
 - Basic invoice preview with CSV export
 - Basic customer plan, token budget, and cost budget control
@@ -425,14 +426,14 @@ Example:
     "provider": "anthropic",
     "upstream_model": "claude-sonnet",
     "type": "chat",
-    "capabilities": ["chat", "vision", "tool_calling"],
+    "capabilities": ["chat", "vision", "tools"],
     "enabled": true
   },
   "gpt-basic": {
     "provider": "openai",
     "upstream_model": "gpt-4o-mini",
     "type": "chat",
-    "capabilities": ["chat", "streaming", "tool_calling"],
+    "capabilities": ["chat", "streaming", "tools"],
     "enabled": true
   }
 }
@@ -640,6 +641,7 @@ Already included in the prototype:
 
 - Fallback routing in mock mode
 - Request-level provider allow-list with `gateway_allowed_providers`
+- Capability routing control with `gateway_required_capabilities`
 - Route preview before calling a provider
 - Cost estimate before calling a provider
 - Customer key issue preview before editing customer config

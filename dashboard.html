@@ -1029,6 +1029,9 @@
             <label>Allowed providers
               <input id="allowedProviders" placeholder="dashscope, openai">
             </label>
+            <label>Required capabilities
+              <input id="requiredCapabilities" placeholder="tools, streaming">
+            </label>
             <div class="form-actions">
               <button id="previewButton" type="button">Preview route</button>
               <button id="estimateButton" type="button">Estimate cost</button>
@@ -1127,6 +1130,7 @@
     const previewCustomer = document.getElementById("previewCustomer");
     const previewModel = document.getElementById("previewModel");
     const allowedProviders = document.getElementById("allowedProviders");
+    const requiredCapabilities = document.getElementById("requiredCapabilities");
     const previewButton = document.getElementById("previewButton");
     const estimateButton = document.getElementById("estimateButton");
     const previewTrace = document.getElementById("previewTrace");
@@ -1383,12 +1387,19 @@
       });
     }
 
-    function providerPolicyPayload() {
+    function routingPolicyPayload() {
       const providers = allowedProviders.value
         .split(",")
         .map((provider) => provider.trim())
         .filter(Boolean);
-      return providers.length ? {gateway_allowed_providers: providers} : {};
+      const capabilities = requiredCapabilities.value
+        .split(",")
+        .map((capability) => capability.trim())
+        .filter(Boolean);
+      return {
+        ...(providers.length ? {gateway_allowed_providers: providers} : {}),
+        ...(capabilities.length ? {gateway_required_capabilities: capabilities} : {})
+      };
     }
 
     async function sendRequest() {
@@ -1438,7 +1449,7 @@
           body: JSON.stringify({
             customer_id: previewCustomer.value,
             model: previewModel.value,
-            ...providerPolicyPayload()
+            ...routingPolicyPayload()
           })
         });
         const data = await response.json();
@@ -1469,7 +1480,7 @@
           body: JSON.stringify({
             customer_id: previewCustomer.value,
             model: previewModel.value,
-            ...providerPolicyPayload(),
+            ...routingPolicyPayload(),
             messages: [{role: "user", content: promptInput.value}],
             max_tokens: 256
           })
