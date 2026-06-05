@@ -128,6 +128,7 @@ The prototype includes:
 - Model routing
 - Mock fallback routing
 - Mock and live streaming support
+- Mock tool calling response shape
 - Bring Your Own Key provider mapping through `provider_api_keys`
 - Provider adapter scaffolds for OpenAI-compatible APIs and Anthropic-style APIs
 - A simple admin page
@@ -173,6 +174,7 @@ The current version also supports:
 - `GET /v1/gateway/config-check`
 - `stream=true` Server-Sent Events
 - `gateway_force_failover=true` for fallback testing in mock mode
+- OpenAI-style `tools` request with mock tool call response
 - multiple customer keys through `customer_keys.json`
 - customer plans with request limits, token budgets, and cost budgets
 - SQLite persistence for request and usage records
@@ -341,6 +343,43 @@ curl http://127.0.0.1:8787/v1/chat/completions \
         "content": "Explain this gateway in one short sentence."
       }
     ],
+    "stream": false
+  }'
+```
+
+Test tool calling shape in mock mode:
+
+```bash
+curl http://127.0.0.1:8787/v1/chat/completions \
+  -H "Authorization: Bearer dev-gateway-key" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "smart-fast",
+    "messages": [
+      {
+        "role": "user",
+        "content": "Check the weather."
+      }
+    ],
+    "tools": [
+      {
+        "type": "function",
+        "function": {
+          "name": "get_weather",
+          "description": "Get weather for a city.",
+          "parameters": {
+            "type": "object",
+            "properties": {
+              "city": {
+                "type": "string"
+              }
+            },
+            "required": ["city"]
+          }
+        }
+      }
+    ],
+    "tool_choice": "auto",
     "stream": false
   }'
 ```

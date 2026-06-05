@@ -606,6 +606,15 @@ def estimate_tokens(messages, content):
     return max(1, len(text) // 4)
 
 
+def first_openai_function_tool(tools):
+    for tool in tools or []:
+        if tool.get("type") == "function" and isinstance(tool.get("function"), dict):
+            function = tool["function"]
+            if function.get("name"):
+                return function
+    return None
+
+
 def load_registry(path):
     data = read_json(path, {"providers": [], "models": []})
     providers = {
@@ -942,6 +951,28 @@ class OpenAICompatibleAdapter:
         )
         if last_user_message:
             content += f" Last user message: {last_user_message[:160]}"
+        message = {"role": "assistant", "content": content}
+        finish_reason = "stop"
+        function_tool = first_openai_function_tool(request_payload.get("tools", []))
+        if function_tool:
+            finish_reason = "tool_calls"
+            message["content"] = None
+            message["tool_calls"] = [
+                {
+                    "id": f"call_mock_{uuid.uuid4().hex[:8]}",
+                    "type": "function",
+                    "function": {
+                        "name": function_tool["name"],
+                        "arguments": json.dumps(
+                            {
+                                "mock": True,
+                                "reason": "AISmallRouter mock tool call",
+                                "last_user_message": last_user_message[:120],
+                            }
+                        ),
+                    },
+                }
+            ]
         completion_tokens = estimate_tokens([], content)
         prompt_tokens = estimate_tokens(request_payload.get("messages", []), "")
         return {
@@ -952,8 +983,8 @@ class OpenAICompatibleAdapter:
             "choices": [
                 {
                     "index": 0,
-                    "message": {"role": "assistant", "content": content},
-                    "finish_reason": "stop",
+                    "message": message,
+                    "finish_reason": finish_reason,
                 }
             ],
             "usage": {
@@ -965,13 +996,14 @@ class OpenAICompatibleAdapter:
                 "mode": "mock",
                 "provider": model_config["provider"],
                 "resolved_model": upstream_model,
+                "tool_support": "mock_tool_call" if function_tool else "none_requested",
                 "route_trace": route_trace + ["Mock mode returns a simulated provider response"],
             },
         }
 
     def mock_stream(self, model_config, request_payload, route_trace):
         completion = self.mock_completion(model_config, request_payload, route_trace)
-        content = completion["choices"][0]["message"]["content"]
+        content = completion["choices"][0]["message"].get("content") or "Mock response requested a tool call."
         chunk_id = completion["id"]
         for word in content.split(" "):
             yield {
@@ -1018,7 +1050,11 @@ class OpenAICompatibleAdapter:
         )
         try:
             with urllib.request.urlopen(request, timeout=timeout) as response:
-                return json.loads(response.read().decode("utf-8"))
+                payload = json.loads(response.read().decode("utf-8"))
+                payload.setdefault("gateway", {})
+                if request_payload.get("tools"):
+                    payload["gateway"]["tool_support"] = "openai_compatible_passthrough"
+                return payload
         except urllib.error.HTTPError as exc:
             raise ProviderError("The upstream provider returned an error.", exc.code, exc.read().decode("utf-8", errors="replace"))
 
@@ -1092,7 +1128,11 @@ class AnthropicAdapter(OpenAICompatibleAdapter):
         try:
             with urllib.request.urlopen(request, timeout=timeout) as response:
                 upstream = json.loads(response.read().decode("utf-8"))
-                return self.openai_response_from_anthropic(upstream, request_payload["model"])
+                payload = self.openai_response_from_anthropic(upstream, request_payload["model"])
+                payload.setdefault("gateway", {})
+                if request_payload.get("tools"):
+                    payload["gateway"]["tool_support"] = "anthropic_normalized"
+                return payload
         except urllib.error.HTTPError as exc:
             raise ProviderError("The upstream provider returned an error.", exc.code, exc.read().decode("utf-8", errors="replace"))
 
@@ -1199,7 +1239,7 @@ def should_force_failover(payload, candidate_index):
 
 
 class GatewayHandler(BaseHTTPRequestHandler):
-    server_version = "AISmallRouter/0.8"
+    server_version = "AISmallRouter/0.9"
 
     def log_message(self, format_text, *args):
         if self.server.quiet:

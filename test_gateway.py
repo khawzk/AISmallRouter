@@ -10,6 +10,8 @@ import unittest
 import urllib.error
 import urllib.request
 
+from model_gateway import normalize_tools_for_anthropic
+
 
 ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
 
@@ -210,6 +212,62 @@ class GatewayPrototypeTest(unittest.TestCase):
         self.assertEqual(payload["gateway"]["resolved_model"], "qwen-turbo")
         self.assertEqual(payload["gateway"]["routing_policy"]["source"], "request")
         self.assertEqual(payload["gateway"]["routing_policy"]["candidates"], ["smart-fast", "qwen-turbo"])
+
+    def test_mock_tool_call_response_uses_openai_shape(self):
+        status, payload = request_json(
+            self.base_url,
+            method="POST",
+            path="/v1/chat/completions",
+            api_key="dev-gateway-key",
+            payload={
+                "model": "smart-fast",
+                "messages": [{"role": "user", "content": "Check the weather."}],
+                "tools": [
+                    {
+                        "type": "function",
+                        "function": {
+                            "name": "get_weather",
+                            "description": "Get weather for a city.",
+                            "parameters": {
+                                "type": "object",
+                                "properties": {
+                                    "city": {"type": "string"}
+                                },
+                                "required": ["city"],
+                            },
+                        },
+                    }
+                ],
+                "tool_choice": "auto",
+                "stream": False,
+            },
+        )
+        self.assertEqual(status, 200)
+        choice = payload["choices"][0]
+        self.assertEqual(choice["finish_reason"], "tool_calls")
+        tool_call = choice["message"]["tool_calls"][0]
+        self.assertEqual(tool_call["type"], "function")
+        self.assertEqual(tool_call["function"]["name"], "get_weather")
+        self.assertEqual(payload["gateway"]["tool_support"], "mock_tool_call")
+
+    def test_anthropic_tool_normalization(self):
+        tools = [
+            {
+                "type": "function",
+                "function": {
+                    "name": "lookup_order",
+                    "description": "Lookup an order.",
+                    "parameters": {
+                        "type": "object",
+                        "properties": {"order_id": {"type": "string"}},
+                        "required": ["order_id"],
+                    },
+                },
+            }
+        ]
+        normalized = normalize_tools_for_anthropic(tools)
+        self.assertEqual(normalized[0]["name"], "lookup_order")
+        self.assertEqual(normalized[0]["input_schema"]["properties"]["order_id"]["type"], "string")
 
     def test_customer_model_access_is_enforced(self):
         status, payload = request_json(

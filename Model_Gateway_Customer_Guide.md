@@ -253,6 +253,12 @@ Tool calling is not fully standard across providers.
 
 The gateway must normalize tool requests and tool results.
 
+The prototype can show an OpenAI-style mock `tool_calls` response.
+
+It does not execute the tool.
+
+Tool execution should happen in the customer app or agent runtime.
+
 ### 4. Token Usage
 
 Some providers return token usage clearly.

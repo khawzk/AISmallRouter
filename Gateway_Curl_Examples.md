@@ -95,6 +95,47 @@ curl -N http://127.0.0.1:8787/v1/chat/completions \
   }'
 ```
 
+## Tool Calling Shape In Mock Mode
+
+Mock mode returns an OpenAI-style `tool_calls` response.
+
+It does not execute the tool.
+
+```bash
+curl http://127.0.0.1:8787/v1/chat/completions \
+  -H "Authorization: Bearer dev-gateway-key" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "smart-fast",
+    "messages": [
+      {
+        "role": "user",
+        "content": "Check the weather."
+      }
+    ],
+    "tools": [
+      {
+        "type": "function",
+        "function": {
+          "name": "get_weather",
+          "description": "Get weather for a city.",
+          "parameters": {
+            "type": "object",
+            "properties": {
+              "city": {
+                "type": "string"
+              }
+            },
+            "required": ["city"]
+          }
+        }
+      }
+    ],
+    "tool_choice": "auto",
+    "stream": false
+  }'
+```
+
 ## Test Fallback Routing
 
 Mock mode can force the first route to fail so the gateway uses the fallback model.
