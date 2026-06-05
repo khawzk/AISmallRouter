@@ -145,6 +145,7 @@ Included in the prototype:
 - Basic fallback routing
 - Basic request-level provider allow-list
 - Basic customer key issue preview
+- Basic invoice preview with CSV export
 - Basic customer plan, token budget, and cost budget control
 - Basic Bring Your Own Key provider mapping
 - Provider adapter scaffolds for OpenAI-compatible APIs and Anthropic-style APIs
@@ -642,6 +643,7 @@ Already included in the prototype:
 - Route preview before calling a provider
 - Cost estimate before calling a provider
 - Customer key issue preview before editing customer config
+- Invoice preview before building full billing
 
 ## Main Technical Risks
 

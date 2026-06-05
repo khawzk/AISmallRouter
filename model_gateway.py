@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 import argparse
+import csv
 import hashlib
+import io
 import json
 import os
 import secrets
@@ -42,6 +44,7 @@ ADMIN_PATHS = {
     "/v1/gateway/access-matrix",
     "/v1/gateway/cost-estimate",
     "/v1/gateway/customer-usage",
+    "/v1/gateway/invoice-preview",
     "/v1/gateway/model-usage",
     "/v1/gateway/request-summary",
     "/v1/gateway/config-check",
@@ -717,6 +720,106 @@ def access_matrix(server):
             }
         )
     return rows
+
+
+def invoice_preview(server, customer_id=None):
+    reports = customer_reports(server)
+    if customer_id:
+        reports = [report for report in reports if report.get("id") == customer_id]
+        if not reports:
+            raise GatewayError(f"Unknown customer: {customer_id}.", "unknown_customer", 404)
+    invoices = []
+    for report in reports:
+        budget = report.get("budget", {})
+        usage = budget.get("usage", {})
+        summary = report.get("request_summary", {})
+        invoices.append(
+            {
+                "invoice_id": f"preview-{report['id']}-{now_unix()}",
+                "customer": public_customer_view(report),
+                "period": "current local data",
+                "mode": "mock" if server.mock_mode else "live",
+                "currency": "USD-estimate",
+                "requests": int(summary.get("requests") or 0),
+                "errors": int(summary.get("errors") or 0),
+                "prompt_tokens": int(usage.get("prompt_tokens") or 0),
+                "completion_tokens": int(usage.get("completion_tokens") or 0),
+                "total_tokens": int(usage.get("total_tokens") or 0),
+                "estimated_cost": round(float(usage.get("estimated_cost") or 0), 8),
+                "budget": {
+                    "token_budget": budget.get("token_budget"),
+                    "cost_budget": budget.get("cost_budget"),
+                    "remaining_tokens": budget.get("remaining_tokens"),
+                    "remaining_cost": budget.get("remaining_cost"),
+                    "state": report.get("budget_state"),
+                },
+                "usage_by_model": report.get("usage_by_model", []),
+                "usage_by_provider": report.get("usage_by_provider", []),
+                "note": "Invoice preview uses local estimated usage. It is not a legal invoice.",
+            }
+        )
+    totals = {
+        "customers": len(invoices),
+        "requests": sum(invoice["requests"] for invoice in invoices),
+        "errors": sum(invoice["errors"] for invoice in invoices),
+        "total_tokens": sum(invoice["total_tokens"] for invoice in invoices),
+        "estimated_cost": round(sum(invoice["estimated_cost"] for invoice in invoices), 8),
+    }
+    return {
+        "mode": "mock" if server.mock_mode else "live",
+        "format": "preview",
+        "totals": totals,
+        "data": invoices,
+        "note": "This is a billing explanation preview. Production billing needs invoices, payment state, refunds, tax, and audited records.",
+    }
+
+
+def invoice_preview_csv(invoice_payload):
+    output = io.StringIO()
+    writer = csv.DictWriter(
+        output,
+        fieldnames=[
+            "invoice_id",
+            "customer_id",
+            "plan",
+            "period",
+            "mode",
+            "requests",
+            "errors",
+            "prompt_tokens",
+            "completion_tokens",
+            "total_tokens",
+            "estimated_cost",
+            "budget_state",
+            "remaining_tokens",
+            "remaining_cost",
+            "note",
+        ],
+    )
+    writer.writeheader()
+    for invoice in invoice_payload.get("data", []):
+        customer = invoice.get("customer", {})
+        budget = invoice.get("budget", {})
+        writer.writerow(
+            {
+                "invoice_id": invoice.get("invoice_id"),
+                "customer_id": customer.get("id"),
+                "plan": customer.get("plan"),
+                "period": invoice.get("period"),
+                "mode": invoice.get("mode"),
+                "requests": invoice.get("requests"),
+                "errors": invoice.get("errors"),
+                "prompt_tokens": invoice.get("prompt_tokens"),
+                "completion_tokens": invoice.get("completion_tokens"),
+                "total_tokens": invoice.get("total_tokens"),
+                "estimated_cost": invoice.get("estimated_cost"),
+                "budget_state": budget.get("state"),
+                "remaining_tokens": budget.get("remaining_tokens"),
+                "remaining_cost": budget.get("remaining_cost"),
+                "note": invoice.get("note"),
+            }
+        )
+    return output.getvalue()
 
 
 def provider_status(server):
@@ -1519,6 +1622,16 @@ def make_html_response(handler, status, html):
     handler.wfile.write(body)
 
 
+def make_csv_response(handler, status, filename, content):
+    body = content.encode("utf-8")
+    handler.send_response(status)
+    handler.send_header("Content-Type", "text/csv; charset=utf-8")
+    handler.send_header("Content-Disposition", f'attachment; filename="{filename}"')
+    handler.send_header("Content-Length", str(len(body)))
+    handler.end_headers()
+    handler.wfile.write(body)
+
+
 def make_error(handler, status, message, code, details=None):
     payload = {
         "error": {
@@ -1567,6 +1680,7 @@ def gateway_status(server):
         "model_catalog": model_catalog(server),
         "access_matrix": access_matrix(server),
         "customer_reports": customer_reports(server),
+        "invoice_preview": invoice_preview(server),
         "request_activity": request_activity(server.db_path, limit=10),
         "usage_by_customer": usage_grouped_by(server.db_path, "customer_id"),
         "usage_by_model": usage_grouped_by(server.db_path, "model"),
@@ -2302,6 +2416,20 @@ class GatewayHandler(BaseHTTPRequestHandler):
             return
         if path == "/v1/gateway/customer-usage":
             make_json_response(self, 200, {"data": usage_grouped_by(self.server.db_path, "customer_id")})
+            return
+        if path == "/v1/gateway/invoice-preview":
+            try:
+                payload = invoice_preview(self.server, query.get("customer_id", [""])[0])
+            except GatewayError as exc:
+                make_error(self, exc.status, exc.message, exc.code, exc.details)
+                return
+            if query.get("format", ["json"])[0] == "csv":
+                filename = "aismallrouter-invoice-preview.csv"
+                if query.get("customer_id", [""])[0]:
+                    filename = f"aismallrouter-{query.get('customer_id', [''])[0]}-invoice-preview.csv"
+                make_csv_response(self, 200, filename, invoice_preview_csv(payload))
+                return
+            make_json_response(self, 200, payload)
             return
         if path == "/v1/gateway/model-usage":
             make_json_response(self, 200, {"data": usage_grouped_by(self.server.db_path, "model")})

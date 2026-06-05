@@ -70,6 +70,7 @@ The prototype supports:
 - Bring Your Own Key provider mapping
 - Request-level provider allow-list
 - Customer key issue preview
+- Invoice preview with CSV export
 - Provider adapter scaffolds for OpenAI and Claude
 - Automated mock regression test
 - Mock mode
@@ -217,6 +218,7 @@ They help explain the control layer:
 - Cost estimate before a live request
 - Customer key issue preview
 - Customer usage reports
+- Invoice preview
 - Request activity feed
 - Request detail lookup
 - Usage by customer
@@ -390,6 +392,30 @@ It shows:
 This helps explain how a customer would be added to the gateway.
 
 In production, this would connect to a real customer database and secret manager.
+
+## What Invoice Preview Shows
+
+The prototype includes `/v1/gateway/invoice-preview`.
+
+It uses local usage records to create an estimated billing preview.
+
+It shows:
+
+- Requests
+- Errors
+- Prompt tokens
+- Completion tokens
+- Total tokens
+- Estimated cost
+- Remaining budget
+- Usage by model
+- Usage by provider
+
+It can return JSON or CSV.
+
+This is not a legal invoice.
+
+It is a simple way to explain how billing reports could work later.
 
 ## What Customer Reports Show
 
@@ -578,6 +604,7 @@ It is a demo of the control layer that full billing would need.
 - Add a simple admin page
 - Add request-level provider allow-list
 - Add customer key issue preview
+- Add invoice preview with CSV export
 
 ### Phase 4: More Providers
 

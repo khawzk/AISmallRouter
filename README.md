@@ -176,6 +176,7 @@ The current version also supports:
 - `POST /v1/gateway/cost-estimate`
 - `POST /v1/gateway/key-issue-preview`
 - `GET /v1/gateway/customer-reports`
+- `GET /v1/gateway/invoice-preview`
 - `GET /v1/gateway/request-activity`
 - `GET /v1/gateway/request-detail`
 - `GET /v1/gateway/customer-usage`
@@ -190,6 +191,7 @@ The current version also supports:
 - route preview dry run before a real provider call
 - cost estimate dry run for prompt tokens, completion tokens, and budget impact
 - customer key issue preview for safe onboarding demos
+- invoice preview with JSON and CSV output
 - request-level provider allow-list with `gateway_allowed_providers`
 - customer usage reports with request count, errors, token usage, and budget state
 - request activity feed with simple filters for troubleshooting
@@ -433,6 +435,35 @@ It returns:
 It does not save the customer.
 
 This is a safe way to explain customer onboarding without changing local config.
+
+## Invoice Preview
+
+The gateway can preview customer billing data:
+
+```bash
+curl "http://127.0.0.1:8787/v1/gateway/invoice-preview?customer_id=dev" \
+  -H "Authorization: Bearer dev-admin-key"
+```
+
+It shows:
+
+- requests
+- errors
+- prompt and completion tokens
+- estimated cost
+- remaining budget
+- usage by model and provider
+
+CSV export is also available:
+
+```bash
+curl "http://127.0.0.1:8787/v1/gateway/invoice-preview?customer_id=dev&format=csv" \
+  -H "Authorization: Bearer dev-admin-key"
+```
+
+This is not a legal invoice.
+
+It is a local billing preview for customer explanation.
 
 ## Customer Reports
 

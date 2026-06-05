@@ -909,6 +909,16 @@
       </div>
     </section>
 
+    <section class="card" id="invoice" style="margin-bottom: 18px;">
+      <div class="card-head">
+        <h2>Invoice preview</h2>
+        <span>estimated, not legal billing</span>
+      </div>
+      <div class="card-body">
+        <div class="report-grid" id="invoicePreviewList"></div>
+      </div>
+    </section>
+
     <section class="card" id="access" style="margin-bottom: 18px;">
       <div class="card-head">
         <h2>Access matrix</h2>
@@ -1111,6 +1121,7 @@
     const alertList = document.getElementById("alertList");
     const accessMatrixList = document.getElementById("accessMatrixList");
     const customerReportList = document.getElementById("customerReportList");
+    const invoicePreviewList = document.getElementById("invoicePreviewList");
     const activityList = document.getElementById("activityList");
     const modelSelect = document.getElementById("modelSelect");
     const previewCustomer = document.getElementById("previewCustomer");
@@ -1295,6 +1306,51 @@
         <div class="recent-list">${recentHtml}</div>
       `;
       customerReportList.appendChild(card);
+    });
+
+    const invoicePreview = state.invoice_preview || {totals: {}, data: []};
+    const invoiceTotals = invoicePreview.totals || {};
+    const invoiceSummary = document.createElement("article");
+    invoiceSummary.className = "report-card";
+    invoiceSummary.innerHTML = `
+      <div class="report-top">
+        <div>
+          <strong>All customers</strong>
+          <span>${invoicePreview.note || "billing explanation preview"}</span>
+        </div>
+        <a class="chip green" href="/v1/gateway/invoice-preview?admin_key=${encodeURIComponent(adminKey)}&format=csv">CSV</a>
+      </div>
+      <div class="report-metrics">
+        <span>Customers<br><strong>${invoiceTotals.customers || 0}</strong></span>
+        <span>Requests<br><strong>${invoiceTotals.requests || 0}</strong></span>
+        <span>Tokens<br><strong>${invoiceTotals.total_tokens || 0}</strong></span>
+        <span>Est. cost<br><strong>${invoiceTotals.estimated_cost || 0}</strong></span>
+      </div>
+    `;
+    invoicePreviewList.appendChild(invoiceSummary);
+    (invoicePreview.data || []).forEach((invoice) => {
+      const customer = invoice.customer || {};
+      const budget = invoice.budget || {};
+      const card = document.createElement("article");
+      card.className = "report-card";
+      const csvUrl = `/v1/gateway/invoice-preview?admin_key=${encodeURIComponent(adminKey)}&customer_id=${encodeURIComponent(customer.id)}&format=csv`;
+      card.innerHTML = `
+        <div class="report-top">
+          <div>
+            <strong>${customer.id}</strong>
+            <span>${invoice.period}</span>
+          </div>
+          <a class="chip" href="${csvUrl}">CSV</a>
+        </div>
+        <div class="report-metrics">
+          <span>Requests<br><strong>${invoice.requests || 0}</strong></span>
+          <span>Tokens<br><strong>${invoice.total_tokens || 0}</strong></span>
+          <span>Est. cost<br><strong>${invoice.estimated_cost || 0}</strong></span>
+          <span>Budget<br><strong>${budget.state || "-"}</strong></span>
+        </div>
+        <p style="margin:0;color:var(--muted);font-size:12px;">${invoice.note}</p>
+      `;
+      invoicePreviewList.appendChild(card);
     });
 
     const activity = state.request_activity || [];

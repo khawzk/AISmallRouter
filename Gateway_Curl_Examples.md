@@ -30,7 +30,7 @@ It does not spend provider credits.
 python3 test_gateway.py
 ```
 
-The test covers auth, model listing, routing, route preview, provider allow-list routing, cost estimate, customer key issue preview, fallback, model access, budgets, SQLite logs, alerts, access matrix, provider health, model catalog, customer reports, request activity, request detail lookup, and admin summary endpoints.
+The test covers auth, model listing, routing, route preview, provider allow-list routing, cost estimate, customer key issue preview, invoice preview, fallback, model access, budgets, SQLite logs, alerts, access matrix, provider health, model catalog, customer reports, request activity, request detail lookup, and admin summary endpoints.
 
 Open the visual dashboard:
 
@@ -157,6 +157,24 @@ curl http://127.0.0.1:8787/v1/gateway/key-issue-preview \
 
 ```bash
 curl http://127.0.0.1:8787/v1/gateway/customer-reports \
+  -H "Authorization: Bearer dev-admin-key"
+```
+
+## Preview Customer Invoice
+
+This is an estimated billing preview.
+
+It is not a legal invoice.
+
+```bash
+curl "http://127.0.0.1:8787/v1/gateway/invoice-preview?customer_id=dev" \
+  -H "Authorization: Bearer dev-admin-key"
+```
+
+CSV output:
+
+```bash
+curl "http://127.0.0.1:8787/v1/gateway/invoice-preview?customer_id=dev&format=csv" \
   -H "Authorization: Bearer dev-admin-key"
 ```
 

@@ -48,6 +48,31 @@ def request_json(base_url, method="GET", path="/", api_key=None, payload=None, h
         return exc.code, json.loads(text)
 
 
+def request_text(base_url, method="GET", path="/", api_key=None, payload=None, headers=None):
+    body = None
+    headers = dict(headers or {})
+    if api_key:
+        headers["Authorization"] = f"Bearer {api_key}"
+    if payload is not None:
+        body = json.dumps(payload).encode("utf-8")
+        headers["Content-Type"] = "application/json"
+    request = urllib.request.Request(
+        base_url + path,
+        data=body,
+        headers=headers,
+        method=method,
+    )
+    try:
+        with urllib.request.urlopen(request, timeout=5) as response:
+            return response.status, response.read().decode("utf-8")
+    except urllib.error.HTTPError as exc:
+        try:
+            text = exc.read().decode("utf-8")
+        finally:
+            exc.close()
+        return exc.code, text
+
+
 class GatewayServer:
     def __init__(self):
         self.temp_dir = tempfile.TemporaryDirectory()
@@ -393,6 +418,8 @@ class GatewayPrototypeTest(unittest.TestCase):
         self.assertIn("budget_state", reports["dev"])
         self.assertNotIn("provider_api_keys", reports["dev"])
         self.assertIn("request_activity", payload)
+        self.assertIn("invoice_preview", payload)
+        self.assertIn("totals", payload["invoice_preview"])
         catalog = {model["id"]: model for model in payload["model_catalog"]}
         self.assertIn("smart-fast", catalog)
         self.assertEqual(catalog["smart-fast"]["route_chain"][0], "smart-fast")
@@ -627,6 +654,45 @@ class GatewayPrototypeTest(unittest.TestCase):
         self.assertIn("usage_by_model", reports["dev"])
         self.assertIn("recent_requests", reports["dev"])
         self.assertNotIn("provider_api_keys", reports["dev"])
+
+        status, invoice = request_json(self.base_url, path="/v1/gateway/invoice-preview")
+        self.assertEqual(status, 401)
+
+        status, invoice = request_json(self.base_url, path="/v1/gateway/invoice-preview", api_key="dev-admin-key")
+        self.assertEqual(status, 200)
+        self.assertIn("totals", invoice)
+        self.assertGreaterEqual(invoice["totals"]["customers"], 1)
+        invoice_by_customer = {row["customer"]["id"]: row for row in invoice["data"]}
+        self.assertIn("dev", invoice_by_customer)
+        self.assertIn("estimated_cost", invoice_by_customer["dev"])
+        self.assertIn("usage_by_model", invoice_by_customer["dev"])
+        self.assertIn("not a legal invoice", invoice_by_customer["dev"]["note"])
+
+        status, invoice = request_json(
+            self.base_url,
+            path="/v1/gateway/invoice-preview?customer_id=dev",
+            api_key="dev-admin-key",
+        )
+        self.assertEqual(status, 200)
+        self.assertEqual(len(invoice["data"]), 1)
+        self.assertEqual(invoice["data"][0]["customer"]["id"], "dev")
+
+        status, invoice = request_json(
+            self.base_url,
+            path="/v1/gateway/invoice-preview?customer_id=missing",
+            api_key="dev-admin-key",
+        )
+        self.assertEqual(status, 404)
+        self.assertEqual(invoice["error"]["code"], "unknown_customer")
+
+        status, csv_preview = request_text(
+            self.base_url,
+            path="/v1/gateway/invoice-preview?customer_id=dev&format=csv",
+            api_key="dev-admin-key",
+        )
+        self.assertEqual(status, 200)
+        self.assertIn("invoice_id,customer_id,plan", csv_preview)
+        self.assertIn(",dev,internal-demo,", csv_preview)
 
         status, model_usage = request_json(self.base_url, path="/v1/gateway/model-usage", api_key="dev-admin-key")
         self.assertEqual(status, 200)
