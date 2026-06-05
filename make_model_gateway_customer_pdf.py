@@ -243,6 +243,7 @@ def build():
         "Structured route decision summary for support explanations.",
         "Local safety preview for obvious sensitive data.",
         "Customer key issue preview for safe onboarding demos.",
+        "Customer key create, rotate, and disable actions for lifecycle demos.",
         "Invoice preview with JSON and CSV output.",
         "Capability routing control for streaming and tools.",
         "Request-level fallback controls for routing demos.",
@@ -277,6 +278,7 @@ def build():
             ["Capability routing", "Requests may need streaming, tools, or other abilities.", "gateway_required_capabilities filters route candidates"],
             ["Cost estimate", "Customers need budget planning before live calls.", "Dry-run estimate for tokens, cost, and budget impact"],
             ["Customer onboarding", "New customers need keys, limits, and model access.", "Key issue preview creates a safe config snippet"],
+            ["Key lifecycle", "Customers need key rotation and disable workflows.", "Local JSON-backed create, rotate, and disable actions"],
             ["Customer self-service", "Customers need to see their own access, usage, and budget.", "Customer self view with no provider secret exposure"],
             ["Invoice preview", "Customers need a simple billing story.", "Estimated invoice preview with CSV export"],
             ["Customer reporting", "Customers need a simple usage and budget story.", "Per-customer report endpoint and dashboard cards"],
@@ -399,6 +401,14 @@ def build():
     story.append(
         Paragraph(
             "/v1/gateway/key-issue-preview creates a safe customer onboarding package. It returns a generated gateway API key, a masked key for display, a customer config snippet, allowed models, limits, and next steps. It does not save the customer. In production, this would connect to a real customer database and secret manager.",
+            styles["BodyCustom"],
+        )
+    )
+
+    story.append(Paragraph("Customer Key Lifecycle", styles["H1Custom"]))
+    story.append(
+        Paragraph(
+            "The prototype can also create a customer, rotate a customer gateway key, and disable a customer. These admin actions update customer_keys.json and reload the local runtime. After rotation, the old key stops working. After disable, the customer key stops working. This is useful for demos, but production should use a database, audit logs, approval workflow, and a secret manager.",
             styles["BodyCustom"],
         )
     )

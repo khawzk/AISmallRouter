@@ -176,6 +176,9 @@ The current version also supports:
 - `POST /v1/gateway/route-preview`
 - `POST /v1/gateway/cost-estimate`
 - `POST /v1/gateway/key-issue-preview`
+- `POST /v1/gateway/customers`
+- `POST /v1/gateway/customers/rotate-key`
+- `POST /v1/gateway/customers/disable`
 - `POST /v1/gateway/safety-preview`
 - `GET /v1/gateway/customer-reports`
 - `GET /v1/gateway/invoice-preview`
@@ -196,6 +199,7 @@ The current version also supports:
 - capability routing control for `streaming` and `tools`
 - cost estimate dry run for prompt tokens, completion tokens, and budget impact
 - customer key issue preview for safe onboarding demos
+- persistent customer create, key rotation, and customer disable actions
 - local safety preview for obvious emails, phone numbers, and secrets
 - invoice preview with JSON and CSV output
 - request-level provider allow-list with `gateway_allowed_providers`
@@ -497,6 +501,51 @@ It returns:
 It does not save the customer.
 
 This is a safe way to explain customer onboarding without changing local config.
+
+## Customer Key Lifecycle
+
+The admin can create a customer and save it to `customer_keys.json`:
+
+```bash
+curl http://127.0.0.1:8787/v1/gateway/customers \
+  -H "Authorization: Bearer dev-admin-key" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "customer_id": "customer-demo",
+    "name": "Customer Demo",
+    "plan": "starter",
+    "allowed_models": ["smart-fast"],
+    "request_limit": 60,
+    "token_budget": 10000,
+    "cost_budget": 1.0
+  }'
+```
+
+The response returns the new gateway API key once.
+
+The admin can rotate a customer key:
+
+```bash
+curl http://127.0.0.1:8787/v1/gateway/customers/rotate-key \
+  -H "Authorization: Bearer dev-admin-key" \
+  -H "Content-Type: application/json" \
+  -d '{"customer_id": "customer-demo"}'
+```
+
+The old key stops working after rotation.
+
+The admin can disable a customer:
+
+```bash
+curl http://127.0.0.1:8787/v1/gateway/customers/disable \
+  -H "Authorization: Bearer dev-admin-key" \
+  -H "Content-Type: application/json" \
+  -d '{"customer_id": "customer-demo"}'
+```
+
+The disabled customer's gateway key stops working.
+
+This prototype stores customer keys in local JSON. Production should use a database, audit logs, and a secret manager.
 
 ## Invoice Preview
 

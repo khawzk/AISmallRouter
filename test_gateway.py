@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 import json
 import os
+import shutil
 import socket
 import subprocess
 import sys
@@ -80,6 +81,8 @@ class GatewayServer:
         self.base_url = f"http://127.0.0.1:{self.port}"
         self.data_dir = os.path.join(self.temp_dir.name, "data")
         self.log_dir = os.path.join(self.temp_dir.name, "logs")
+        self.customers_path = os.path.join(self.temp_dir.name, "customer_keys.json")
+        shutil.copyfile(os.path.join(ROOT_DIR, "customer_keys.json"), self.customers_path)
         self.process = None
 
     def __enter__(self):
@@ -94,6 +97,8 @@ class GatewayServer:
             self.data_dir,
             "--log-dir",
             self.log_dir,
+            "--customers",
+            self.customers_path,
         ]
         self.process = subprocess.Popen(
             command,
@@ -739,6 +744,78 @@ class GatewayPrototypeTest(unittest.TestCase):
         )
         self.assertEqual(status, 404)
         self.assertEqual(key_preview["error"]["code"], "unknown_allowed_model")
+
+        status, created = request_json(
+            self.base_url,
+            method="POST",
+            path="/v1/gateway/customers",
+            api_key="dev-admin-key",
+            payload={
+                "customer_id": "lifecycle-customer",
+                "name": "Lifecycle Customer",
+                "plan": "trial",
+                "api_key": "lifecycle-key-1",
+                "allowed_models": ["smart-fast"],
+                "request_limit": 5,
+                "token_budget": 1000,
+                "cost_budget": 0.25,
+            },
+        )
+        self.assertEqual(status, 201)
+        self.assertEqual(created["object"], "customer.created")
+        self.assertEqual(created["customer"]["id"], "lifecycle-customer")
+        self.assertEqual(created["generated_api_key"], "lifecycle-key-1")
+        self.assertNotIn("provider_api_keys", json.dumps(created))
+
+        status, lifecycle_view = request_json(self.base_url, path="/v1/gateway/me", api_key="lifecycle-key-1")
+        self.assertEqual(status, 200)
+        self.assertEqual(lifecycle_view["customer"]["id"], "lifecycle-customer")
+        self.assertEqual({model["id"] for model in lifecycle_view["models"]}, {"smart-fast"})
+
+        status, duplicate = request_json(
+            self.base_url,
+            method="POST",
+            path="/v1/gateway/customers",
+            api_key="dev-admin-key",
+            payload={"customer_id": "lifecycle-customer", "api_key": "another-key", "allowed_models": ["smart-fast"]},
+        )
+        self.assertEqual(status, 409)
+        self.assertEqual(duplicate["error"]["code"], "customer_already_exists")
+
+        status, rotated = request_json(
+            self.base_url,
+            method="POST",
+            path="/v1/gateway/customers/rotate-key",
+            api_key="dev-admin-key",
+            payload={"customer_id": "lifecycle-customer", "api_key": "lifecycle-key-2"},
+        )
+        self.assertEqual(status, 200)
+        self.assertEqual(rotated["object"], "customer.key_rotated")
+        self.assertEqual(rotated["generated_api_key"], "lifecycle-key-2")
+        self.assertIn("old_api_key_hash", rotated)
+
+        status, old_key_view = request_json(self.base_url, path="/v1/gateway/me", api_key="lifecycle-key-1")
+        self.assertEqual(status, 401)
+        self.assertEqual(old_key_view["error"]["code"], "invalid_api_key")
+
+        status, new_key_view = request_json(self.base_url, path="/v1/gateway/me", api_key="lifecycle-key-2")
+        self.assertEqual(status, 200)
+        self.assertEqual(new_key_view["customer"]["id"], "lifecycle-customer")
+
+        status, disabled = request_json(
+            self.base_url,
+            method="POST",
+            path="/v1/gateway/customers/disable",
+            api_key="dev-admin-key",
+            payload={"customer_id": "lifecycle-customer"},
+        )
+        self.assertEqual(status, 200)
+        self.assertEqual(disabled["object"], "customer.disabled")
+        self.assertFalse(disabled["customer"]["enabled"])
+
+        status, disabled_view = request_json(self.base_url, path="/v1/gateway/me", api_key="lifecycle-key-2")
+        self.assertEqual(status, 401)
+        self.assertEqual(disabled_view["error"]["code"], "invalid_api_key")
 
         status, customer_usage = request_json(self.base_url, path="/v1/gateway/customer-usage", api_key="dev-admin-key")
         self.assertEqual(status, 200)

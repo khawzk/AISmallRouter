@@ -73,6 +73,7 @@ The prototype supports:
 - Capability routing control
 - Local safety preview
 - Customer key issue preview
+- Customer key create, rotate, and disable actions
 - Invoice preview with CSV export
 - Provider adapter scaffolds for OpenAI and Claude
 - Automated mock regression test
@@ -223,6 +224,7 @@ They help explain the control layer:
 - Safety preview before provider call
 - Cost estimate before a live request
 - Customer key issue preview
+- Customer key lifecycle actions
 - Customer self view
 - Customer usage reports
 - Invoice preview
@@ -463,6 +465,37 @@ It shows:
 This helps explain how a customer would be added to the gateway.
 
 In production, this would connect to a real customer database and secret manager.
+
+## What Customer Key Lifecycle Shows
+
+The prototype includes three admin actions:
+
+- `/v1/gateway/customers`
+- `/v1/gateway/customers/rotate-key`
+- `/v1/gateway/customers/disable`
+
+These actions update `customer_keys.json` in the local prototype.
+
+They can show a simple customer lifecycle:
+
+- Create a customer
+- Give the customer one gateway API key
+- Rotate the key when needed
+- Disable the customer when access should stop
+
+After key rotation, the old key stops working.
+
+After disable, the customer key stops working.
+
+This is not full enterprise IAM.
+
+Production should use:
+
+- database storage
+- audit logs
+- secret manager
+- approval workflow
+- customer admin UI
 
 ## What Invoice Preview Shows
 

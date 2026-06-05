@@ -116,6 +116,15 @@ def read_json(path, default):
         return json.load(file)
 
 
+def write_json(path, payload):
+    parent = os.path.dirname(path)
+    if parent:
+        os.makedirs(parent, exist_ok=True)
+    with open(path, "w", encoding="utf-8") as file:
+        json.dump(payload, file, indent=2, ensure_ascii=False)
+        file.write("\n")
+
+
 def append_jsonl(path, record):
     os.makedirs(os.path.dirname(path), exist_ok=True)
     with open(path, "a", encoding="utf-8") as file:
@@ -1395,6 +1404,123 @@ def key_issue_preview(server, payload):
             "Use /v1/gateway/customer-reports to review usage after testing.",
         ],
         "note": "This preview does not persist the customer. It is a safe demo for key issuing workflow.",
+    }
+
+
+def load_customer_config(path):
+    data = read_json(path, {"customers": []})
+    customers = data.get("customers", [])
+    if not isinstance(customers, list):
+        raise GatewayError("customer_keys.json must contain a customers list.", "invalid_customer_config", 500)
+    return data
+
+
+def reload_customer_runtime(server):
+    server.customers_by_key = load_customers(server.customers_path)
+    sync_customers_to_db(server.db_path, server.customers_by_key)
+
+
+def customer_key_package(customer):
+    public_customer = public_customer_view(customer)
+    api_key = customer.get("api_key", "")
+    public_customer["api_key_masked"] = mask_key(api_key)
+    public_customer["api_key_hash"] = key_hash(api_key) if api_key else ""
+    public_customer["enabled"] = bool(customer.get("enabled", True))
+    return public_customer
+
+
+def customer_create(server, payload):
+    config = load_customer_config(server.customers_path)
+    existing_ids = {customer.get("id") for customer in config.get("customers", [])}
+    customer_id = (payload.get("customer_id") or "").strip()
+    if customer_id in existing_ids:
+        raise GatewayError(f"Customer already exists: {customer_id}.", "customer_already_exists", 409)
+
+    preview = key_issue_preview(server, payload)
+    customer_config = preview["config_snippet"]
+    config.setdefault("customers", []).append(customer_config)
+    write_json(server.customers_path, config)
+    reload_customer_runtime(server)
+    return {
+        "object": "customer.created",
+        "customer": customer_key_package(customer_config),
+        "generated_api_key": customer_config["api_key"],
+        "generated_api_key_masked": mask_key(customer_config["api_key"]),
+        "next_steps": [
+            "Give the generated API key to the customer only once.",
+            "Ask the customer to call /v1/gateway/me to confirm access.",
+            "Use /v1/gateway/route-preview before the first live request.",
+        ],
+        "note": "This prototype stores the customer in customer_keys.json. Production should use a database and secret manager.",
+    }
+
+
+def find_customer_config(config, customer_id):
+    for index, customer in enumerate(config.get("customers", [])):
+        if customer.get("id") == customer_id:
+            return index, customer
+    return None, None
+
+
+def customer_disable(server, payload):
+    customer_id = (payload.get("customer_id") or "").strip()
+    if not customer_id:
+        raise GatewayError("Missing required field: customer_id.", "missing_customer_id", 400)
+    config = load_customer_config(server.customers_path)
+    index, customer = find_customer_config(config, customer_id)
+    if customer is None:
+        raise GatewayError(f"Unknown customer: {customer_id}.", "unknown_customer", 404)
+    customer = dict(customer)
+    customer["enabled"] = False
+    config["customers"][index] = customer
+    write_json(server.customers_path, config)
+    reload_customer_runtime(server)
+    return {
+        "object": "customer.disabled",
+        "customer": customer_key_package(customer),
+        "note": "The customer key is disabled in customer_keys.json and removed from the active runtime map.",
+    }
+
+
+def customer_rotate_key(server, payload):
+    customer_id = (payload.get("customer_id") or "").strip()
+    if not customer_id:
+        raise GatewayError("Missing required field: customer_id.", "missing_customer_id", 400)
+    config = load_customer_config(server.customers_path)
+    index, customer = find_customer_config(config, customer_id)
+    if customer is None:
+        raise GatewayError(f"Unknown customer: {customer_id}.", "unknown_customer", 404)
+    old_key = customer.get("api_key", "")
+    requested_api_key = payload.get("api_key")
+    api_key = requested_api_key or "aisr_" + secrets.token_urlsafe(24)
+    existing_keys = {
+        item.get("api_key")
+        for item in config.get("customers", [])
+        if item.get("id") != customer_id
+    }
+    if api_key in existing_keys:
+        raise GatewayError("Gateway API key already belongs to another customer.", "api_key_already_exists", 409)
+    while api_key in existing_keys:
+        api_key = "aisr_" + secrets.token_urlsafe(24)
+
+    customer = dict(customer)
+    customer["api_key"] = api_key
+    customer["enabled"] = bool(payload.get("enabled", customer.get("enabled", True)))
+    config["customers"][index] = customer
+    write_json(server.customers_path, config)
+    reload_customer_runtime(server)
+    return {
+        "object": "customer.key_rotated",
+        "customer": customer_key_package(customer),
+        "generated_api_key": api_key,
+        "generated_api_key_masked": mask_key(api_key),
+        "old_api_key_masked": mask_key(old_key),
+        "old_api_key_hash": key_hash(old_key) if old_key else "",
+        "next_steps": [
+            "Give the new API key to the customer only once.",
+            "Remove the old key from the customer's application config.",
+            "Call /v1/gateway/me with the new key to confirm access.",
+        ],
     }
 
 
@@ -2747,6 +2873,39 @@ class GatewayHandler(BaseHTTPRequestHandler):
             except GatewayError as exc:
                 make_error(self, exc.status, exc.message, exc.code, exc.details)
             return
+        if path == "/v1/gateway/customers":
+            if not self.authenticate_admin():
+                return
+            payload = self.read_json_body()
+            if payload is None:
+                return
+            try:
+                make_json_response(self, 201, customer_create(self.server, payload))
+            except GatewayError as exc:
+                make_error(self, exc.status, exc.message, exc.code, exc.details)
+            return
+        if path == "/v1/gateway/customers/disable":
+            if not self.authenticate_admin():
+                return
+            payload = self.read_json_body()
+            if payload is None:
+                return
+            try:
+                make_json_response(self, 200, customer_disable(self.server, payload))
+            except GatewayError as exc:
+                make_error(self, exc.status, exc.message, exc.code, exc.details)
+            return
+        if path == "/v1/gateway/customers/rotate-key":
+            if not self.authenticate_admin():
+                return
+            payload = self.read_json_body()
+            if payload is None:
+                return
+            try:
+                make_json_response(self, 200, customer_rotate_key(self.server, payload))
+            except GatewayError as exc:
+                make_error(self, exc.status, exc.message, exc.code, exc.details)
+            return
         if path == "/v1/gateway/safety-preview":
             if not self.authenticate_admin():
                 return
@@ -3076,6 +3235,7 @@ def main():
     server.quiet = args.quiet
     server.default_request_limit = args.request_limit
     server.default_limit_window_seconds = args.limit_window_seconds
+    server.customers_path = args.customers
     server.usage_by_key = {}
     server.request_log_path = os.path.join(args.log_dir, "requests.jsonl")
     server.usage_log_path = os.path.join(args.log_dir, "usage.jsonl")

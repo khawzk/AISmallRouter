@@ -30,7 +30,7 @@ It does not spend provider credits.
 python3 test_gateway.py
 ```
 
-The test covers auth, model listing, customer self view, routing, route preview, route decision summary, provider allow-list routing, capability routing, safety preview, cost estimate, customer key issue preview, invoice preview, fallback, model access, budgets, SQLite logs, alerts, access matrix, provider health, model catalog, customer reports, request activity, request detail lookup, and admin summary endpoints.
+The test covers auth, model listing, customer self view, customer key lifecycle, routing, route preview, route decision summary, provider allow-list routing, capability routing, safety preview, cost estimate, customer key issue preview, invoice preview, fallback, model access, budgets, SQLite logs, alerts, access matrix, provider health, model catalog, customer reports, request activity, request detail lookup, and admin summary endpoints.
 
 Open the visual dashboard:
 
@@ -71,6 +71,45 @@ It does not show provider secrets.
 curl http://127.0.0.1:8787/v1/gateway/me \
   -H "Authorization: Bearer dev-gateway-key"
 ```
+
+## Create, Rotate, And Disable A Customer Key
+
+Create a customer:
+
+```bash
+curl http://127.0.0.1:8787/v1/gateway/customers \
+  -H "Authorization: Bearer dev-admin-key" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "customer_id": "customer-demo",
+    "name": "Customer Demo",
+    "plan": "starter",
+    "allowed_models": ["smart-fast"],
+    "request_limit": 60,
+    "token_budget": 10000,
+    "cost_budget": 1.0
+  }'
+```
+
+Rotate the customer key:
+
+```bash
+curl http://127.0.0.1:8787/v1/gateway/customers/rotate-key \
+  -H "Authorization: Bearer dev-admin-key" \
+  -H "Content-Type: application/json" \
+  -d '{"customer_id": "customer-demo"}'
+```
+
+Disable the customer:
+
+```bash
+curl http://127.0.0.1:8787/v1/gateway/customers/disable \
+  -H "Authorization: Bearer dev-admin-key" \
+  -H "Content-Type: application/json" \
+  -d '{"customer_id": "customer-demo"}'
+```
+
+This updates `customer_keys.json` in the running prototype.
 
 ## Check Operational Alerts
 
