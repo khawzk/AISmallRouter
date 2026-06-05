@@ -92,6 +92,7 @@ ADMIN_PATHS = {
     "/v1/gateway/roadmap",
     "/v1/gateway/decision-guide",
     "/v1/gateway/faq",
+    "/v1/gateway/demo-script",
     "/v1/gateway/request-activity",
     "/v1/gateway/model-catalog",
     "/v1/gateway/route-preview",
@@ -3557,6 +3558,122 @@ def gateway_faq(server):
     }
 
 
+def demo_script(server):
+    base_url = f"http://{server.server_address[0]}:{server.server_address[1]}"
+    admin_key = server.admin_api_key or DEFAULT_ADMIN_API_KEY
+    return {
+        "object": "gateway.demo_script",
+        "title": "AISmallRouter 15 Minute Customer Demo Script",
+        "mode": "mock" if server.mock_mode else "live",
+        "duration_minutes": 15,
+        "plain_english": "Use this script when you need to explain the gateway to a customer who may not be technical.",
+        "opening_line": "Today we will show how one customer API can hide model provider complexity while still keeping access, routing, cost, and support controls visible.",
+        "before_demo_checklist": [
+            "Start the gateway in mock mode when you do not want to spend provider credits.",
+            "Open the dashboard before the customer meeting starts.",
+            "Use the local demo admin key only for local demos.",
+            "Keep provider secrets and real customer keys out of the screen share.",
+            "Prepare the executive brief, decision guide, FAQ, pilot checklist, OpenAPI contract, and Postman collection.",
+        ],
+        "steps": [
+            {
+                "minute": "0-2",
+                "title": "Set the business context",
+                "show": f"{base_url}/v1/gateway/executive-brief",
+                "talk_track": "The customer does not need to learn every model provider API. They call one API, and the gateway manages model access, routing, usage, and handoff material.",
+                "proof_point": "The executive brief gives the one-sentence value, demo story, known risks, and next step.",
+            },
+            {
+                "minute": "2-4",
+                "title": "Explain why this is more than a normal API Gateway",
+                "show": f"{base_url}/v1/gateway/decision-guide",
+                "talk_track": "A normal API Gateway is good for HTTP control. A Model Gateway also needs AI-specific provider adapters, model aliases, fallback, usage normalization, and customer policy.",
+                "proof_point": "The decision guide compares normal API Gateway, managed AI Gateway, custom Model Gateway, and OpenRouter-like marketplace options.",
+            },
+            {
+                "minute": "4-6",
+                "title": "Show the customer-facing API",
+                "show": f"{base_url}/v1/models",
+                "curl": f"curl {base_url}/v1/models -H 'Authorization: Bearer {DEFAULT_GATEWAY_API_KEY}'",
+                "talk_track": "The customer sees simple public model names such as smart-fast. They do not need to know the upstream provider model name.",
+                "proof_point": "The model list returns OpenAI-compatible model metadata.",
+            },
+            {
+                "minute": "6-8",
+                "title": "Show how routing is decided",
+                "show": f"{base_url}/v1/gateway/route-preview",
+                "curl": f"curl {base_url}/v1/gateway/route-preview -H 'Authorization: Bearer {admin_key}' -H 'Content-Type: application/json' -d '{{\"customer_id\":\"dev\",\"model\":\"smart-fast\",\"gateway_policy\":\"lowest_cost\"}}'",
+                "talk_track": "Route preview lets us explain the model decision before calling a real provider. This is useful for sales, support, and technical review.",
+                "proof_point": "The route decision shows model alias, provider choice, policy, fallback candidates, and score reasons.",
+            },
+            {
+                "minute": "8-10",
+                "title": "Run the mock request",
+                "show": f"{base_url}/v1/chat/completions",
+                "curl": f"curl {base_url}/v1/chat/completions -H 'Authorization: Bearer {DEFAULT_GATEWAY_API_KEY}' -H 'Content-Type: application/json' -d '{{\"model\":\"smart-fast\",\"messages\":[{{\"role\":\"user\",\"content\":\"Explain this gateway in one sentence.\"}}]}}'",
+                "talk_track": "Mock mode returns a provider-like answer and route trace without using paid model credits. This lets the customer understand the flow safely.",
+                "proof_point": "The response is OpenAI-compatible, so customer apps can start with a familiar shape.",
+            },
+            {
+                "minute": "10-12",
+                "title": "Show cost and support controls",
+                "show": f"{base_url}/v1/gateway/production-readiness",
+                "talk_track": "A real gateway is also about control: budgets, reports, audit events, incident wording, and production gaps. This is why the work is larger than connecting one API.",
+                "proof_point": "Production readiness explains what is demo-ready and what still needs hardening.",
+            },
+            {
+                "minute": "12-14",
+                "title": "Answer likely objections",
+                "show": f"{base_url}/v1/gateway/faq",
+                "talk_track": "Use the FAQ to keep answers simple and consistent when the customer asks about OpenRouter, API Gateway, Qwen, cost, keys, or production readiness.",
+                "proof_point": "The FAQ gives short answers and the best endpoint to show for each question.",
+            },
+            {
+                "minute": "14-15",
+                "title": "Close with a small pilot",
+                "show": f"{base_url}/v1/gateway/pilot-checklist",
+                "talk_track": "The next step should be small: one customer, one or two models, mock mode first, clear success criteria, and no production SLA until the hardening work is done.",
+                "proof_point": "The pilot checklist defines scope, roles, checks, success criteria, and decision options.",
+            },
+        ],
+        "likely_questions": [
+            {
+                "question": "Is this just an API Gateway?",
+                "answer": "No. A normal API Gateway controls HTTP traffic. This gateway also handles model aliases, provider adapters, routing policy, usage records, fallback, and customer reports.",
+                "show": "/v1/gateway/decision-guide",
+            },
+            {
+                "question": "Is this like OpenRouter?",
+                "answer": "OpenRouter is a useful reference for a multi-model marketplace. This project is a smaller customer-owned gateway focused on private access, customer controls, and explainable routing.",
+                "show": "/v1/gateway/decision-guide",
+            },
+            {
+                "question": "Can we add OpenAI, Claude, Xiaomi, or other providers?",
+                "answer": "Yes, but each provider needs adapter work for auth, request shape, response shape, streaming, tools, usage, errors, and billing behavior.",
+                "show": "/v1/gateway/provider-contracts",
+            },
+            {
+                "question": "Can this run without spending model credits?",
+                "answer": "Yes for demos. Mock mode shows the request path and response shape without calling the live provider.",
+                "show": "/v1/gateway/demo-bundle",
+            },
+            {
+                "question": "Is it production-ready today?",
+                "answer": "No. It is demo-ready and pilot-ready with care. Production needs stronger secret storage, database, monitoring, billing, approval workflow, and SLA work.",
+                "show": "/v1/gateway/production-readiness",
+            },
+        ],
+        "closing_line": "The useful idea is not only one API. The useful idea is one controlled model access layer that business, support, and technical teams can all understand.",
+        "follow_up_package": [
+            f"{base_url}/",
+            f"{base_url}/openapi.json",
+            f"{base_url}/postman_collection.json",
+            "Model_Gateway_Customer_Guide.pdf",
+            f"{base_url}/v1/gateway/pilot-checklist",
+        ],
+    }
+
+
 def read_jsonl_tail(path, limit=50):
     if not os.path.exists(path):
         return []
@@ -4044,6 +4161,7 @@ def openapi_spec(server):
         "/v1/gateway/roadmap": "Prototype to production roadmap",
         "/v1/gateway/decision-guide": "AI gateway build or buy decision guide",
         "/v1/gateway/faq": "Customer FAQ",
+        "/v1/gateway/demo-script": "Customer demo script",
     }.items():
         paths[path] = {
             "get": {
@@ -4150,6 +4268,7 @@ def postman_collection(server):
         request_item("Roadmap", "GET", "/v1/gateway/roadmap", "admin_api_key"),
         request_item("Decision Guide", "GET", "/v1/gateway/decision-guide", "admin_api_key"),
         request_item("FAQ", "GET", "/v1/gateway/faq", "admin_api_key"),
+        request_item("Demo Script", "GET", "/v1/gateway/demo-script", "admin_api_key"),
         request_item("Model Catalog", "GET", "/v1/gateway/model-catalog", "admin_api_key"),
         request_item("Audit Events", "GET", "/v1/gateway/audit-events", "admin_api_key"),
         request_item("Customer Reports", "GET", "/v1/gateway/customer-reports", "admin_api_key"),
@@ -4354,6 +4473,13 @@ def demo_bundle(server):
                 "auth": "adminBearerAuth",
             },
             {
+                "name": "Demo script",
+                "url": f"{base_url}/v1/gateway/demo-script",
+                "audience": "business and sales",
+                "purpose": "Give a 15 minute customer walkthrough with talk track, endpoints to show, and likely questions.",
+                "auth": "adminBearerAuth",
+            },
+            {
                 "name": "Postman collection",
                 "url": f"{base_url}/postman_collection.json",
                 "audience": "customer technical",
@@ -4370,8 +4496,8 @@ def demo_bundle(server):
             {
                 "step": 1,
                 "title": "Explain the one API idea",
-                "show": "/",
-                "talk_track": "Customer apps call one OpenAI-compatible API while the gateway manages providers and routes.",
+                "show": "/ and /v1/gateway/demo-script",
+                "talk_track": "Use the demo script as the presenter guide, then show that customer apps call one OpenAI-compatible API while the gateway manages providers and routes.",
             },
             {
                 "step": 2,
@@ -4416,6 +4542,10 @@ def demo_bundle(server):
             {
                 "name": "Customer integration guide",
                 "command": f"curl {base_url}/v1/gateway/integration-guide -H 'Authorization: Bearer {DEFAULT_GATEWAY_API_KEY}'",
+            },
+            {
+                "name": "Demo script",
+                "command": f"curl {base_url}/v1/gateway/demo-script -H 'Authorization: Bearer {server.admin_api_key or DEFAULT_ADMIN_API_KEY}'",
             },
             {
                 "name": "Route preview",
@@ -5217,6 +5347,9 @@ class GatewayHandler(BaseHTTPRequestHandler):
             return
         if path == "/v1/gateway/faq":
             make_json_response(self, 200, gateway_faq(self.server))
+            return
+        if path == "/v1/gateway/demo-script":
+            make_json_response(self, 200, demo_script(self.server))
             return
         if path == "/v1/gateway/requests":
             make_json_response(self, 200, {"data": db_tail(self.server.db_path, "requests", 100)})

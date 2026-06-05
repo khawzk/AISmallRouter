@@ -242,6 +242,7 @@ def build():
         "Roadmap endpoint for prototype, pilot, production hardening, and multi-provider expansion.",
         "Decision guide endpoint for API Gateway, managed AI Gateway, custom Model Gateway, and OpenRouter-like options.",
         "FAQ endpoint for common customer questions and objections.",
+        "Demo script endpoint for a 15 minute customer walkthrough.",
         "Access matrix endpoint for customer and model permissions.",
         "Provider health endpoint for mock-ready, live-ready, degraded, and not-ready states.",
         "Provider create, update, and disable actions for provider lifecycle demos.",
@@ -298,6 +299,7 @@ def build():
             ["Roadmap planning", "Customers need to see the path from demo to production.", "Roadmap endpoint"],
             ["Build or buy decision", "Customers need to compare gateway options clearly.", "Decision guide endpoint"],
             ["Customer objections", "Sales and support need consistent answers to common questions.", "FAQ endpoint"],
+            ["Demo delivery", "A presenter needs a simple meeting flow, talk track, and likely questions.", "Demo script endpoint"],
             ["Production readiness", "Customers need to understand why demo-ready is not production-ready.", "Plain-English readiness report"],
             ["Access control", "Each customer may be allowed to use different models.", "Access matrix by customer and model"],
             ["Provider health", "Customers need to know whether a provider can serve traffic.", "Readiness view based on config and recent traffic"],
@@ -415,6 +417,14 @@ def build():
     story.append(
         Paragraph(
             "/v1/gateway/faq answers common customer questions about API Gateway, Qwen, OpenRouter, prompt and key exposure, cost control, provider failure, adding more providers, pilot next steps, and production readiness. It helps sales, support, and technical teams answer in the same simple language.",
+            styles["BodyCustom"],
+        )
+    )
+
+    story.append(Paragraph("Demo Script", styles["H1Custom"]))
+    story.append(
+        Paragraph(
+            "/v1/gateway/demo-script gives a 15 minute customer walkthrough. It tells the presenter what to say first, which endpoint to show, how to explain routing, how to answer common objections, and how to close with a small pilot. This helps non-technical customers understand the project without reading code.",
             styles["BodyCustom"],
         )
     )

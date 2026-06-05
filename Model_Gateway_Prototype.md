@@ -157,6 +157,7 @@ Included in the prototype:
 - Basic roadmap
 - Basic decision guide
 - Basic FAQ
+- Basic demo script
 - Basic capability routing control
 - Basic provider create, update, and disable workflow
 - Basic provider contract matrix

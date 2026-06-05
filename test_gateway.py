@@ -186,6 +186,7 @@ class GatewayPrototypeTest(unittest.TestCase):
             "/v1/gateway/roadmap",
             "/v1/gateway/decision-guide",
             "/v1/gateway/faq",
+            "/v1/gateway/demo-script",
         ]:
             self.assertIn(path, spec["paths"])
         self.assertEqual(
@@ -222,6 +223,7 @@ class GatewayPrototypeTest(unittest.TestCase):
         self.assertIn("Roadmap", admin_names)
         self.assertIn("Decision Guide", admin_names)
         self.assertIn("FAQ", admin_names)
+        self.assertIn("Demo Script", admin_names)
         self.assertIn("Create Customer", admin_names)
         chat = next(item for item in folders["Customer API"]["item"] if item["name"] == "Chat Completion")
         self.assertEqual(chat["request"]["auth"]["bearer"][0]["value"], "{{gateway_api_key}}")
@@ -248,6 +250,7 @@ class GatewayPrototypeTest(unittest.TestCase):
         self.assertIn(f"{self.base_url}/v1/gateway/roadmap", entry_urls)
         self.assertIn(f"{self.base_url}/v1/gateway/decision-guide", entry_urls)
         self.assertIn(f"{self.base_url}/v1/gateway/faq", entry_urls)
+        self.assertIn(f"{self.base_url}/v1/gateway/demo-script", entry_urls)
         self.assertIn("Model_Gateway_Customer_Guide.pdf", entry_urls)
         self.assertGreaterEqual(len(bundle["recommended_demo_flow"]), 5)
         self.assertGreaterEqual(len(bundle["quick_commands"]), 4)
@@ -414,6 +417,31 @@ class GatewayPrototypeTest(unittest.TestCase):
             self.assertIn("show", item)
         self.assertIn("/v1/gateway/decision-guide", faq["suggested_demo_order"])
         self.assertNotIn("DASHSCOPE_API_KEY", json.dumps(faq))
+
+    def test_demo_script_guides_customer_walkthrough(self):
+        status, payload = request_json(self.base_url, path="/v1/gateway/demo-script", api_key="dev-gateway-key")
+        self.assertEqual(status, 401)
+        self.assertEqual(payload["error"]["code"], "invalid_admin_key")
+
+        status, script = request_json(self.base_url, path="/v1/gateway/demo-script", api_key="dev-admin-key")
+        self.assertEqual(status, 200)
+        self.assertEqual(script["object"], "gateway.demo_script")
+        self.assertEqual(script["duration_minutes"], 15)
+        self.assertIn("opening_line", script)
+        self.assertIn("closing_line", script)
+        self.assertGreaterEqual(len(script["before_demo_checklist"]), 5)
+        self.assertGreaterEqual(len(script["steps"]), 8)
+        self.assertGreaterEqual(len(script["likely_questions"]), 5)
+        shows = {step["show"] for step in script["steps"]}
+        self.assertIn(f"{self.base_url}/v1/gateway/executive-brief", shows)
+        self.assertIn(f"{self.base_url}/v1/gateway/decision-guide", shows)
+        self.assertIn(f"{self.base_url}/v1/gateway/route-preview", shows)
+        self.assertIn(f"{self.base_url}/v1/gateway/faq", shows)
+        self.assertIn(f"{self.base_url}/v1/gateway/pilot-checklist", shows)
+        questions = {item["question"] for item in script["likely_questions"]}
+        self.assertIn("Is this just an API Gateway?", questions)
+        self.assertIn("Is this like OpenRouter?", questions)
+        self.assertNotIn("DASHSCOPE_API_KEY", json.dumps(script))
 
     def test_production_readiness_summarizes_go_live_gaps(self):
         status, payload = request_json(self.base_url, path="/v1/gateway/production-readiness", api_key="dev-gateway-key")

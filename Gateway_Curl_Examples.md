@@ -30,7 +30,7 @@ It does not spend provider credits.
 python3 test_gateway.py
 ```
 
-The test covers auth, OpenAPI contract, Postman collection, demo bundle, customer integration guide, production readiness, provider contracts, incident playbook, support policy, pilot checklist, executive brief, roadmap, decision guide, FAQ, model listing, customer self view, customer key lifecycle, audit events, provider lifecycle, model route lifecycle, routing, route strategy, policy presets, route preview, route decision summary, provider allow-list routing, capability routing, safety preview, cost estimate, customer key issue preview, invoice preview, fallback, model access, budgets, SQLite logs, alerts, access matrix, provider health, model catalog, customer reports, request activity, request detail lookup, and admin summary endpoints.
+The test covers auth, OpenAPI contract, Postman collection, demo bundle, customer integration guide, production readiness, provider contracts, incident playbook, support policy, pilot checklist, executive brief, roadmap, decision guide, FAQ, demo script, model listing, customer self view, customer key lifecycle, audit events, provider lifecycle, model route lifecycle, routing, route strategy, policy presets, route preview, route decision summary, provider allow-list routing, capability routing, safety preview, cost estimate, customer key issue preview, invoice preview, fallback, model access, budgets, SQLite logs, alerts, access matrix, provider health, model catalog, customer reports, request activity, request detail lookup, and admin summary endpoints.
 
 Open the visual dashboard:
 
@@ -117,6 +117,16 @@ Fetch the FAQ:
 
 ```bash
 curl http://127.0.0.1:8787/v1/gateway/faq \
+  -H "Authorization: Bearer dev-admin-key"
+
+curl http://127.0.0.1:8787/v1/gateway/demo-script \
+  -H "Authorization: Bearer dev-admin-key"
+```
+
+Fetch the customer demo script:
+
+```bash
+curl http://127.0.0.1:8787/v1/gateway/demo-script \
   -H "Authorization: Bearer dev-admin-key"
 ```
 
@@ -811,6 +821,8 @@ The roadmap explains the path from prototype to pilot, production hardening, and
 The decision guide compares API Gateway, managed AI Gateway, custom Model Gateway, and OpenRouter-like options.
 
 The FAQ answers common customer questions about API Gateway, OpenRouter, cost, safety, providers, pilot, and production gaps.
+
+The demo script gives a 15 minute customer walkthrough with talk track, endpoints to show, and likely questions.
 
 In this prototype, admin endpoints use the demo admin key `dev-admin-key`.
 

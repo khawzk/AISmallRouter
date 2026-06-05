@@ -171,6 +171,7 @@ It lists:
 - OpenAPI contract
 - Postman collection
 - customer guide PDF
+- demo script
 - recommended demo order
 - safe curl examples
 - production notes
@@ -519,6 +520,22 @@ Examples:
 - Is this ready for production?
 
 It helps sales, support, and technical teams answer in the same simple language.
+
+## What The Demo Script Shows
+
+The prototype includes `/v1/gateway/demo-script`.
+
+This endpoint gives a 15 minute customer walkthrough.
+
+It tells the presenter:
+
+- what to say first
+- which endpoint to show
+- how to explain routing
+- how to answer common objections
+- how to close with a small pilot
+
+This helps a non-technical customer understand the idea without reading code.
 
 ## What The Access Matrix Shows
 

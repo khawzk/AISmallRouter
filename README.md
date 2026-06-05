@@ -178,6 +178,7 @@ The current version also supports:
 - `GET /v1/gateway/roadmap`
 - `GET /v1/gateway/decision-guide`
 - `GET /v1/gateway/faq`
+- `GET /v1/gateway/demo-script`
 - `GET /v1/gateway/access-matrix`
 - `GET /v1/gateway/requests`
 - `GET /v1/gateway/usage`
@@ -243,6 +244,7 @@ The current version also supports:
 - roadmap from prototype to pilot, production hardening, and multi-provider expansion
 - decision guide comparing API Gateway, managed AI Gateway, custom Model Gateway, and OpenRouter-like options
 - FAQ for common customer questions and objections
+- demo script for a 15 minute customer walkthrough
 - production readiness report for go-live gaps
 - customer model access matrix
 - customer self-service profile with no provider secret exposure
@@ -259,6 +261,7 @@ The current version also supports:
 - roadmap for phased prototype-to-production planning
 - decision guide for build-or-buy gateway discussion
 - FAQ for API Gateway, OpenRouter, cost, safety, provider, pilot, and production questions
+- demo script for presenter talk track, endpoints to show, and likely questions
 - OpenAPI contract at `/openapi.json`
 - Postman collection at `/postman_collection.json`
 - demo bundle manifest at `/v1/gateway/demo-bundle`
@@ -601,6 +604,25 @@ It answers common questions:
 - How do we control cost?
 - What happens if a provider fails?
 - Is this ready for production?
+
+## Demo Script
+
+The gateway has a demo script endpoint:
+
+```bash
+curl http://127.0.0.1:8787/v1/gateway/demo-script \
+  -H "Authorization: Bearer dev-admin-key"
+```
+
+It gives a 15 minute customer walkthrough.
+
+It tells the presenter:
+
+- what to say first
+- which endpoint to show
+- how to explain routing
+- how to answer common objections
+- how to close with a small pilot
 
 ## Access Matrix
 
