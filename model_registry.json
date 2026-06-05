@@ -1,0 +1,23 @@
+{
+  "models": [
+    {
+      "id": "smart-fast",
+      "provider": "dashscope",
+      "upstream_model": "qwen-plus",
+      "base_url": "https://dashscope-intl.aliyuncs.com/compatible-mode/v1",
+      "api_key_env": "DASHSCOPE_API_KEY",
+      "capabilities": ["chat", "streaming"],
+      "enabled": true
+    },
+    {
+      "id": "qwen-plus",
+      "provider": "dashscope",
+      "upstream_model": "qwen-plus",
+      "base_url": "https://dashscope-intl.aliyuncs.com/compatible-mode/v1",
+      "api_key_env": "DASHSCOPE_API_KEY",
+      "capabilities": ["chat", "streaming"],
+      "enabled": true
+    }
+  ]
+}
+
