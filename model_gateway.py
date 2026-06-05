@@ -102,6 +102,7 @@ def public_customer_view(customer):
         "id": customer["id"],
         "name": customer.get("name", customer["id"]),
         "plan": customer.get("plan", "prototype"),
+        "default_policy": customer.get("default_policy"),
         "request_limit": customer.get("request_limit"),
         "limit_window_seconds": customer.get("limit_window_seconds"),
         "token_budget": customer.get("token_budget"),
@@ -1190,22 +1191,39 @@ def policy_presets_view():
     }
 
 
+def validate_policy_name(policy_name, field_name="gateway_policy"):
+    if policy_name in {None, ""}:
+        return None
+    if not isinstance(policy_name, str):
+        raise GatewayError(f"{field_name} must be a string.", "invalid_gateway_policy", 400)
+    policy_name = policy_name.strip()
+    if policy_name not in POLICY_PRESETS:
+        raise GatewayError(
+            f"Unknown {field_name}.",
+            "unknown_gateway_policy",
+            400,
+            {"allowed": sorted(POLICY_PRESETS.keys())},
+        )
+    return policy_name
+
+
+def apply_customer_default_policy(payload, customer):
+    merged = dict(payload)
+    if "gateway_policy" not in merged:
+        default_policy = validate_policy_name(customer.get("default_policy"), "default_policy")
+        if default_policy:
+            merged["gateway_policy"] = default_policy
+            merged["gateway_policy_source"] = "customer_default"
+    return merged
+
+
 def apply_policy_preset(payload):
     policy_name = payload.get("gateway_policy")
     if policy_name is None:
         payload = dict(payload)
         payload["gateway_policy_applied"] = None
         return payload
-    if not isinstance(policy_name, str):
-        raise GatewayError("gateway_policy must be a string.", "invalid_gateway_policy", 400)
-    policy_name = policy_name.strip()
-    if policy_name not in POLICY_PRESETS:
-        raise GatewayError(
-            "Unknown gateway_policy.",
-            "unknown_gateway_policy",
-            400,
-            {"allowed": sorted(POLICY_PRESETS.keys())},
-        )
+    policy_name = validate_policy_name(policy_name, "gateway_policy")
     merged = dict(payload)
     applied_controls = {}
     for key, value in POLICY_PRESETS[policy_name]["controls"].items():
@@ -1349,6 +1367,7 @@ def apply_route_strategy(server, candidates, strategy):
 
 
 def build_candidate_models(server, customer, public_model, payload):
+    payload = apply_customer_default_policy(payload, customer)
     payload = apply_policy_preset(payload)
     model = server.models.get(public_model)
     if not model:
@@ -1363,6 +1382,7 @@ def build_candidate_models(server, customer, public_model, payload):
         "required_capabilities": requested_capabilities(payload),
         "route_strategy": requested_route_strategy(payload),
         "gateway_policy": payload.get("gateway_policy_applied"),
+        "gateway_policy_source": payload.get("gateway_policy_source") or ("request" if payload.get("gateway_policy_applied") else None),
     }
     fallback_models = model.get("fallback_models", [])
     requested_fallbacks = False
@@ -1442,6 +1462,7 @@ def route_decision(public_model, model_config, routing_policy, customer_id=None,
     allowed_providers = routing_policy.get("allowed_providers") or ["any"]
     route_strategy = routing_policy.get("route_strategy") or "registry"
     gateway_policy = routing_policy.get("gateway_policy")
+    gateway_policy_source = routing_policy.get("gateway_policy_source")
     fallback_enabled = bool(routing_policy.get("fallback_enabled"))
     fallback_candidates = list(routing_policy.get("candidates", []))[1:]
     reasons = [
@@ -1455,7 +1476,7 @@ def route_decision(public_model, model_config, routing_policy, customer_id=None,
     if fallback_attempts:
         reasons.append(f"Previous route attempts failed: {len(fallback_attempts)}.")
     if gateway_policy:
-        reasons.append(f"Gateway policy preset applied: {gateway_policy.get('name')}.")
+        reasons.append(f"Gateway policy preset applied: {gateway_policy.get('name')} from {gateway_policy_source}.")
     if fallback_enabled and fallback_candidates:
         reasons.append(f"Fallback candidates were available: {', '.join(fallback_candidates)}.")
     elif fallback_enabled:
@@ -1471,6 +1492,7 @@ def route_decision(public_model, model_config, routing_policy, customer_id=None,
         "provider": selected_provider,
         "policy_source": routing_policy.get("source"),
         "gateway_policy": gateway_policy,
+        "gateway_policy_source": gateway_policy_source,
         "route_strategy": route_strategy,
         "candidate_scores": routing_policy.get("candidate_scores", []),
         "fallback_enabled": fallback_enabled,
@@ -1637,6 +1659,7 @@ def key_issue_preview(server, payload):
             404,
             {"unknown_providers": unknown_providers},
         )
+    default_policy = validate_policy_name(payload.get("default_policy"), "default_policy")
 
     requested_api_key = payload.get("api_key")
     if requested_api_key and requested_api_key in server.customers_by_key:
@@ -1661,6 +1684,8 @@ def key_issue_preview(server, payload):
         "allowed_models": allowed_models,
         "enabled": True,
     }
+    if default_policy:
+        customer_config["default_policy"] = default_policy
     if provider_api_keys:
         customer_config["provider_api_keys"] = provider_api_keys
 
@@ -1746,6 +1771,7 @@ def customer_create(server, payload):
         customer_config["id"],
         details={
             "plan": customer_config.get("plan"),
+            "default_policy": customer_config.get("default_policy"),
             "allowed_models": customer_config.get("allowed_models", []),
             "request_limit": customer_config.get("request_limit"),
             "token_budget": customer_config.get("token_budget"),

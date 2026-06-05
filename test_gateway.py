@@ -773,6 +773,72 @@ class GatewayPrototypeTest(unittest.TestCase):
         self.assertEqual(created["generated_api_key"], "lifecycle-key-1")
         self.assertNotIn("provider_api_keys", json.dumps(created))
 
+        status, default_policy_customer = request_json(
+            self.base_url,
+            method="POST",
+            path="/v1/gateway/customers",
+            api_key="dev-admin-key",
+            payload={
+                "customer_id": "default-policy-customer",
+                "name": "Default Policy Customer",
+                "api_key": "default-policy-key",
+                "allowed_models": ["smart-fast"],
+                "default_policy": "tool_ready",
+            },
+        )
+        self.assertEqual(status, 201)
+        self.assertEqual(default_policy_customer["customer"]["default_policy"], "tool_ready")
+
+        status, default_policy_view = request_json(
+            self.base_url,
+            path="/v1/gateway/me",
+            api_key="default-policy-key",
+        )
+        self.assertEqual(status, 200)
+        self.assertEqual(default_policy_view["customer"]["default_policy"], "tool_ready")
+
+        status, default_policy_preview = request_json(
+            self.base_url,
+            method="POST",
+            path="/v1/gateway/route-preview",
+            api_key="dev-admin-key",
+            payload={"customer_id": "default-policy-customer", "model": "smart-fast"},
+        )
+        self.assertEqual(status, 200)
+        self.assertEqual(default_policy_preview["routing_policy"]["gateway_policy"]["name"], "tool_ready")
+        self.assertEqual(default_policy_preview["routing_policy"]["gateway_policy_source"], "customer_default")
+        self.assertIn("tools", default_policy_preview["routing_policy"]["required_capabilities"])
+
+        status, override_policy_preview = request_json(
+            self.base_url,
+            method="POST",
+            path="/v1/gateway/route-preview",
+            api_key="dev-admin-key",
+            payload={
+                "customer_id": "default-policy-customer",
+                "model": "smart-fast",
+                "gateway_policy": "balanced",
+            },
+        )
+        self.assertEqual(status, 200)
+        self.assertEqual(override_policy_preview["routing_policy"]["gateway_policy"]["name"], "balanced")
+        self.assertEqual(override_policy_preview["routing_policy"]["gateway_policy_source"], "request")
+
+        status, invalid_default_policy = request_json(
+            self.base_url,
+            method="POST",
+            path="/v1/gateway/customers",
+            api_key="dev-admin-key",
+            payload={
+                "customer_id": "bad-default-policy",
+                "api_key": "bad-default-policy-key",
+                "allowed_models": ["smart-fast"],
+                "default_policy": "missing-policy",
+            },
+        )
+        self.assertEqual(status, 400)
+        self.assertEqual(invalid_default_policy["error"]["code"], "unknown_gateway_policy")
+
         status, lifecycle_view = request_json(self.base_url, path="/v1/gateway/me", api_key="lifecycle-key-1")
         self.assertEqual(status, 200)
         self.assertEqual(lifecycle_view["customer"]["id"], "lifecycle-customer")

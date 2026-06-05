@@ -85,6 +85,7 @@ curl http://127.0.0.1:8787/v1/gateway/customers \
     "name": "Customer Demo",
     "plan": "starter",
     "allowed_models": ["smart-fast"],
+    "default_policy": "lowest_cost",
     "request_limit": 60,
     "token_budget": 10000,
     "cost_budget": 1.0
@@ -110,6 +111,10 @@ curl http://127.0.0.1:8787/v1/gateway/customers/disable \
 ```
 
 This updates `customer_keys.json` in the running prototype.
+
+The customer's `default_policy` is used when a request does not send `gateway_policy`.
+
+An explicit request `gateway_policy` overrides the customer default.
 
 ## Create, Update, And Disable A Provider
 

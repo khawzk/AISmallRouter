@@ -74,6 +74,7 @@ The prototype supports:
 - Request-level provider allow-list
 - Request-level routing strategy control
 - Named policy presets
+- Customer default policy
 - Capability routing control
 - Local safety preview
 - Customer key issue preview
@@ -230,6 +231,7 @@ They help explain the control layer:
 - Capability routing control
 - Routing strategy control
 - Policy presets
+- Customer default policy
 - Safety preview before provider call
 - Cost estimate before a live request
 - Customer key issue preview
@@ -263,6 +265,7 @@ It shows:
 
 - customer name and plan
 - allowed public models
+- default routing policy, if set
 - budget state
 - usage by model
 - usage by provider
@@ -520,6 +523,22 @@ The endpoint `/v1/gateway/policy-presets` lists the available presets.
 If a request sends an explicit control, the explicit control wins.
 
 This helps non-technical customers choose a simple policy name instead of many technical fields.
+
+## What Customer Default Policy Shows
+
+A customer can have a `default_policy`.
+
+For example:
+
+`default_policy = lowest_cost`
+
+If the request does not send `gateway_policy`, the gateway uses the customer default.
+
+If the request sends `gateway_policy`, the request value wins.
+
+This helps customers keep simple applications.
+
+They can use one gateway key and one default policy without sending routing controls every time.
 
 ## What Capability Routing Control Shows
 

@@ -216,6 +216,7 @@ The current version also supports:
 - request-level provider allow-list with `gateway_allowed_providers`
 - request-level route strategy with `gateway_route_strategy`
 - named policy presets with `gateway_policy`
+- customer default policy for automatic routing presets
 - customer usage reports with request count, errors, token usage, and budget state
 - request activity feed with simple filters for troubleshooting
 - request detail lookup by `request_id`
@@ -275,6 +276,7 @@ This shows:
 - who the customer is
 - which public models the customer can use
 - current request, token, and cost budget state
+- default routing policy, if the customer has one
 - usage by model and provider
 - recent requests
 - invoice preview for this customer
@@ -601,6 +603,27 @@ If the request also sends an explicit gateway control, the explicit request valu
 
 For example, `gateway_route_strategy` overrides the strategy inside the preset.
 
+## Customer Default Policy
+
+A customer can have a default routing policy in `customer_keys.json`.
+
+Example:
+
+```json
+{
+  "id": "customer-demo",
+  "api_key": "customer-demo-key",
+  "allowed_models": ["smart-fast"],
+  "default_policy": "lowest_cost"
+}
+```
+
+If a request does not send `gateway_policy`, the gateway uses the customer's `default_policy`.
+
+If a request sends `gateway_policy`, the request value wins.
+
+The customer self view shows `default_policy`.
+
 ## Capability Routing Control
 
 The gateway can check required model capabilities before a provider call.
@@ -667,6 +690,7 @@ curl http://127.0.0.1:8787/v1/gateway/key-issue-preview \
     "name": "Customer Demo",
     "plan": "starter",
     "allowed_models": ["smart-fast"],
+    "default_policy": "lowest_cost",
     "request_limit": 60,
     "token_budget": 10000,
     "cost_budget": 1.0
@@ -697,6 +721,7 @@ curl http://127.0.0.1:8787/v1/gateway/customers \
     "name": "Customer Demo",
     "plan": "starter",
     "allowed_models": ["smart-fast"],
+    "default_policy": "lowest_cost",
     "request_limit": 60,
     "token_budget": 10000,
     "cost_budget": 1.0

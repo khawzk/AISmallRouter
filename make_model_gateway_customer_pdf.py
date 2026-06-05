@@ -247,6 +247,7 @@ def build():
         "Customer key issue preview for safe onboarding demos.",
         "Customer key create, rotate, and disable actions for lifecycle demos.",
         "Audit events for customer key lifecycle actions.",
+        "Customer default policy for automatic routing presets.",
         "Invoice preview with JSON and CSV output.",
         "Capability routing control for streaming and tools.",
         "Request-level fallback controls for routing demos.",
@@ -284,6 +285,7 @@ def build():
             ["Provider routing control", "Some customers may want only approved providers for a request.", "gateway_allowed_providers filters route candidates"],
             ["Route strategy", "Customers may want cost, latency, or health-aware routing.", "Request-level route strategy reorders candidates"],
             ["Policy presets", "Non-technical users need simple policy names.", "gateway_policy applies named routing presets"],
+            ["Customer default policy", "Customers may not want to send routing controls every time.", "Customer config can set a default policy"],
             ["Capability routing", "Requests may need streaming, tools, or other abilities.", "gateway_required_capabilities filters route candidates"],
             ["Cost estimate", "Customers need budget planning before live calls.", "Dry-run estimate for tokens, cost, and budget impact"],
             ["Customer onboarding", "New customers need keys, limits, and model access.", "Key issue preview creates a safe config snippet"],
@@ -419,6 +421,14 @@ def build():
     story.append(
         Paragraph(
             "The prototype supports gateway_policy. A policy preset is a short name for common routing controls. Current presets include balanced, lowest_cost, fastest, and tool_ready. /v1/gateway/policy-presets lists the presets. Explicit request controls override preset controls. This helps non-technical customers choose a simple policy name instead of many technical fields.",
+            styles["BodyCustom"],
+        )
+    )
+
+    story.append(Paragraph("Customer Default Policy", styles["H1Custom"]))
+    story.append(
+        Paragraph(
+            "A customer can have default_policy in customer_keys.json. If a request does not send gateway_policy, the gateway uses the customer default. If a request sends gateway_policy, the request value wins. This lets a customer use one gateway key and one default routing behavior without sending routing controls every time.",
             styles["BodyCustom"],
         )
     )
