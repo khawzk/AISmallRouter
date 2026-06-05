@@ -204,6 +204,7 @@ They help explain the control layer:
 
 - Provider status
 - Provider health and readiness
+- Model catalog and routing plan
 - Customer usage reports
 - Request activity feed
 - Usage by customer
@@ -238,6 +239,28 @@ In mock mode, a provider can be `ready_mock`.
 That means the provider can be explained in the demo without spending credits.
 
 It does not mean the live provider key is ready.
+
+## What The Model Catalog Shows
+
+The prototype includes `/v1/gateway/model-catalog`.
+
+It explains what each public model name means.
+
+The catalog shows:
+
+- Public model name
+- Upstream provider model
+- Provider status
+- Fallback chain
+- Capabilities
+- Pricing metadata
+- Requests, errors, tokens, and estimated cost
+
+This is useful for non-technical customers.
+
+They can see that `smart-fast` is a simple public name.
+
+Behind it, the gateway can route to Qwen and fallback when needed.
 
 ## What Customer Reports Show
 

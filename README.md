@@ -169,6 +169,7 @@ The current version also supports:
 - `GET /v1/gateway/customers`
 - `GET /v1/gateway/providers`
 - `GET /v1/gateway/provider-health`
+- `GET /v1/gateway/model-catalog`
 - `GET /v1/gateway/customer-reports`
 - `GET /v1/gateway/request-activity`
 - `GET /v1/gateway/customer-usage`
@@ -179,6 +180,7 @@ The current version also supports:
 - `gateway_force_failover=true` for fallback testing in mock mode
 - OpenAI-style `tools` request with mock tool call response
 - provider readiness view for mock-ready, live-ready, and degraded providers
+- model catalog with provider status, fallback chain, usage, and pricing metadata
 - customer usage reports with request count, errors, token usage, and budget state
 - request activity feed with simple filters for troubleshooting
 - multiple customer keys through `customer_keys.json`
@@ -239,6 +241,32 @@ It shows:
 This is not a paid provider ping.
 
 It is a local readiness view based on configuration and recent gateway traffic.
+
+## Model Catalog
+
+The gateway has a model catalog endpoint:
+
+```bash
+curl http://127.0.0.1:8787/v1/gateway/model-catalog \
+  -H "Authorization: Bearer dev-admin-key"
+```
+
+It shows:
+
+- public model name
+- upstream model name
+- provider
+- provider health status
+- fallback chain
+- capabilities
+- pricing metadata
+- request count, errors, tokens, and estimated cost
+
+This helps explain the routing plan.
+
+The customer sees a simple model name.
+
+The gateway keeps the provider details behind it.
 
 ## Customer Reports
 
@@ -575,6 +603,7 @@ The tests check:
 - Token budget blocking
 - Status output without leaking provider keys
 - Provider health readiness output
+- Model catalog routing output
 - Customer usage report output
 - Request activity filtering
 - Provider, customer, model, and request summary admin endpoints

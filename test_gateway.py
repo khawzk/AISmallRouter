@@ -332,6 +332,9 @@ class GatewayPrototypeTest(unittest.TestCase):
         self.assertIn("budget_state", reports["dev"])
         self.assertNotIn("provider_api_keys", reports["dev"])
         self.assertIn("request_activity", payload)
+        catalog = {model["id"]: model for model in payload["model_catalog"]}
+        self.assertIn("smart-fast", catalog)
+        self.assertEqual(catalog["smart-fast"]["route_chain"][0], "smart-fast")
 
     def test_admin_summary_endpoints(self):
         request_json(
@@ -368,6 +371,20 @@ class GatewayPrototypeTest(unittest.TestCase):
         self.assertGreaterEqual(dashscope_health["recent"]["requests"], 1)
         self.assertIn("live_ready", dashscope_health)
         self.assertIn("mock_ready", dashscope_health)
+
+        status, model_catalog = request_json(self.base_url, path="/v1/gateway/model-catalog")
+        self.assertEqual(status, 401)
+
+        status, model_catalog = request_json(self.base_url, path="/v1/gateway/model-catalog", api_key="dev-admin-key")
+        self.assertEqual(status, 200)
+        catalog = {model["id"]: model for model in model_catalog["data"]}
+        self.assertIn("smart-fast", catalog)
+        self.assertEqual(catalog["smart-fast"]["provider"], "dashscope")
+        self.assertEqual(catalog["smart-fast"]["upstream_model"], "qwen-plus")
+        self.assertIn("qwen-turbo", catalog["smart-fast"]["fallback_models"])
+        self.assertIn("provider_status", catalog["smart-fast"])
+        self.assertIn("pricing", catalog["smart-fast"])
+        self.assertGreaterEqual(catalog["smart-fast"]["usage"]["requests"], 1)
 
         status, customer_usage = request_json(self.base_url, path="/v1/gateway/customer-usage", api_key="dev-admin-key")
         self.assertEqual(status, 200)

@@ -33,6 +33,7 @@ ADMIN_PATHS = {
     "/v1/gateway/provider-health",
     "/v1/gateway/customer-reports",
     "/v1/gateway/request-activity",
+    "/v1/gateway/model-catalog",
     "/v1/gateway/customer-usage",
     "/v1/gateway/model-usage",
     "/v1/gateway/request-summary",
@@ -711,6 +712,61 @@ def provider_health(server):
     return rows
 
 
+def model_catalog(server):
+    provider_health_by_id = {provider["id"]: provider for provider in provider_health(server)}
+    request_by_model = {
+        row["id"]: row
+        for row in request_grouped_by(server.db_path, "model")
+        if row.get("id") is not None
+    }
+    usage_by_model_map = {
+        row["id"]: row
+        for row in usage_grouped_by(server.db_path, "model")
+        if row.get("id") is not None
+    }
+    rows = []
+    for public_name, model in sorted(server.models.items()):
+        provider_id = model.get("provider")
+        provider = server.providers.get(provider_id, {})
+        pricing = model.get("pricing", {})
+        fallback_models = model.get("fallback_models", [])
+        route_chain = [public_name] + fallback_models
+        missing_fallbacks = [name for name in fallback_models if name not in server.models]
+        health = provider_health_by_id.get(provider_id, {})
+        requests = request_by_model.get(public_name, {})
+        usage = usage_by_model_map.get(public_name, {})
+        rows.append(
+            {
+                "id": public_name,
+                "provider": provider_id,
+                "provider_name": provider.get("name", provider_id),
+                "provider_type": provider.get("type", "openai_compatible"),
+                "provider_status": health.get("status", "unknown"),
+                "upstream_model": model.get("upstream_model"),
+                "capabilities": model.get("capabilities", []),
+                "fallback_models": fallback_models,
+                "route_chain": route_chain,
+                "missing_fallbacks": missing_fallbacks,
+                "pricing": {
+                    "prompt_per_1k": float(pricing.get("prompt_per_1k", 0)),
+                    "completion_per_1k": float(pricing.get("completion_per_1k", 0)),
+                },
+                "usage": {
+                    "requests": int(requests.get("requests") or 0),
+                    "errors": int(requests.get("errors") or 0),
+                    "avg_latency_ms": round(float(requests.get("avg_latency_ms") or 0), 2),
+                    "total_tokens": int(usage.get("total_tokens") or 0),
+                    "estimated_cost": float(usage.get("estimated_cost") or 0),
+                },
+                "routing_note": (
+                    f"{public_name} routes to {model.get('upstream_model')} on {provider_id}"
+                    + (f", then can fallback to {', '.join(fallback_models)}" if fallback_models else "")
+                ),
+            }
+        )
+    return rows
+
+
 def add_config_check(checks, severity, code, message, details=None):
     check = {
         "severity": severity,
@@ -998,6 +1054,7 @@ def gateway_status(server):
         "config_check": gateway_config_check(server),
         "provider_summary": provider_status(server),
         "provider_health": provider_health(server),
+        "model_catalog": model_catalog(server),
         "customer_reports": customer_reports(server),
         "request_activity": request_activity(server.db_path, limit=10),
         "usage_by_customer": usage_grouped_by(server.db_path, "customer_id"),
@@ -1106,6 +1163,22 @@ def admin_html(server):
             f"<td>{recent.get('avg_latency_ms', 0)}</td>"
             "</tr>"
         )
+    model_catalog_rows = ""
+    for record in model_catalog(server):
+        usage = record.get("usage", {})
+        model_catalog_rows += (
+            "<tr>"
+            f"<td>{record.get('id', '')}</td>"
+            f"<td>{record.get('provider', '')}</td>"
+            f"<td>{record.get('provider_status', '')}</td>"
+            f"<td>{record.get('upstream_model', '')}</td>"
+            f"<td>{' -> '.join(record.get('route_chain', []))}</td>"
+            f"<td>{', '.join(record.get('capabilities', []))}</td>"
+            f"<td>{usage.get('requests', 0)}</td>"
+            f"<td>{usage.get('errors', 0)}</td>"
+            f"<td>{usage.get('total_tokens', 0)}</td>"
+            "</tr>"
+        )
     customer_usage_rows = ""
     for record in usage_grouped_by(server.db_path, "customer_id"):
         customer_usage_rows += (
@@ -1189,7 +1262,7 @@ def admin_html(server):
 <body>
   <main>
     <h1>Gateway Admin</h1>
-    <p><a href="/">Dashboard</a> | <a href="/v1/gateway/status">Status JSON</a> | <a href="/v1/gateway/config-check">Config Check JSON</a> | <a href="/v1/gateway/provider-health">Provider Health JSON</a> | <a href="/v1/gateway/customer-reports">Customer Reports JSON</a> | <a href="/v1/gateway/request-activity">Request Activity JSON</a> | <a href="/v1/gateway/providers">Providers JSON</a> | <a href="/v1/gateway/customer-usage">Customer Usage JSON</a> | <a href="/v1/gateway/model-usage">Model Usage JSON</a> | <a href="/v1/gateway/requests">Requests JSON</a> | <a href="/v1/gateway/usage">Usage JSON</a> | <a href="/v1/gateway/customers">Customers JSON</a></p>
+    <p><a href="/">Dashboard</a> | <a href="/v1/gateway/status">Status JSON</a> | <a href="/v1/gateway/config-check">Config Check JSON</a> | <a href="/v1/gateway/provider-health">Provider Health JSON</a> | <a href="/v1/gateway/model-catalog">Model Catalog JSON</a> | <a href="/v1/gateway/customer-reports">Customer Reports JSON</a> | <a href="/v1/gateway/request-activity">Request Activity JSON</a> | <a href="/v1/gateway/providers">Providers JSON</a> | <a href="/v1/gateway/customer-usage">Customer Usage JSON</a> | <a href="/v1/gateway/model-usage">Model Usage JSON</a> | <a href="/v1/gateway/requests">Requests JSON</a> | <a href="/v1/gateway/usage">Usage JSON</a> | <a href="/v1/gateway/customers">Customers JSON</a></p>
     <h2>Summary</h2>
     <table>
       <tbody>
@@ -1229,6 +1302,11 @@ def admin_html(server):
     <table>
       <thead><tr><th>ID</th><th>Status</th><th>Reason</th><th>Live ready?</th><th>Mock ready?</th><th>Recent requests</th><th>Errors</th><th>Avg latency ms</th></tr></thead>
       <tbody>{provider_health_rows}</tbody>
+    </table>
+    <h2>Model Catalog</h2>
+    <table>
+      <thead><tr><th>Public model</th><th>Provider</th><th>Provider status</th><th>Upstream model</th><th>Route chain</th><th>Capabilities</th><th>Requests</th><th>Errors</th><th>Total tokens</th></tr></thead>
+      <tbody>{model_catalog_rows}</tbody>
     </table>
     <h2>Usage By Customer</h2>
     <table>
@@ -1636,6 +1714,9 @@ class GatewayHandler(BaseHTTPRequestHandler):
             return
         if path == "/v1/gateway/provider-health":
             make_json_response(self, 200, {"data": provider_health(self.server)})
+            return
+        if path == "/v1/gateway/model-catalog":
+            make_json_response(self, 200, {"data": model_catalog(self.server)})
             return
         if path == "/v1/gateway/customer-reports":
             make_json_response(self, 200, {"data": customer_reports(self.server)})
