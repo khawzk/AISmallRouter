@@ -55,6 +55,7 @@ The prototype supports:
 
 - Visual dashboard
 - OpenAPI contract
+- Postman collection
 - Operational alerts
 - Access matrix
 - OpenAI-compatible chat endpoint
@@ -136,6 +137,18 @@ It describes:
 - request and response shape at a high level
 
 This helps a customer technical team import the gateway into Postman, Swagger tools, or SDK generators.
+
+The prototype also includes `/postman_collection.json`.
+
+This is a ready-to-import Postman collection.
+
+It includes demo variables for:
+
+- base URL
+- customer gateway key
+- admin key
+
+This helps a customer technical team click through the main demo requests faster.
 
 ## Why This Is Not Just An API Gateway
 

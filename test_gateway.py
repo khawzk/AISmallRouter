@@ -186,6 +186,26 @@ class GatewayPrototypeTest(unittest.TestCase):
             [{"adminBearerAuth": []}],
         )
 
+    def test_postman_collection_lists_demo_requests(self):
+        status, collection = request_json(self.base_url, path="/postman_collection.json")
+        self.assertEqual(status, 200)
+        self.assertIn("AISmallRouter", collection["info"]["name"])
+        variables = {item["key"]: item["value"] for item in collection["variable"]}
+        self.assertIn("base_url", variables)
+        self.assertEqual(variables["gateway_api_key"], "dev-gateway-key")
+        self.assertEqual(variables["admin_api_key"], "dev-admin-key")
+        folders = {folder["name"]: folder for folder in collection["item"]}
+        self.assertIn("Customer API", folders)
+        self.assertIn("Admin Control Plane", folders)
+        customer_names = {item["name"] for item in folders["Customer API"]["item"]}
+        admin_names = {item["name"] for item in folders["Admin Control Plane"]["item"]}
+        self.assertIn("Chat Completion", customer_names)
+        self.assertIn("Route Preview", admin_names)
+        self.assertIn("Create Customer", admin_names)
+        chat = next(item for item in folders["Customer API"]["item"] if item["name"] == "Chat Completion")
+        self.assertEqual(chat["request"]["auth"]["bearer"][0]["value"], "{{gateway_api_key}}")
+        self.assertIn("gateway_policy", chat["request"]["body"]["raw"])
+
     def test_models_requires_valid_gateway_key(self):
         status, payload = request_json(self.base_url, path="/v1/models", api_key="wrong-key")
         self.assertEqual(status, 401)

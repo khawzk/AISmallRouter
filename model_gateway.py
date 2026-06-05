@@ -2970,6 +2970,165 @@ def openapi_spec(server):
     }
 
 
+def postman_collection(server):
+    base_url = f"http://{server.server_address[0]}:{server.server_address[1]}"
+
+    def bearer_auth(variable_name):
+        return {
+            "type": "bearer",
+            "bearer": [
+                {"key": "token", "value": f"{{{{{variable_name}}}}}", "type": "string"}
+            ],
+        }
+
+    def request_item(name, method, path, auth_variable=None, body=None, description=""):
+        item = {
+            "name": name,
+            "request": {
+                "method": method,
+                "header": [],
+                "url": {
+                    "raw": "{{base_url}}" + path,
+                    "host": ["{{base_url}}"],
+                    "path": [part for part in path.strip("/").split("/") if part],
+                },
+                "description": description,
+            },
+        }
+        if auth_variable:
+            item["request"]["auth"] = bearer_auth(auth_variable)
+        if body is not None:
+            item["request"]["header"].append({"key": "Content-Type", "value": "application/json"})
+            item["request"]["body"] = {
+                "mode": "raw",
+                "raw": json.dumps(body, indent=2),
+                "options": {"raw": {"language": "json"}},
+            }
+        return item
+
+    customer_items = [
+        request_item("Health", "GET", "/health"),
+        request_item("OpenAPI Contract", "GET", "/openapi.json"),
+        request_item("List Models", "GET", "/v1/models", "gateway_api_key"),
+        request_item("Customer Self View", "GET", "/v1/gateway/me", "gateway_api_key"),
+        request_item(
+            "Chat Completion",
+            "POST",
+            "/v1/chat/completions",
+            "gateway_api_key",
+            {
+                "model": "smart-fast",
+                "messages": [{"role": "user", "content": "Explain this gateway in one sentence."}],
+                "stream": False,
+                "gateway_policy": "balanced",
+            },
+        ),
+    ]
+    admin_items = [
+        request_item("Gateway Status", "GET", "/v1/gateway/status", "admin_api_key"),
+        request_item("Policy Presets", "GET", "/v1/gateway/policy-presets", "admin_api_key"),
+        request_item("Provider Health", "GET", "/v1/gateway/provider-health", "admin_api_key"),
+        request_item("Model Catalog", "GET", "/v1/gateway/model-catalog", "admin_api_key"),
+        request_item("Audit Events", "GET", "/v1/gateway/audit-events", "admin_api_key"),
+        request_item("Customer Reports", "GET", "/v1/gateway/customer-reports", "admin_api_key"),
+        request_item("Invoice Preview", "GET", "/v1/gateway/invoice-preview", "admin_api_key"),
+        request_item(
+            "Route Preview",
+            "POST",
+            "/v1/gateway/route-preview",
+            "admin_api_key",
+            {
+                "customer_id": "dev",
+                "model": "smart-fast",
+                "gateway_policy": "lowest_cost",
+            },
+        ),
+        request_item(
+            "Cost Estimate",
+            "POST",
+            "/v1/gateway/cost-estimate",
+            "admin_api_key",
+            {
+                "customer_id": "dev",
+                "model": "smart-fast",
+                "prompt": "Explain the gateway.",
+                "max_tokens": 256,
+            },
+        ),
+        request_item(
+            "Safety Preview",
+            "POST",
+            "/v1/gateway/safety-preview",
+            "admin_api_key",
+            {
+                "messages": [{"role": "user", "content": "My email is demo@example.com"}]
+            },
+        ),
+        request_item(
+            "Create Customer",
+            "POST",
+            "/v1/gateway/customers",
+            "admin_api_key",
+            {
+                "customer_id": "customer-demo",
+                "name": "Customer Demo",
+                "api_key": "customer-demo-key",
+                "allowed_models": ["smart-fast"],
+                "default_policy": "lowest_cost",
+            },
+        ),
+        request_item(
+            "Rotate Customer Key",
+            "POST",
+            "/v1/gateway/customers/rotate-key",
+            "admin_api_key",
+            {"customer_id": "customer-demo"},
+        ),
+        request_item(
+            "Create Provider",
+            "POST",
+            "/v1/gateway/providers",
+            "admin_api_key",
+            {
+                "provider_id": "demo-provider",
+                "name": "Demo Provider",
+                "type": "openai_compatible",
+                "base_url": "https://example.com/v1",
+                "api_key_env": "DEMO_PROVIDER_API_KEY",
+            },
+        ),
+        request_item(
+            "Create Model Route",
+            "POST",
+            "/v1/gateway/model-routes",
+            "admin_api_key",
+            {
+                "model_id": "customer-fast",
+                "provider": "dashscope",
+                "upstream_model": "qwen-plus",
+                "fallback_models": ["qwen-turbo"],
+                "capabilities": ["chat", "streaming"],
+            },
+        ),
+    ]
+    return {
+        "info": {
+            "name": "AISmallRouter Gateway Prototype",
+            "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+            "description": "Postman collection for the local AISmallRouter model gateway prototype.",
+        },
+        "variable": [
+            {"key": "base_url", "value": base_url},
+            {"key": "gateway_api_key", "value": DEFAULT_GATEWAY_API_KEY},
+            {"key": "admin_api_key", "value": server.admin_api_key or DEFAULT_ADMIN_API_KEY},
+        ],
+        "item": [
+            {"name": "Customer API", "item": customer_items},
+            {"name": "Admin Control Plane", "item": admin_items},
+        ],
+    }
+
+
 def gateway_status(server):
     return {
         "status": "ok",
@@ -3644,7 +3803,7 @@ class GatewayHandler(BaseHTTPRequestHandler):
             return
         if path in ADMIN_PATHS and not self.authenticate_admin():
             return
-        self.send_response(200 if path in {"/health", "/openapi.json"} or path in ADMIN_PATHS else 404)
+        self.send_response(200 if path in {"/health", "/openapi.json", "/postman_collection.json"} or path in ADMIN_PATHS else 404)
         self.end_headers()
 
     def do_GET(self):
@@ -3655,6 +3814,9 @@ class GatewayHandler(BaseHTTPRequestHandler):
             return
         if path == "/openapi.json":
             make_json_response(self, 200, openapi_spec(self.server))
+            return
+        if path == "/postman_collection.json":
+            make_json_response(self, 200, postman_collection(self.server))
             return
         if path in ADMIN_PATHS and not self.authenticate_admin():
             return

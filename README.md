@@ -165,6 +165,7 @@ The current version also supports:
 
 - `GET /admin`
 - `GET /openapi.json`
+- `GET /postman_collection.json`
 - `GET /v1/gateway/status`
 - `GET /v1/gateway/audit-events`
 - `GET /v1/gateway/alerts`
@@ -229,6 +230,7 @@ The current version also supports:
 - SQLite persistence for request and usage records
 - disabled example provider configs for OpenAI and Anthropic
 - OpenAPI contract at `/openapi.json`
+- Postman collection at `/postman_collection.json`
 
 ## API Contract
 
@@ -249,6 +251,20 @@ It includes:
 - provider, model route, customer, audit, billing, safety, and reporting endpoints
 
 This can help a customer technical team import the prototype into Postman, Swagger tools, or SDK generators.
+
+The gateway also exposes a Postman collection:
+
+```bash
+curl http://127.0.0.1:8787/postman_collection.json
+```
+
+The collection includes demo variables:
+
+- `base_url`
+- `gateway_api_key`
+- `admin_api_key`
+
+It groups requests into Customer API and Admin Control Plane folders.
 
 ## Admin Access
 

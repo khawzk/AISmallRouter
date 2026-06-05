@@ -225,6 +225,7 @@ def build():
     for item in [
         "Visual dashboard at the gateway root URL.",
         "OpenAPI contract at /openapi.json for customer technical handoff.",
+        "Postman collection at /postman_collection.json for click-through demos.",
         "OpenAI-compatible /v1/chat/completions endpoint.",
         "Customer API key authentication with Bearer token.",
         "Basic in-memory request limit.",
@@ -272,6 +273,7 @@ def build():
             ["Difficulty", "Why It Matters", "Prototype Status"],
             ["Provider format differences", "Each provider may use different request and response details.", "Handled first for DashScope-compatible chat"],
             ["API handoff", "Customer technical teams need a clear API contract.", "OpenAPI contract endpoint"],
+            ["Demo handoff", "Customer technical teams may want to click through requests.", "Postman collection endpoint"],
             ["Streaming", "Chat UIs and agents often need incremental tokens.", "Mock streaming included; live provider differences still need work"],
             ["Tool calling", "OpenAI, Claude, and Qwen may differ in tool format.", "Mock tool_calls plus basic normalization"],
             ["Token usage", "Billing and quota require reliable usage data.", "Stored in SQLite"],
@@ -318,7 +320,7 @@ def build():
     story.append(Paragraph("API Contract", styles["H1Custom"]))
     story.append(
         Paragraph(
-            "/openapi.json exposes an OpenAPI contract for the prototype. It describes the customer API, admin control-plane API, bearer key security schemes, and the main endpoint groups. This helps a customer technical team import the prototype into Postman, Swagger tools, or SDK generators.",
+            "/openapi.json exposes an OpenAPI contract for the prototype. It describes the customer API, admin control-plane API, bearer key security schemes, and the main endpoint groups. /postman_collection.json exposes a ready-to-import Postman collection with base_url, gateway_api_key, and admin_api_key variables. These help a customer technical team import or click through the prototype quickly.",
             styles["BodyCustom"],
         )
     )
