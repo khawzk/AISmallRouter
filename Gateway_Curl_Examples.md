@@ -30,7 +30,7 @@ It does not spend provider credits.
 python3 test_gateway.py
 ```
 
-The test covers auth, model listing, routing, route preview, cost estimate, fallback, model access, budgets, SQLite logs, alerts, access matrix, provider health, model catalog, customer reports, request activity, request detail lookup, and admin summary endpoints.
+The test covers auth, model listing, routing, route preview, provider allow-list routing, cost estimate, fallback, model access, budgets, SQLite logs, alerts, access matrix, provider health, model catalog, customer reports, request activity, request detail lookup, and admin summary endpoints.
 
 Open the visual dashboard:
 
@@ -96,8 +96,27 @@ curl http://127.0.0.1:8787/v1/gateway/route-preview \
   -d '{
     "customer_id": "dev",
     "model": "smart-fast"
+}'
+```
+
+## Preview A Route With Provider Control
+
+This asks the gateway to use only DashScope routes.
+
+It does not call a provider.
+
+```bash
+curl http://127.0.0.1:8787/v1/gateway/route-preview \
+  -H "Authorization: Bearer dev-admin-key" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "customer_id": "dev",
+    "model": "smart-fast",
+    "gateway_allowed_providers": ["dashscope"]
   }'
 ```
+
+Try `["openai"]` in mock mode to see a clear no-route error.
 
 ## Estimate Cost Without Calling A Provider
 

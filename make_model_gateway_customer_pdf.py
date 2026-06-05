@@ -241,6 +241,7 @@ def build():
         "Request detail lookup using gateway.request_id returned in chat responses.",
         "Config check endpoint for demo keys and missing production settings.",
         "Request-level fallback controls for routing demos.",
+        "Request-level provider allow-list for routing control demos.",
         "Mock OpenAI-style tool call response for agent demos.",
         "Simple customer plans with token and cost budgets.",
         "Bring Your Own Key mapping through environment variables.",
@@ -265,6 +266,7 @@ def build():
             ["Provider health", "Customers need to know whether a provider can serve traffic.", "Readiness view based on config and recent traffic"],
             ["Model catalog", "Customers need to understand public model names and routes.", "Catalog with provider status, fallback chain, usage, and pricing metadata"],
             ["Route preview", "Sales and support need to explain a route before spending credits.", "Dry-run endpoint and dashboard preview"],
+            ["Provider routing control", "Some customers may want only approved providers for a request.", "gateway_allowed_providers filters route candidates"],
             ["Cost estimate", "Customers need budget planning before live calls.", "Dry-run estimate for tokens, cost, and budget impact"],
             ["Customer reporting", "Customers need a simple usage and budget story.", "Per-customer report endpoint and dashboard cards"],
             ["Request troubleshooting", "Support teams need to see what happened to a request.", "Filtered request activity feed"],
@@ -330,6 +332,14 @@ def build():
     story.append(
         Paragraph(
             "/v1/gateway/route-preview is a dry run. It does not call the provider. It shows whether a customer can use a model, whether budget is available, which model is primary, which models are fallback routes, which provider would handle the request, and whether that provider is ready.",
+            styles["BodyCustom"],
+        )
+    )
+
+    story.append(Paragraph("Provider Routing Control", styles["H1Custom"]))
+    story.append(
+        Paragraph(
+            "The prototype supports gateway_allowed_providers. This lets a request say: only use these providers for this route. For example, route preview can allow only dashscope. If no route matches the allowed provider list, the gateway returns a clear error. This helps customers understand that the gateway is a control layer, not only a normal API proxy.",
             styles["BodyCustom"],
         )
     )

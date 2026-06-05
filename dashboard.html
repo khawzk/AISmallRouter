@@ -1016,6 +1016,9 @@
             <label>Model
               <select id="previewModel"></select>
             </label>
+            <label>Allowed providers
+              <input id="allowedProviders" placeholder="dashscope, openai">
+            </label>
             <div class="form-actions">
               <button id="previewButton" type="button">Preview route</button>
               <button id="estimateButton" type="button">Estimate cost</button>
@@ -1086,6 +1089,7 @@
     const modelSelect = document.getElementById("modelSelect");
     const previewCustomer = document.getElementById("previewCustomer");
     const previewModel = document.getElementById("previewModel");
+    const allowedProviders = document.getElementById("allowedProviders");
     const previewButton = document.getElementById("previewButton");
     const estimateButton = document.getElementById("estimateButton");
     const previewTrace = document.getElementById("previewTrace");
@@ -1292,6 +1296,14 @@
       });
     }
 
+    function providerPolicyPayload() {
+      const providers = allowedProviders.value
+        .split(",")
+        .map((provider) => provider.trim())
+        .filter(Boolean);
+      return providers.length ? {gateway_allowed_providers: providers} : {};
+    }
+
     async function sendRequest() {
       sendButton.disabled = true;
       routeTrace.innerHTML = '<div class="trace-item">Sending request through gateway...</div>';
@@ -1338,7 +1350,8 @@
           headers: {"Content-Type": "application/json"},
           body: JSON.stringify({
             customer_id: previewCustomer.value,
-            model: previewModel.value
+            model: previewModel.value,
+            ...providerPolicyPayload()
           })
         });
         const data = await response.json();
@@ -1369,6 +1382,7 @@
           body: JSON.stringify({
             customer_id: previewCustomer.value,
             model: previewModel.value,
+            ...providerPolicyPayload(),
             messages: [{role: "user", content: promptInput.value}],
             max_tokens: 256
           })

@@ -873,6 +873,30 @@ def customer_model_allowed(customer, public_model):
     return "*" in allowed or public_model in allowed
 
 
+def requested_allowed_providers(payload):
+    if "gateway_allowed_providers" not in payload:
+        return None
+    providers = payload.get("gateway_allowed_providers")
+    if not isinstance(providers, list) or not all(isinstance(provider, str) for provider in providers):
+        raise GatewayError(
+            "gateway_allowed_providers must be a list of provider ids.",
+            "invalid_provider_policy",
+            400,
+        )
+    normalized = []
+    for provider in providers:
+        provider = provider.strip()
+        if provider and provider not in normalized:
+            normalized.append(provider)
+    if not normalized:
+        raise GatewayError(
+            "gateway_allowed_providers must include at least one provider id.",
+            "invalid_provider_policy",
+            400,
+        )
+    return normalized
+
+
 def build_candidate_models(server, customer, public_model, payload):
     model = server.models.get(public_model)
     if not model:
@@ -883,6 +907,7 @@ def build_candidate_models(server, customer, public_model, payload):
         "source": "model_registry",
         "fallback_enabled": not bool(payload.get("gateway_disable_fallback")),
         "requested_fallback_models": None,
+        "allowed_providers": requested_allowed_providers(payload),
     }
     fallback_models = model.get("fallback_models", [])
     requested_fallbacks = False
@@ -911,6 +936,22 @@ def build_candidate_models(server, customer, public_model, payload):
         if requested_fallbacks and not customer_model_allowed(customer, name):
             raise GatewayError(f"Customer is not allowed to use model: {name}.", "model_not_allowed", 403)
         candidates.append(name)
+
+    allowed_providers = routing_policy["allowed_providers"]
+    if allowed_providers is not None:
+        routing_policy["source"] = "request"
+        candidates = [
+            name
+            for name in candidates
+            if server.models[name].get("provider") in allowed_providers
+        ]
+        if not candidates:
+            raise GatewayError(
+                "No route candidate matches gateway_allowed_providers.",
+                "no_allowed_provider_route",
+                400,
+                {"allowed_providers": allowed_providers, "requested_model": public_model},
+            )
     routing_policy["candidates"] = candidates
     return candidates, routing_policy
 
@@ -962,6 +1003,7 @@ def route_preview(server, payload):
             f"Requested model = {public_model}",
             f"Access allowed = {customer_model_allowed(customer, public_model)}",
             f"Budget state = {budget_state}",
+            f"Allowed providers = {', '.join(routing_policy.get('allowed_providers') or ['any'])}",
             f"Route candidates = {', '.join(candidates)}",
         ],
     }
@@ -2331,11 +2373,13 @@ class GatewayHandler(BaseHTTPRequestHandler):
         fallback_text = "disabled"
         if routing_policy.get("fallback_enabled"):
             fallback_text = ", ".join(routing_policy.get("candidates", [])[1:]) or "none"
+        provider_text = ", ".join(routing_policy.get("allowed_providers") or ["any"])
         return [
             "Customer sends one OpenAI-compatible request",
             f"Gateway reads model = {public_model}",
             f"Model registry maps {public_model} to {resolved_model}",
             f"Routing policy source = {routing_policy.get('source')}, fallback = {fallback_text}",
+            f"Allowed providers = {provider_text}",
             "Provider adapter prepares the upstream request",
         ]
 

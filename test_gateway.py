@@ -240,6 +240,40 @@ class GatewayPrototypeTest(unittest.TestCase):
         self.assertEqual(payload["gateway"]["routing_policy"]["source"], "request")
         self.assertEqual(payload["gateway"]["routing_policy"]["candidates"], ["smart-fast", "qwen-turbo"])
 
+    def test_request_can_limit_allowed_providers(self):
+        status, payload = request_json(
+            self.base_url,
+            method="POST",
+            path="/v1/chat/completions",
+            api_key="dev-gateway-key",
+            payload={
+                "model": "smart-fast",
+                "gateway_allowed_providers": ["dashscope"],
+                "messages": [{"role": "user", "content": "Use provider allow list."}],
+                "stream": False,
+            },
+        )
+        self.assertEqual(status, 200)
+        self.assertEqual(payload["gateway"]["provider"], "dashscope")
+        self.assertEqual(payload["gateway"]["routing_policy"]["source"], "request")
+        self.assertEqual(payload["gateway"]["routing_policy"]["allowed_providers"], ["dashscope"])
+
+    def test_request_rejects_provider_policy_without_route(self):
+        status, payload = request_json(
+            self.base_url,
+            method="POST",
+            path="/v1/chat/completions",
+            api_key="dev-gateway-key",
+            payload={
+                "model": "smart-fast",
+                "gateway_allowed_providers": ["openai"],
+                "messages": [{"role": "user", "content": "Do not use DashScope."}],
+                "stream": False,
+            },
+        )
+        self.assertEqual(status, 400)
+        self.assertEqual(payload["error"]["code"], "no_allowed_provider_route")
+
     def test_mock_tool_call_response_uses_openai_shape(self):
         status, payload = request_json(
             self.base_url,
@@ -458,6 +492,27 @@ class GatewayPrototypeTest(unittest.TestCase):
         self.assertEqual(preview["routes"][0]["public_model"], "smart-fast")
         self.assertEqual(preview["routes"][0]["upstream_model"], "qwen-plus")
         self.assertIn("qwen-turbo", preview["routing_policy"]["candidates"])
+
+        status, preview = request_json(
+            self.base_url,
+            method="POST",
+            path="/v1/gateway/route-preview",
+            api_key="dev-admin-key",
+            payload={"customer_id": "dev", "model": "smart-fast", "gateway_allowed_providers": ["dashscope"]},
+        )
+        self.assertEqual(status, 200)
+        self.assertEqual(preview["routing_policy"]["allowed_providers"], ["dashscope"])
+        self.assertTrue(all(route["provider"] == "dashscope" for route in preview["routes"]))
+
+        status, preview = request_json(
+            self.base_url,
+            method="POST",
+            path="/v1/gateway/route-preview",
+            api_key="dev-admin-key",
+            payload={"customer_id": "dev", "model": "smart-fast", "gateway_allowed_providers": ["openai"]},
+        )
+        self.assertEqual(status, 400)
+        self.assertEqual(preview["error"]["code"], "no_allowed_provider_route")
 
         status, preview = request_json(
             self.base_url,

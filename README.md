@@ -188,6 +188,7 @@ The current version also supports:
 - model catalog with provider status, fallback chain, usage, and pricing metadata
 - route preview dry run before a real provider call
 - cost estimate dry run for prompt tokens, completion tokens, and budget impact
+- request-level provider allow-list with `gateway_allowed_providers`
 - customer usage reports with request count, errors, token usage, and budget state
 - request activity feed with simple filters for troubleshooting
 - request detail lookup by `request_id`
@@ -344,6 +345,33 @@ It shows:
 - provider readiness
 
 This is useful before a live demo or customer test.
+
+## Provider Routing Control
+
+The gateway can limit a request to specific providers.
+
+Example:
+
+```bash
+curl http://127.0.0.1:8787/v1/gateway/route-preview \
+  -H "Authorization: Bearer dev-admin-key" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "customer_id": "dev",
+    "model": "smart-fast",
+    "gateway_allowed_providers": ["dashscope"]
+  }'
+```
+
+This does not call the provider.
+
+It answers a simple question:
+
+Can this customer use this model through these providers?
+
+If no route matches the provider list, the gateway returns a clear error.
+
+This is similar to the routing-control idea used by model router products.
 
 ## Cost Estimate
 

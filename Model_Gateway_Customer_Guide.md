@@ -68,6 +68,7 @@ The prototype supports:
 - Mock streaming
 - Customer plans with token and cost budgets
 - Bring Your Own Key provider mapping
+- Request-level provider allow-list
 - Provider adapter scaffolds for OpenAI and Claude
 - Automated mock regression test
 - Mock mode
@@ -326,6 +327,26 @@ This is useful before a customer demo.
 
 You can explain the route without spending model credits.
 
+## What Provider Routing Control Shows
+
+The prototype supports `gateway_allowed_providers`.
+
+This lets a request say:
+
+Only use these providers for this route.
+
+For example, a route preview can allow only `dashscope`.
+
+If the model route cannot use an allowed provider, the gateway returns a clear error.
+
+This helps non-technical customers understand that the gateway is more than a normal API proxy.
+
+It is also a control layer.
+
+The customer can keep one model name.
+
+The gateway can control which provider is allowed behind that model name.
+
 ## What Cost Estimate Shows
 
 The prototype includes `/v1/gateway/cost-estimate`.
@@ -532,6 +553,7 @@ It is a demo of the control layer that full billing would need.
 - Add model access rules
 - Add token and cost budgets
 - Add a simple admin page
+- Add request-level provider allow-list
 
 ### Phase 4: More Providers
 

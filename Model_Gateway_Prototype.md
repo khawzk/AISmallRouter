@@ -142,6 +142,8 @@ Included in the prototype:
 - Basic usage tracking
 - Persistent SQLite records
 - Basic model access control
+- Basic fallback routing
+- Basic request-level provider allow-list
 - Basic customer plan, token budget, and cost budget control
 - Basic Bring Your Own Key provider mapping
 - Provider adapter scaffolds for OpenAI-compatible APIs and Anthropic-style APIs
@@ -326,8 +328,8 @@ But it uses some public concepts that OpenRouter also shows in its documentation
 | Credit or usage limits | OpenRouter documents key limits and remaining credits | We add request limits, token budgets, and cost budgets per customer key |
 | Usage tracking | OpenRouter exposes key usage fields such as daily, weekly, and monthly usage | We store request logs and usage records |
 | Model listing | OpenRouter has a models API for listing model properties | We use a model registry and `/v1/models` |
-| Routing | OpenRouter documents provider and model routing concepts | We use a model router to choose provider and model |
-| Fallback | OpenRouter supports fallback models when a model or provider fails | We can add fallback after the first prototype |
+| Routing | OpenRouter documents provider and model routing concepts | We use a model router and request-level provider allow-list |
+| Fallback | OpenRouter supports fallback models when a model or provider fails | We include registry fallback and request-level fallback controls |
 | BYOK | OpenRouter supports bring-your-own provider keys | We support a simple environment-variable BYOK mapping in the prototype |
 | Normalization | OpenRouter describes normalizing schemas across models and providers | We use provider adapters to normalize requests and responses |
 
@@ -625,13 +627,19 @@ Later, routing can become smarter.
 
 Future routing options:
 
-- Fallback when one provider fails
 - Cheapest provider first
 - Fastest provider first
 - Route by customer
 - Route by country or region
 - Route by model capability
 - Route by daily budget
+
+Already included in the prototype:
+
+- Fallback routing in mock mode
+- Request-level provider allow-list with `gateway_allowed_providers`
+- Route preview before calling a provider
+- Cost estimate before calling a provider
 
 ## Main Technical Risks
 
