@@ -57,6 +57,82 @@ curl http://127.0.0.1:8787/v1/chat/completions \
   }'
 ```
 
+## Streaming In Mock Mode
+
+```bash
+curl -N http://127.0.0.1:8787/v1/chat/completions \
+  -H "Authorization: Bearer dev-gateway-key" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "smart-fast",
+    "messages": [
+      {
+        "role": "user",
+        "content": "Stream a short answer."
+      }
+    ],
+    "stream": true
+  }'
+```
+
+## Test Fallback Routing
+
+Mock mode can force the first route to fail so the gateway uses the fallback model.
+
+```bash
+curl http://127.0.0.1:8787/v1/chat/completions \
+  -H "Authorization: Bearer dev-gateway-key" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "smart-fast",
+    "gateway_force_failover": true,
+    "messages": [
+      {
+        "role": "user",
+        "content": "Show fallback routing."
+      }
+    ],
+    "stream": false
+  }'
+```
+
+## Test Customer Model Access
+
+`demo-limited-key` can only use `smart-fast`.
+
+This should return `403 Forbidden`:
+
+```bash
+curl -i http://127.0.0.1:8787/v1/chat/completions \
+  -H "Authorization: Bearer demo-limited-key" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "qwen-plus",
+    "messages": [
+      {
+        "role": "user",
+        "content": "Should be denied."
+      }
+    ],
+    "stream": false
+  }'
+```
+
+## View Admin And Logs
+
+Open:
+
+```text
+http://127.0.0.1:8787/admin
+```
+
+Or fetch JSON:
+
+```bash
+curl http://127.0.0.1:8787/v1/gateway/requests
+curl http://127.0.0.1:8787/v1/gateway/usage
+```
+
 ## Test Invalid API Key
 
 ```bash

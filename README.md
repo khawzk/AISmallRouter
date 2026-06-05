@@ -106,11 +106,14 @@ Yes, but only the minimum features needed for the prototype.
 
 The prototype includes:
 
-- Customer API keys
-- Basic usage limits
-- Basic request logs
-- Basic usage tracking
+- Multiple customer API keys from `customer_keys.json`
+- Basic per-customer usage limits
+- JSONL request logs
+- JSONL usage records
 - Model routing
+- Mock fallback routing
+- Mock and live streaming support
+- A simple admin page
 
 It does not replace a full enterprise API Gateway.
 
@@ -139,6 +142,16 @@ It should support:
 - Basic usage limits
 - Basic request logs
 
+The current version also supports:
+
+- `GET /admin`
+- `GET /v1/gateway/status`
+- `GET /v1/gateway/requests`
+- `GET /v1/gateway/usage`
+- `stream=true` Server-Sent Events
+- `gateway_force_failover=true` for fallback testing in mock mode
+- multiple customer keys through `customer_keys.json`
+
 ## Try It Locally
 
 The first version can run without paid model calls.
@@ -165,6 +178,14 @@ The dashboard is designed for customer explanation. It shows:
 - Route simulation from `smart-fast` to `qwen-plus`
 - A test chat request form
 
+Open the admin page:
+
+```text
+http://127.0.0.1:8787/admin
+```
+
+The admin page shows recent request logs and usage records.
+
 List models:
 
 ```bash
@@ -187,6 +208,43 @@ curl http://127.0.0.1:8787/v1/chat/completions \
       }
     ],
     "stream": false
+  }'
+```
+
+Test fallback in mock mode:
+
+```bash
+curl http://127.0.0.1:8787/v1/chat/completions \
+  -H "Authorization: Bearer dev-gateway-key" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "smart-fast",
+    "gateway_force_failover": true,
+    "messages": [
+      {
+        "role": "user",
+        "content": "Show fallback routing."
+      }
+    ],
+    "stream": false
+  }'
+```
+
+Test streaming in mock mode:
+
+```bash
+curl -N http://127.0.0.1:8787/v1/chat/completions \
+  -H "Authorization: Bearer dev-gateway-key" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "smart-fast",
+    "messages": [
+      {
+        "role": "user",
+        "content": "Stream a short answer."
+      }
+    ],
+    "stream": true
   }'
 ```
 

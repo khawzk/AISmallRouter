@@ -158,7 +158,7 @@
 
     .stats {
       display: grid;
-      grid-template-columns: repeat(4, 1fr);
+      grid-template-columns: repeat(5, 1fr);
       gap: 1px;
       overflow: hidden;
       border: 1px solid var(--line);
@@ -592,6 +592,7 @@
         <a href="#quickstart">Quickstart</a>
       </div>
       <div class="nav-actions">
+        <a class="btn" href="/admin">Admin</a>
         <a class="btn" href="/v1/gateway/status">Status</a>
         <a class="btn primary" href="#console">Test request</a>
       </div>
@@ -609,6 +610,7 @@
     <section class="stats" aria-label="Gateway stats">
       <div class="stat"><strong>1</strong><span>Unified API</span></div>
       <div class="stat"><strong id="modelCount">2</strong><span>Models in registry</span></div>
+      <div class="stat"><strong id="customerCount">2</strong><span>Customer keys</span></div>
       <div class="stat"><strong>0</strong><span>Credits used in mock</span></div>
       <div class="stat"><strong id="modeText">mock</strong><span>Current mode</span></div>
     </section>
@@ -747,6 +749,7 @@
   <script>
     const state = __GATEWAY_STATE__;
     const modelCount = document.getElementById("modelCount");
+    const customerCount = document.getElementById("customerCount");
     const modeText = document.getElementById("modeText");
     const limitText = document.getElementById("limitText");
     const modelsList = document.getElementById("modelsList");
@@ -758,8 +761,12 @@
     const promptInput = document.getElementById("prompt");
 
     modelCount.textContent = String(state.models.length);
+    customerCount.textContent = String((state.customers || []).length);
     modeText.textContent = state.mode;
-    limitText.textContent = `${state.request_limit} requests / ${state.limit_window_seconds}s`;
+    const firstCustomer = (state.customers || [])[0] || {};
+    const requestLimit = firstCustomer.request_limit || state.request_limit;
+    const limitWindow = firstCustomer.limit_window_seconds || state.limit_window_seconds;
+    limitText.textContent = `${requestLimit} requests / ${limitWindow}s`;
 
     state.models.forEach((model) => {
       const card = document.createElement("article");

@@ -1,0 +1,22 @@
+{
+  "customers": [
+    {
+      "id": "dev",
+      "name": "Development Customer",
+      "api_key": "dev-gateway-key",
+      "request_limit": 60,
+      "limit_window_seconds": 60,
+      "allowed_models": ["*"],
+      "enabled": true
+    },
+    {
+      "id": "demo-limited",
+      "name": "Demo Limited Customer",
+      "api_key": "demo-limited-key",
+      "request_limit": 3,
+      "limit_window_seconds": 60,
+      "allowed_models": ["smart-fast"],
+      "enabled": true
+    }
+  ]
+}

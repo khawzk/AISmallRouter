@@ -1,23 +1,50 @@
 {
+  "providers": [
+    {
+      "id": "dashscope",
+      "name": "Alibaba Cloud Model Studio / DashScope",
+      "type": "openai_compatible",
+      "base_url": "https://dashscope-intl.aliyuncs.com/compatible-mode/v1",
+      "api_key_env": "DASHSCOPE_API_KEY",
+      "enabled": true
+    }
+  ],
   "models": [
     {
       "id": "smart-fast",
       "provider": "dashscope",
       "upstream_model": "qwen-plus",
-      "base_url": "https://dashscope-intl.aliyuncs.com/compatible-mode/v1",
-      "api_key_env": "DASHSCOPE_API_KEY",
+      "fallback_models": ["qwen-turbo"],
       "capabilities": ["chat", "streaming"],
+      "pricing": {
+        "prompt_per_1k": 0,
+        "completion_per_1k": 0
+      },
       "enabled": true
     },
     {
       "id": "qwen-plus",
       "provider": "dashscope",
       "upstream_model": "qwen-plus",
-      "base_url": "https://dashscope-intl.aliyuncs.com/compatible-mode/v1",
-      "api_key_env": "DASHSCOPE_API_KEY",
+      "fallback_models": ["qwen-turbo"],
       "capabilities": ["chat", "streaming"],
+      "pricing": {
+        "prompt_per_1k": 0,
+        "completion_per_1k": 0
+      },
+      "enabled": true
+    },
+    {
+      "id": "qwen-turbo",
+      "provider": "dashscope",
+      "upstream_model": "qwen-turbo",
+      "fallback_models": [],
+      "capabilities": ["chat", "streaming"],
+      "pricing": {
+        "prompt_per_1k": 0,
+        "completion_per_1k": 0
+      },
       "enabled": true
     }
   ]
 }
-
