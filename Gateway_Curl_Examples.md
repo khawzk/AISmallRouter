@@ -169,9 +169,14 @@ curl http://127.0.0.1:8787/v1/gateway/model-usage \
 
 curl http://127.0.0.1:8787/v1/gateway/request-summary \
   -H "Authorization: Bearer dev-admin-key"
+
+curl http://127.0.0.1:8787/v1/gateway/config-check \
+  -H "Authorization: Bearer dev-admin-key"
 ```
 
 The JSON endpoints read from SQLite.
+
+The config check warns about demo keys and missing production settings.
 
 In this prototype, admin endpoints use the demo admin key `dev-admin-key`.
 

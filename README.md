@@ -170,6 +170,7 @@ The current version also supports:
 - `GET /v1/gateway/customer-usage`
 - `GET /v1/gateway/model-usage`
 - `GET /v1/gateway/request-summary`
+- `GET /v1/gateway/config-check`
 - `stream=true` Server-Sent Events
 - `gateway_force_failover=true` for fallback testing in mock mode
 - multiple customer keys through `customer_keys.json`
@@ -199,6 +200,15 @@ Fetch admin JSON:
 curl http://127.0.0.1:8787/v1/gateway/status \
   -H "Authorization: Bearer dev-admin-key"
 ```
+
+Run a local config check:
+
+```bash
+curl http://127.0.0.1:8787/v1/gateway/config-check \
+  -H "Authorization: Bearer dev-admin-key"
+```
+
+The config check warns about demo keys, missing live provider keys, and direct secret values in local config files.
 
 For production, change the key with `GATEWAY_ADMIN_API_KEY`.
 

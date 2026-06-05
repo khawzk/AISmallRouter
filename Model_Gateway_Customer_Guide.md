@@ -206,12 +206,30 @@ They help explain the control layer:
 - Usage by customer
 - Usage by model
 - Request summary by customer, model, provider, and error code
+- Config check for demo keys and missing production settings
 
 In the prototype, these endpoints use a separate demo admin key.
 
 The local demo key is `dev-admin-key`.
 
 In production, the admin key should be changed and protected.
+
+## Why Config Check Matters
+
+The prototype includes `/v1/gateway/config-check`.
+
+It helps explain what must change before production.
+
+Examples:
+
+- Demo admin key is still being used.
+- Demo customer keys are still being used.
+- A provider key is missing in live mode.
+- A provider secret appears directly in a local JSON file.
+
+This is not a full security audit.
+
+It is a simple readiness checklist for the demo gateway.
 
 ## Technical Challenges
 

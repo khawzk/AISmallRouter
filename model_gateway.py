@@ -33,6 +33,7 @@ ADMIN_PATHS = {
     "/v1/gateway/customer-usage",
     "/v1/gateway/model-usage",
     "/v1/gateway/request-summary",
+    "/v1/gateway/config-check",
 }
 
 
@@ -440,6 +441,148 @@ def provider_status(server):
     return rows
 
 
+def add_config_check(checks, severity, code, message, details=None):
+    check = {
+        "severity": severity,
+        "code": code,
+        "message": message,
+    }
+    if details is not None:
+        check["details"] = details
+    checks.append(check)
+
+
+def gateway_config_check(server):
+    checks = []
+    if server.admin_api_key == DEFAULT_ADMIN_API_KEY:
+        add_config_check(
+            checks,
+            "warning",
+            "default_admin_key",
+            "The gateway is using the local demo admin key.",
+            {"change_with": "GATEWAY_ADMIN_API_KEY"},
+        )
+    if not server.admin_api_key:
+        add_config_check(
+            checks,
+            "critical",
+            "admin_unprotected",
+            "Admin endpoints are not protected by an admin key.",
+        )
+
+    demo_gateway_keys = {DEFAULT_GATEWAY_API_KEY, "demo-limited-key", "demo-budget-key"}
+    demo_customers = [
+        customer.get("id")
+        for api_key, customer in server.customers_by_key.items()
+        if api_key in demo_gateway_keys
+    ]
+    if demo_customers:
+        add_config_check(
+            checks,
+            "warning",
+            "demo_customer_keys",
+            "Some customers are using demo gateway API keys.",
+            {"customers": demo_customers},
+        )
+
+    for customer in server.customers_by_key.values():
+        plain_secret_providers = [
+            provider_id
+            for provider_id, value in customer.get("provider_api_keys", {}).items()
+            if value and not str(value).startswith("env:")
+        ]
+        if plain_secret_providers:
+            add_config_check(
+                checks,
+                "warning",
+                "plain_provider_secret",
+                "A customer provider key appears to be stored directly in customer_keys.json.",
+                {
+                    "customer": customer.get("id"),
+                    "providers": plain_secret_providers,
+                },
+            )
+        if customer.get("token_budget") is None:
+            add_config_check(
+                checks,
+                "info",
+                "missing_token_budget",
+                "A customer has no token budget.",
+                {"customer": customer.get("id")},
+            )
+        if customer.get("cost_budget") is None:
+            add_config_check(
+                checks,
+                "info",
+                "missing_cost_budget",
+                "A customer has no cost budget.",
+                {"customer": customer.get("id")},
+            )
+
+    active_provider_ids = set(server.providers.keys())
+    model_provider_ids = {model.get("provider") for model in server.models.values()}
+    for provider_id, provider in sorted(server.providers.items()):
+        env_name = provider.get("api_key_env")
+        server_key_configured = bool(env_name and os.getenv(env_name))
+        byok_customers = [
+            customer.get("id")
+            for customer in server.customers_by_key.values()
+            if provider_id in customer.get("provider_api_keys", {})
+        ]
+        if provider_id not in model_provider_ids:
+            add_config_check(
+                checks,
+                "info",
+                "provider_has_no_enabled_models",
+                "An enabled provider has no enabled models.",
+                {"provider": provider_id},
+            )
+        if not server.mock_mode and not server_key_configured and not byok_customers:
+            add_config_check(
+                checks,
+                "critical",
+                "provider_key_missing",
+                "Live mode needs a provider key or BYOK customer key.",
+                {"provider": provider_id, "api_key_env": env_name},
+            )
+        elif server.mock_mode and not server_key_configured and not byok_customers:
+            add_config_check(
+                checks,
+                "info",
+                "provider_key_missing_in_mock",
+                "A provider key is not configured. This is acceptable in mock mode.",
+                {"provider": provider_id, "api_key_env": env_name},
+            )
+
+    orphan_provider_ids = sorted(model_provider_ids - active_provider_ids)
+    if orphan_provider_ids:
+        add_config_check(
+            checks,
+            "critical",
+            "model_provider_missing",
+            "Some enabled models reference a provider that is not active.",
+            {"providers": orphan_provider_ids},
+        )
+
+    severity_rank = {"info": 0, "warning": 1, "critical": 2}
+    max_severity = max((severity_rank.get(check["severity"], 0) for check in checks), default=0)
+    status = "ok"
+    if max_severity == 1:
+        status = "warning"
+    if max_severity >= 2:
+        status = "critical"
+    return {
+        "status": status,
+        "mode": "mock" if server.mock_mode else "live",
+        "checks": checks,
+        "summary": {
+            "critical": sum(1 for check in checks if check["severity"] == "critical"),
+            "warning": sum(1 for check in checks if check["severity"] == "warning"),
+            "info": sum(1 for check in checks if check["severity"] == "info"),
+        },
+    }
+
+
 def read_jsonl_tail(path, limit=50):
     if not os.path.exists(path):
         return []
@@ -573,6 +716,7 @@ def gateway_status(server):
         "mode": "mock" if server.mock_mode else "live",
         "database": server.db_path,
         "summary": db_summary(server.db_path),
+        "config_check": gateway_config_check(server),
         "provider_summary": provider_status(server),
         "usage_by_customer": usage_grouped_by(server.db_path, "customer_id"),
         "usage_by_model": usage_grouped_by(server.db_path, "model"),
@@ -685,6 +829,17 @@ def admin_html(server):
             f"<td>{record.get('estimated_cost', 0)}</td>"
             "</tr>"
         )
+    config_check = gateway_config_check(server)
+    config_rows = ""
+    for record in config_check.get("checks", []):
+        config_rows += (
+            "<tr>"
+            f"<td>{record.get('severity', '')}</td>"
+            f"<td>{record.get('code', '')}</td>"
+            f"<td>{record.get('message', '')}</td>"
+            f"<td>{json.dumps(record.get('details', {}))}</td>"
+            "</tr>"
+        )
     summary = db_summary(server.db_path)
     return f"""<!doctype html>
 <html lang="en">
@@ -706,15 +861,21 @@ def admin_html(server):
 <body>
   <main>
     <h1>Gateway Admin</h1>
-    <p><a href="/">Dashboard</a> | <a href="/v1/gateway/status">Status JSON</a> | <a href="/v1/gateway/providers">Providers JSON</a> | <a href="/v1/gateway/customer-usage">Customer Usage JSON</a> | <a href="/v1/gateway/model-usage">Model Usage JSON</a> | <a href="/v1/gateway/requests">Requests JSON</a> | <a href="/v1/gateway/usage">Usage JSON</a> | <a href="/v1/gateway/customers">Customers JSON</a></p>
+    <p><a href="/">Dashboard</a> | <a href="/v1/gateway/status">Status JSON</a> | <a href="/v1/gateway/config-check">Config Check JSON</a> | <a href="/v1/gateway/providers">Providers JSON</a> | <a href="/v1/gateway/customer-usage">Customer Usage JSON</a> | <a href="/v1/gateway/model-usage">Model Usage JSON</a> | <a href="/v1/gateway/requests">Requests JSON</a> | <a href="/v1/gateway/usage">Usage JSON</a> | <a href="/v1/gateway/customers">Customers JSON</a></p>
     <h2>Summary</h2>
     <table>
       <tbody>
         <tr><th>Total requests</th><td>{summary.get('request_count', 0)}</td></tr>
         <tr><th>Total tokens</th><td>{summary.get('usage', {}).get('total_tokens', 0)}</td></tr>
         <tr><th>Estimated cost</th><td>{summary.get('usage', {}).get('estimated_cost', 0)}</td></tr>
+        <tr><th>Config status</th><td>{config_check.get('status')}</td></tr>
         <tr><th>Database</th><td>{server.db_path}</td></tr>
       </tbody>
+    </table>
+    <h2>Config Check</h2>
+    <table>
+      <thead><tr><th>Severity</th><th>Code</th><th>Message</th><th>Details</th></tr></thead>
+      <tbody>{config_rows}</tbody>
     </table>
     <h2>Recent Requests</h2>
     <table>
@@ -1038,7 +1199,7 @@ def should_force_failover(payload, candidate_index):
 
 
 class GatewayHandler(BaseHTTPRequestHandler):
-    server_version = "AISmallRouter/0.6"
+    server_version = "AISmallRouter/0.7"
 
     def log_message(self, format_text, *args):
         if self.server.quiet:
@@ -1082,6 +1243,9 @@ class GatewayHandler(BaseHTTPRequestHandler):
             return
         if path == "/v1/gateway/status":
             make_json_response(self, 200, gateway_status(self.server))
+            return
+        if path == "/v1/gateway/config-check":
+            make_json_response(self, 200, gateway_config_check(self.server))
             return
         if path == "/v1/gateway/requests":
             make_json_response(self, 200, {"data": db_tail(self.server.db_path, "requests", 100)})
@@ -1425,6 +1589,14 @@ def main():
     print(f"Logs: {args.log_dir}")
     print(f"Database: {db_path}")
     print("Admin: protected" if args.admin_key else "Admin: unprotected")
+    config = gateway_config_check(server)
+    print(
+        "Config check: "
+        f"{config['status']} "
+        f"({config['summary']['critical']} critical, "
+        f"{config['summary']['warning']} warning, "
+        f"{config['summary']['info']} info)"
+    )
     server.serve_forever()
 
 

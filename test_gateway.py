@@ -278,6 +278,22 @@ class GatewayPrototypeTest(unittest.TestCase):
         self.assertEqual(response.status, 200)
         self.assertIn("Gateway Admin", html)
 
+    def test_config_check_reports_demo_warnings(self):
+        status, payload = request_json(self.base_url, path="/v1/gateway/config-check")
+        self.assertEqual(status, 401)
+        self.assertEqual(payload["error"]["code"], "invalid_admin_key")
+
+        status, payload = request_json(
+            self.base_url,
+            path="/v1/gateway/config-check",
+            api_key="dev-admin-key",
+        )
+        self.assertEqual(status, 200)
+        self.assertEqual(payload["status"], "warning")
+        codes = {check["code"] for check in payload["checks"]}
+        self.assertIn("default_admin_key", codes)
+        self.assertIn("demo_customer_keys", codes)
+
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)

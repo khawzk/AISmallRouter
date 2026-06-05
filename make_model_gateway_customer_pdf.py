@@ -230,6 +230,7 @@ def build():
         "Model registry in model_registry.json.",
         "SQLite request and usage records for restart-safe demo data.",
         "Provider, customer, model, and request summary endpoints.",
+        "Config check endpoint for demo keys and missing production settings.",
         "Simple customer plans with token and cost budgets.",
         "Bring Your Own Key mapping through environment variables.",
         "Provider adapter scaffolds for OpenAI-compatible APIs and Claude-style APIs.",
@@ -269,6 +270,14 @@ def build():
     story.append(
         Paragraph(
             "The prototype exposes local admin JSON views for provider status, usage by customer, usage by model, and request summaries. These make the control layer easier to explain. The local demo uses a separate admin key. In production, this key should be changed and protected.",
+            styles["BodyCustom"],
+        )
+    )
+
+    story.append(Paragraph("Config Check", styles["H1Custom"]))
+    story.append(
+        Paragraph(
+            "The prototype includes /v1/gateway/config-check. It warns about demo admin keys, demo customer keys, missing live provider keys, and direct secret values in local JSON files. This is not a full security audit, but it is a useful readiness checklist for customer demos.",
             styles["BodyCustom"],
         )
     )
