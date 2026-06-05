@@ -169,6 +169,7 @@ class GatewayPrototypeTest(unittest.TestCase):
             "/v1/models",
             "/v1/chat/completions",
             "/v1/gateway/me",
+            "/v1/gateway/integration-guide",
             "/v1/gateway/status",
             "/v1/gateway/policy-presets",
             "/v1/gateway/customers",
@@ -201,6 +202,7 @@ class GatewayPrototypeTest(unittest.TestCase):
         customer_names = {item["name"] for item in folders["Customer API"]["item"]}
         admin_names = {item["name"] for item in folders["Admin Control Plane"]["item"]}
         self.assertIn("Chat Completion", customer_names)
+        self.assertIn("Customer Integration Guide", customer_names)
         self.assertIn("Route Preview", admin_names)
         self.assertIn("Create Customer", admin_names)
         chat = next(item for item in folders["Customer API"]["item"] if item["name"] == "Chat Completion")
@@ -224,6 +226,26 @@ class GatewayPrototypeTest(unittest.TestCase):
         self.assertGreaterEqual(len(bundle["quick_commands"]), 4)
         self.assertIn("Replace demo keys before production.", bundle["production_notes"])
         self.assertNotIn("DASHSCOPE_API_KEY", json.dumps(bundle))
+
+    def test_customer_integration_guide_lists_safe_code_examples(self):
+        status, payload = request_json(self.base_url, path="/v1/gateway/integration-guide", api_key="wrong-key")
+        self.assertEqual(status, 401)
+        self.assertEqual(payload["error"]["code"], "invalid_api_key")
+
+        status, guide = request_json(self.base_url, path="/v1/gateway/integration-guide", api_key="dev-gateway-key")
+        self.assertEqual(status, 200)
+        self.assertEqual(guide["object"], "customer.integration_guide")
+        self.assertEqual(guide["customer"]["id"], "dev")
+        self.assertEqual(guide["base_url"], self.base_url)
+        self.assertIn("smart-fast", guide["models"]["allowed"])
+        self.assertIn(guide["models"]["recommended"], guide["models"]["allowed"])
+        self.assertIn("curl_chat", guide["code_examples"])
+        self.assertIn("python", guide["code_examples"])
+        self.assertIn("javascript", guide["code_examples"])
+        self.assertIn("YOUR_GATEWAY_API_KEY", guide["code_examples"]["curl_chat"])
+        self.assertNotIn("dev-gateway-key", json.dumps(guide["code_examples"]))
+        self.assertNotIn("DASHSCOPE_API_KEY", json.dumps(guide))
+        self.assertGreaterEqual(len(guide["go_live_checklist"]), 5)
 
     def test_models_requires_valid_gateway_key(self):
         status, payload = request_json(self.base_url, path="/v1/models", api_key="wrong-key")

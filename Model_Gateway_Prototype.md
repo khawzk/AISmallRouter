@@ -156,6 +156,7 @@ Included in the prototype:
 - Basic OpenAPI contract export
 - Basic Postman collection export
 - Basic demo bundle manifest
+- Basic customer integration guide
 - Basic customer key create, rotate, and disable workflow
 - Basic audit events for customer key lifecycle changes
 - Basic customer self-service profile

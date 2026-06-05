@@ -227,6 +227,7 @@ def build():
         "OpenAPI contract at /openapi.json for customer technical handoff.",
         "Postman collection at /postman_collection.json for click-through demos.",
         "Demo bundle manifest at /v1/gateway/demo-bundle for customer presentation flow.",
+        "Customer integration guide at /v1/gateway/integration-guide with safe code examples.",
         "OpenAI-compatible /v1/chat/completions endpoint.",
         "Customer API key authentication with Bearer token.",
         "Basic in-memory request limit.",
@@ -276,6 +277,7 @@ def build():
             ["API handoff", "Customer technical teams need a clear API contract.", "OpenAPI contract endpoint"],
             ["Demo handoff", "Customer technical teams may want to click through requests.", "Postman collection endpoint"],
             ["Demo flow", "Business and technical users need to know what to look at first.", "Demo bundle manifest endpoint"],
+            ["Customer integration", "A customer technical team needs safe examples for their own key and models.", "Customer integration guide endpoint"],
             ["Streaming", "Chat UIs and agents often need incremental tokens.", "Mock streaming included; live provider differences still need work"],
             ["Tool calling", "OpenAI, Claude, and Qwen may differ in tool format.", "Mock tool_calls plus basic normalization"],
             ["Token usage", "Billing and quota require reliable usage data.", "Stored in SQLite"],
@@ -322,7 +324,7 @@ def build():
     story.append(Paragraph("API Contract", styles["H1Custom"]))
     story.append(
         Paragraph(
-            "/openapi.json exposes an OpenAPI contract for the prototype. It describes the customer API, admin control-plane API, bearer key security schemes, and the main endpoint groups. /postman_collection.json exposes a ready-to-import Postman collection with base_url, gateway_api_key, and admin_api_key variables. /v1/gateway/demo-bundle lists the dashboard, customer self view, OpenAPI contract, Postman collection, PDF guide, recommended demo order, safe curl examples, and production notes. These help a business team understand the story first and help a customer technical team import or click through the prototype quickly.",
+            "/openapi.json exposes an OpenAPI contract for the prototype. It describes the customer API, admin control-plane API, bearer key security schemes, and the main endpoint groups. /postman_collection.json exposes a ready-to-import Postman collection with base_url, gateway_api_key, and admin_api_key variables. /v1/gateway/demo-bundle lists the dashboard, customer self view, OpenAPI contract, Postman collection, PDF guide, recommended demo order, safe curl examples, and production notes. /v1/gateway/integration-guide lets a customer use their own key to see allowed models, a recommended first model, curl, Python, JavaScript, streaming examples, and a go-live checklist without exposing provider secrets. These help a business team understand the story first and help a customer technical team import or click through the prototype quickly.",
             styles["BodyCustom"],
         )
     )

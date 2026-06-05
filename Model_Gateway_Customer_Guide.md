@@ -57,6 +57,7 @@ The prototype supports:
 - OpenAPI contract
 - Postman collection
 - Demo bundle manifest
+- Customer integration guide
 - Operational alerts
 - Access matrix
 - OpenAI-compatible chat endpoint
@@ -169,6 +170,27 @@ It lists:
 This helps a business team understand the story first.
 
 Then the technical team can use the API contract and Postman collection.
+
+The prototype also includes `/v1/gateway/integration-guide`.
+
+This is a customer-facing integration guide.
+
+A customer calls it with their own gateway key.
+
+It returns:
+
+- allowed model names
+- recommended first model
+- curl examples
+- Python example
+- JavaScript example
+- streaming example
+- go-live checklist
+- support questions
+
+It uses placeholders for secrets.
+
+It does not expose provider API keys.
 
 ## Why This Is Not Just An API Gateway
 

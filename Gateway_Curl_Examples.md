@@ -30,7 +30,7 @@ It does not spend provider credits.
 python3 test_gateway.py
 ```
 
-The test covers auth, OpenAPI contract, Postman collection, demo bundle, model listing, customer self view, customer key lifecycle, audit events, provider lifecycle, model route lifecycle, routing, route strategy, policy presets, route preview, route decision summary, provider allow-list routing, capability routing, safety preview, cost estimate, customer key issue preview, invoice preview, fallback, model access, budgets, SQLite logs, alerts, access matrix, provider health, model catalog, customer reports, request activity, request detail lookup, and admin summary endpoints.
+The test covers auth, OpenAPI contract, Postman collection, demo bundle, customer integration guide, model listing, customer self view, customer key lifecycle, audit events, provider lifecycle, model route lifecycle, routing, route strategy, policy presets, route preview, route decision summary, provider allow-list routing, capability routing, safety preview, cost estimate, customer key issue preview, invoice preview, fallback, model access, budgets, SQLite logs, alerts, access matrix, provider health, model catalog, customer reports, request activity, request detail lookup, and admin summary endpoints.
 
 Open the visual dashboard:
 
@@ -55,6 +55,13 @@ Fetch the customer demo bundle manifest:
 ```bash
 curl http://127.0.0.1:8787/v1/gateway/demo-bundle \
   -H "Authorization: Bearer dev-admin-key"
+```
+
+Fetch the customer integration guide:
+
+```bash
+curl http://127.0.0.1:8787/v1/gateway/integration-guide \
+  -H "Authorization: Bearer dev-gateway-key"
 ```
 
 Optional: test a very small request limit.
@@ -88,6 +95,17 @@ It does not show provider secrets.
 
 ```bash
 curl http://127.0.0.1:8787/v1/gateway/me \
+  -H "Authorization: Bearer dev-gateway-key"
+```
+
+## Check Customer Integration Guide
+
+This returns customer-specific quickstart steps, safe code examples, and a go-live checklist.
+
+It does not show provider secrets.
+
+```bash
+curl http://127.0.0.1:8787/v1/gateway/integration-guide \
   -H "Authorization: Bearer dev-gateway-key"
 ```
 

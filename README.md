@@ -153,6 +153,7 @@ It should support:
 
 - `GET /v1/models`
 - `GET /v1/gateway/me`
+- `GET /v1/gateway/integration-guide`
 - `POST /v1/chat/completions`
 - OpenAI-compatible request and response format
 - Simple model registry
@@ -200,6 +201,7 @@ The current version also supports:
 - `GET /v1/gateway/request-summary`
 - `GET /v1/gateway/config-check`
 - customer self-service view for allowed models, budget, usage, and invoice preview
+- customer integration guide with quickstart steps, curl, Python, JavaScript, streaming, and go-live checklist
 - `stream=true` Server-Sent Events
 - `gateway_force_failover=true` for fallback testing in mock mode
 - OpenAI-style `tools` request with mock tool call response
@@ -226,6 +228,7 @@ The current version also supports:
 - operational alerts with next steps
 - customer model access matrix
 - customer self-service profile with no provider secret exposure
+- customer integration guide with safe code examples and no provider secret exposure
 - multiple customer keys through `customer_keys.json`
 - customer plans with request limits, token budgets, and cost budgets
 - SQLite persistence for request and usage records
@@ -250,6 +253,7 @@ It includes:
 - admin bearer auth
 - OpenAI-compatible model and chat endpoints
 - customer self view
+- customer integration guide
 - provider, model route, customer, audit, billing, safety, and reporting endpoints
 
 This can help a customer technical team import the prototype into Postman, Swagger tools, or SDK generators.
@@ -289,6 +293,30 @@ It points to:
 - production notes
 
 This helps a non-technical customer understand the story first, then gives their technical team the right artifacts.
+
+## Customer Integration Guide
+
+A customer can also ask the gateway how to connect:
+
+```bash
+curl http://127.0.0.1:8787/v1/gateway/integration-guide \
+  -H "Authorization: Bearer dev-gateway-key"
+```
+
+This returns:
+
+- the customer's public gateway profile
+- the allowed public model names
+- a recommended first model
+- curl examples
+- Python example
+- JavaScript example
+- streaming example
+- go-live checklist
+
+It uses placeholders like `YOUR_GATEWAY_API_KEY`.
+
+It does not expose provider API keys.
 
 ## Admin Access
 

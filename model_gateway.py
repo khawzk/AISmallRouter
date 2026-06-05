@@ -965,6 +965,107 @@ def customer_self_view(server, customer):
     }
 
 
+def customer_integration_guide(server, customer):
+    base_url = f"http://{server.server_address[0]}:{server.server_address[1]}"
+    visible_models = [
+        model_id
+        for model_id in sorted(server.models.keys())
+        if customer_model_allowed(customer, model_id)
+    ]
+    recommended_model = visible_models[0] if visible_models else "smart-fast"
+    api_key_placeholder = "YOUR_GATEWAY_API_KEY"
+    chat_body = {
+        "model": recommended_model,
+        "messages": [{"role": "user", "content": "Explain this gateway in one sentence."}],
+        "stream": False,
+    }
+    stream_body = dict(chat_body)
+    stream_body["stream"] = True
+    return {
+        "object": "customer.integration_guide",
+        "mode": "mock" if server.mock_mode else "live",
+        "base_url": base_url,
+        "customer": {
+            "id": customer.get("id"),
+            "name": customer.get("name", customer.get("id")),
+            "plan": customer.get("plan", "prototype"),
+            "api_key_masked": mask_key(customer.get("api_key", "")),
+            "default_policy": customer.get("default_policy"),
+        },
+        "models": {
+            "recommended": recommended_model,
+            "allowed": visible_models,
+            "note": "Use the public model name. The gateway hides the upstream provider model.",
+        },
+        "quickstart_steps": [
+            "Set GATEWAY_BASE_URL to the gateway URL.",
+            "Set GATEWAY_API_KEY to the customer gateway key.",
+            "Call /v1/models to confirm access.",
+            "Call /v1/chat/completions with an OpenAI-compatible request body.",
+            "Use stream=true only when the client can read Server-Sent Events.",
+            "Ask the gateway owner for policy, budget, and invoice rules before production.",
+        ],
+        "code_examples": {
+            "curl_list_models": (
+                f"curl {base_url}/v1/models "
+                f"-H 'Authorization: Bearer {api_key_placeholder}'"
+            ),
+            "curl_chat": (
+                f"curl {base_url}/v1/chat/completions "
+                f"-H 'Authorization: Bearer {api_key_placeholder}' "
+                "-H 'Content-Type: application/json' "
+                f"-d '{json.dumps(chat_body, separators=(',', ':'))}'"
+            ),
+            "curl_stream": (
+                f"curl -N {base_url}/v1/chat/completions "
+                f"-H 'Authorization: Bearer {api_key_placeholder}' "
+                "-H 'Content-Type: application/json' "
+                f"-d '{json.dumps(stream_body, separators=(',', ':'))}'"
+            ),
+            "python": (
+                "import os, requests\n\n"
+                f"base_url = os.getenv('GATEWAY_BASE_URL', '{base_url}')\n"
+                "api_key = os.environ['GATEWAY_API_KEY']\n"
+                "response = requests.post(\n"
+                "    f'{base_url}/v1/chat/completions',\n"
+                "    headers={'Authorization': f'Bearer {api_key}'},\n"
+                f"    json={json.dumps(chat_body, indent=4)},\n"
+                "    timeout=60,\n"
+                ")\n"
+                "print(response.json()['choices'][0]['message']['content'])"
+            ),
+            "javascript": (
+                f"const baseUrl = process.env.GATEWAY_BASE_URL || '{base_url}';\n"
+                "const apiKey = process.env.GATEWAY_API_KEY;\n"
+                "const response = await fetch(`${baseUrl}/v1/chat/completions`, {\n"
+                "  method: 'POST',\n"
+                "  headers: {\n"
+                "    Authorization: `Bearer ${apiKey}`,\n"
+                "    'Content-Type': 'application/json'\n"
+                "  },\n"
+                f"  body: JSON.stringify({json.dumps(chat_body, indent=2)})\n"
+                "});\n"
+                "const data = await response.json();\n"
+                "console.log(data.choices[0].message.content);"
+            ),
+        },
+        "go_live_checklist": [
+            "Replace local demo keys with real customer keys.",
+            "Confirm allowed models and default routing policy.",
+            "Confirm request, token, and cost budgets.",
+            "Confirm whether prompts may contain sensitive data.",
+            "Confirm logging, retention, and invoice rules.",
+            "Run one mock request before switching to live provider mode.",
+        ],
+        "support_questions": [
+            "Which model should this customer use first?",
+            "Should this customer be allowed to use fallback providers?",
+            "Who receives usage or budget alerts?",
+            "What should happen when the monthly budget is reached?",
+        ],
+    }
+
+
 def provider_status(server):
     rows = []
     request_by_provider = {
@@ -2788,6 +2889,13 @@ def openapi_spec(server):
                 "responses": {"200": json_response("Customer profile, allowed models, budget, usage, and invoice preview.")},
             }
         },
+        "/v1/gateway/integration-guide": {
+            "get": {
+                "summary": "Customer integration guide",
+                "security": customer_security,
+                "responses": {"200": json_response("Customer-specific quickstart, code examples, and go-live checklist.")},
+            }
+        },
         "/v1/gateway/status": {
             "get": {
                 "summary": "Admin gateway status summary",
@@ -3013,6 +3121,7 @@ def postman_collection(server):
         request_item("OpenAPI Contract", "GET", "/openapi.json"),
         request_item("List Models", "GET", "/v1/models", "gateway_api_key"),
         request_item("Customer Self View", "GET", "/v1/gateway/me", "gateway_api_key"),
+        request_item("Customer Integration Guide", "GET", "/v1/gateway/integration-guide", "gateway_api_key"),
         request_item(
             "Chat Completion",
             "POST",
@@ -3158,6 +3267,13 @@ def demo_bundle(server):
                 "auth": "customerBearerAuth",
             },
             {
+                "name": "Customer integration guide",
+                "url": f"{base_url}/v1/gateway/integration-guide",
+                "audience": "customer technical",
+                "purpose": "Show customer-specific quickstart steps, code examples, and go-live checklist.",
+                "auth": "customerBearerAuth",
+            },
+            {
                 "name": "OpenAPI contract",
                 "url": f"{base_url}/openapi.json",
                 "audience": "customer technical",
@@ -3186,8 +3302,8 @@ def demo_bundle(server):
             {
                 "step": 2,
                 "title": "Show models and customer access",
-                "show": "/v1/models and /v1/gateway/me",
-                "talk_track": "The customer sees public model names and their own access, not provider secrets.",
+                "show": "/v1/models, /v1/gateway/me, and /v1/gateway/integration-guide",
+                "talk_track": "The customer sees public model names, their own access, and practical integration examples, not provider secrets.",
             },
             {
                 "step": 3,
@@ -3222,6 +3338,10 @@ def demo_bundle(server):
             {
                 "name": "Customer self view",
                 "command": f"curl {base_url}/v1/gateway/me -H 'Authorization: Bearer {DEFAULT_GATEWAY_API_KEY}'",
+            },
+            {
+                "name": "Customer integration guide",
+                "command": f"curl {base_url}/v1/gateway/integration-guide -H 'Authorization: Bearer {DEFAULT_GATEWAY_API_KEY}'",
             },
             {
                 "name": "Route preview",
@@ -3946,6 +4066,11 @@ class GatewayHandler(BaseHTTPRequestHandler):
             if not self.authenticate():
                 return
             make_json_response(self, 200, customer_self_view(self.server, self.customer))
+            return
+        if path == "/v1/gateway/integration-guide":
+            if not self.authenticate():
+                return
+            make_json_response(self, 200, customer_integration_guide(self.server, self.customer))
             return
         if path == "/v1/gateway/status":
             make_json_response(self, 200, gateway_status(self.server))
