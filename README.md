@@ -1,5 +1,13 @@
 # AI Model Gateway Prototype
 
+In one sentence: this project is a small demo of an "AI model switchboard" that lets a customer use one API while the system decides which AI model provider to call behind the scenes.
+
+For non-technical readers:
+
+- The customer sends one request to one place.
+- The gateway checks the request, chooses a model, and routes it to the right provider.
+- The current demo uses mock mode, so it can explain the idea without spending real model credits.
+
 This repository is for a small AI Model Gateway prototype.
 
 The goal is to give customers one simple API for many AI model providers.
