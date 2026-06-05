@@ -89,6 +89,7 @@ ADMIN_PATHS = {
     "/v1/gateway/support-policy",
     "/v1/gateway/pilot-checklist",
     "/v1/gateway/executive-brief",
+    "/v1/gateway/roadmap",
     "/v1/gateway/request-activity",
     "/v1/gateway/model-catalog",
     "/v1/gateway/route-preview",
@@ -3267,6 +3268,115 @@ def executive_brief(server):
     }
 
 
+def gateway_roadmap(server):
+    readiness = production_readiness(server)
+    return {
+        "object": "gateway.roadmap",
+        "title": "AISmallRouter Prototype To Production Roadmap",
+        "mode": "mock" if server.mock_mode else "live",
+        "plain_english": "This roadmap shows how to move from a local prototype to a customer pilot and then to a production-ready gateway.",
+        "current_position": {
+            "stage": "prototype",
+            "readiness_status": readiness.get("overall_status"),
+            "prototype_only": readiness.get("prototype_only"),
+        },
+        "phases": [
+            {
+                "phase": "1. Prototype explanation",
+                "goal": "Help business and technical users understand the model gateway idea.",
+                "deliverables": [
+                    "Visual dashboard",
+                    "Mock chat request",
+                    "Route preview",
+                    "Executive brief",
+                    "Customer guide PDF",
+                ],
+                "exit_criteria": [
+                    "Customer understands one API for many providers.",
+                    "Customer understands public model names versus upstream provider models.",
+                    "Customer agrees whether a technical pilot is useful.",
+                ],
+                "main_risks": [
+                    "Customer expects production behavior from a prototype.",
+                    "Provider live keys are not configured yet.",
+                ],
+            },
+            {
+                "phase": "2. Technical pilot",
+                "goal": "Let a small customer team test controlled API flows.",
+                "deliverables": [
+                    "Customer gateway key",
+                    "Integration guide",
+                    "OpenAPI contract",
+                    "Postman collection",
+                    "Pilot checklist",
+                    "Request tracing with gateway.request_id",
+                ],
+                "exit_criteria": [
+                    "Customer can send a model request.",
+                    "Support can trace requests and explain route decisions.",
+                    "Usage, budget, and support expectations are clear.",
+                ],
+                "main_risks": [
+                    "Customer scope grows before controls are ready.",
+                    "Live provider behavior differs from mock behavior.",
+                ],
+            },
+            {
+                "phase": "3. Production hardening",
+                "goal": "Prepare the gateway for real customer traffic.",
+                "deliverables": [
+                    "Database-backed customer and route config",
+                    "Secret manager integration",
+                    "Approval workflow",
+                    "Monitoring and alert routing",
+                    "Billing rules",
+                    "Operational runbooks",
+                ],
+                "exit_criteria": [
+                    "Production readiness blockers have named owners.",
+                    "Support policy and SLA terms are agreed.",
+                    "Provider keys, logs, billing, and audit rules are production-safe.",
+                ],
+                "main_risks": [
+                    "Billing rules are unclear.",
+                    "Secrets or customer keys are not managed safely.",
+                    "No agreed incident ownership.",
+                ],
+            },
+            {
+                "phase": "4. Multi-provider expansion",
+                "goal": "Add more providers after the control layer is understood.",
+                "deliverables": [
+                    "Provider contract matrix",
+                    "Disabled provider configs",
+                    "Live provider contract tests",
+                    "Fallback routing rules",
+                    "Provider allow-list policies",
+                ],
+                "exit_criteria": [
+                    "Each provider has auth, request, response, streaming, tools, usage, and error tests.",
+                    "Fallback behavior is explained and approved.",
+                    "Customer policy controls decide which providers can be used.",
+                ],
+                "main_risks": [
+                    "OpenAI-compatible providers still behave differently.",
+                    "Claude, Xiaomi, or other providers require custom normalization.",
+                    "Fallback can change cost or compliance behavior.",
+                ],
+            },
+        ],
+        "recommended_next_action": "Use the executive brief and pilot checklist with one customer champion before promising production traffic.",
+        "reference_endpoints": [
+            "/v1/gateway/executive-brief",
+            "/v1/gateway/pilot-checklist",
+            "/v1/gateway/production-readiness",
+            "/v1/gateway/provider-contracts",
+            "/v1/gateway/support-policy",
+        ],
+    }
+
+
 def read_jsonl_tail(path, limit=50):
     if not os.path.exists(path):
         return []
@@ -3751,6 +3861,7 @@ def openapi_spec(server):
         "/v1/gateway/support-policy": "Support policy and SLA stage guide",
         "/v1/gateway/pilot-checklist": "Customer pilot checklist",
         "/v1/gateway/executive-brief": "Executive customer brief",
+        "/v1/gateway/roadmap": "Prototype to production roadmap",
     }.items():
         paths[path] = {
             "get": {
@@ -3854,6 +3965,7 @@ def postman_collection(server):
         request_item("Support Policy", "GET", "/v1/gateway/support-policy", "admin_api_key"),
         request_item("Pilot Checklist", "GET", "/v1/gateway/pilot-checklist", "admin_api_key"),
         request_item("Executive Brief", "GET", "/v1/gateway/executive-brief", "admin_api_key"),
+        request_item("Roadmap", "GET", "/v1/gateway/roadmap", "admin_api_key"),
         request_item("Model Catalog", "GET", "/v1/gateway/model-catalog", "admin_api_key"),
         request_item("Audit Events", "GET", "/v1/gateway/audit-events", "admin_api_key"),
         request_item("Customer Reports", "GET", "/v1/gateway/customer-reports", "admin_api_key"),
@@ -4037,6 +4149,13 @@ def demo_bundle(server):
                 "auth": "adminBearerAuth",
             },
             {
+                "name": "Roadmap",
+                "url": f"{base_url}/v1/gateway/roadmap",
+                "audience": "business and technical",
+                "purpose": "Show phases from prototype to pilot, production hardening, and multi-provider expansion.",
+                "auth": "adminBearerAuth",
+            },
+            {
                 "name": "Postman collection",
                 "url": f"{base_url}/postman_collection.json",
                 "audience": "customer technical",
@@ -4135,6 +4254,10 @@ def demo_bundle(server):
             {
                 "name": "Executive brief",
                 "command": f"curl {base_url}/v1/gateway/executive-brief -H 'Authorization: Bearer {server.admin_api_key or DEFAULT_ADMIN_API_KEY}'",
+            },
+            {
+                "name": "Roadmap",
+                "command": f"curl {base_url}/v1/gateway/roadmap -H 'Authorization: Bearer {server.admin_api_key or DEFAULT_ADMIN_API_KEY}'",
             },
         ],
         "production_notes": [
@@ -4879,6 +5002,9 @@ class GatewayHandler(BaseHTTPRequestHandler):
             return
         if path == "/v1/gateway/executive-brief":
             make_json_response(self, 200, executive_brief(self.server))
+            return
+        if path == "/v1/gateway/roadmap":
+            make_json_response(self, 200, gateway_roadmap(self.server))
             return
         if path == "/v1/gateway/requests":
             make_json_response(self, 200, {"data": db_tail(self.server.db_path, "requests", 100)})

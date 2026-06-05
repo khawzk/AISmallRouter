@@ -175,6 +175,7 @@ The current version also supports:
 - `GET /v1/gateway/support-policy`
 - `GET /v1/gateway/pilot-checklist`
 - `GET /v1/gateway/executive-brief`
+- `GET /v1/gateway/roadmap`
 - `GET /v1/gateway/access-matrix`
 - `GET /v1/gateway/requests`
 - `GET /v1/gateway/usage`
@@ -237,6 +238,7 @@ The current version also supports:
 - support policy with prototype, pilot, and production support stages
 - pilot checklist for before, during, and after a customer trial
 - executive brief for non-technical customer stakeholders
+- roadmap from prototype to pilot, production hardening, and multi-provider expansion
 - production readiness report for go-live gaps
 - customer model access matrix
 - customer self-service profile with no provider secret exposure
@@ -250,6 +252,7 @@ The current version also supports:
 - support policy for SLA-stage discussion without pretending the prototype has a legal SLA
 - pilot checklist for scope, roles, success criteria, and exit decision
 - executive brief for business value, demo story, risks, and next step
+- roadmap for phased prototype-to-production planning
 - OpenAPI contract at `/openapi.json`
 - Postman collection at `/postman_collection.json`
 - demo bundle manifest at `/v1/gateway/demo-bundle`
@@ -532,6 +535,29 @@ It explains:
 - pilot recommendation
 - support and readiness position
 - next step
+
+## Roadmap
+
+The gateway has a roadmap endpoint:
+
+```bash
+curl http://127.0.0.1:8787/v1/gateway/roadmap \
+  -H "Authorization: Bearer dev-admin-key"
+```
+
+It shows the path from prototype to production:
+
+- prototype explanation
+- technical pilot
+- production hardening
+- multi-provider expansion
+
+Each phase includes:
+
+- goal
+- deliverables
+- exit criteria
+- main risks
 
 ## Access Matrix
 

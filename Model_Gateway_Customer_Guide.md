@@ -63,6 +63,7 @@ The prototype supports:
 - Support policy
 - Pilot checklist
 - Executive brief
+- Roadmap
 - Access matrix
 - OpenAI-compatible chat endpoint
 - Customer API key check
@@ -459,6 +460,28 @@ It explains:
 - next step
 
 This helps a business customer understand the direction before reading technical details.
+
+## What The Roadmap Shows
+
+The prototype includes `/v1/gateway/roadmap`.
+
+This endpoint explains the path from prototype to production.
+
+It includes:
+
+- prototype explanation
+- technical pilot
+- production hardening
+- multi-provider expansion
+
+Each phase includes:
+
+- goal
+- deliverables
+- exit criteria
+- main risks
+
+This helps a customer understand the next steps without jumping too quickly into production promises.
 
 ## What The Access Matrix Shows
 

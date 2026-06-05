@@ -239,6 +239,7 @@ def build():
         "Support policy endpoint for prototype, pilot, and production support stages.",
         "Pilot checklist endpoint for before, during, and after a customer trial.",
         "Executive brief endpoint for non-technical customer stakeholders.",
+        "Roadmap endpoint for prototype, pilot, production hardening, and multi-provider expansion.",
         "Access matrix endpoint for customer and model permissions.",
         "Provider health endpoint for mock-ready, live-ready, degraded, and not-ready states.",
         "Provider create, update, and disable actions for provider lifecycle demos.",
@@ -292,6 +293,7 @@ def build():
             ["Support policy", "Customers need to know what support is promised at each stage.", "Prototype, pilot, and production support guide"],
             ["Pilot planning", "A customer trial needs scope, roles, success criteria, and exit decision.", "Pilot checklist endpoint"],
             ["Executive communication", "Non-technical stakeholders need a short business summary.", "Executive brief endpoint"],
+            ["Roadmap planning", "Customers need to see the path from demo to production.", "Roadmap endpoint"],
             ["Production readiness", "Customers need to understand why demo-ready is not production-ready.", "Plain-English readiness report"],
             ["Access control", "Each customer may be allowed to use different models.", "Access matrix by customer and model"],
             ["Provider health", "Customers need to know whether a provider can serve traffic.", "Readiness view based on config and recent traffic"],
@@ -385,6 +387,14 @@ def build():
     story.append(
         Paragraph(
             "/v1/gateway/executive-brief gives a short business summary for non-technical stakeholders. It explains the one-sentence value, why the gateway matters, what the demo proves, what is not production-ready yet, the recommended customer story, pilot recommendation, support and readiness position, and next step.",
+            styles["BodyCustom"],
+        )
+    )
+
+    story.append(Paragraph("Roadmap Endpoint", styles["H1Custom"]))
+    story.append(
+        Paragraph(
+            "/v1/gateway/roadmap explains the path from prototype to production. It includes prototype explanation, technical pilot, production hardening, and multi-provider expansion. Each phase has a goal, deliverables, exit criteria, and main risks. This helps customers understand next steps without jumping too quickly into production promises.",
             styles["BodyCustom"],
         )
     )
