@@ -354,6 +354,29 @@ More examples:
 
 [Gateway_Curl_Examples.md](./Gateway_Curl_Examples.md)
 
+## Run Regression Tests
+
+The test file uses only the Python standard library.
+
+It starts the gateway in mock mode on a temporary port.
+
+It does not call paid providers.
+
+```bash
+python3 test_gateway.py
+```
+
+The tests check:
+
+- Invalid API key rejection
+- Model listing
+- Chat completion route tracing
+- SQLite request and usage records
+- Forced fallback routing
+- Customer model access rules
+- Token budget blocking
+- Status output without leaking provider keys
+
 ## Customer Materials
 
 Use these files for customer explanation:

@@ -20,6 +20,18 @@ Use this mode to test the gateway without spending money.
 python3 model_gateway.py --mock
 ```
 
+## Run The Automated Demo Test
+
+This starts the gateway on a temporary local port.
+
+It does not spend provider credits.
+
+```bash
+python3 test_gateway.py
+```
+
+The test covers auth, model listing, routing, fallback, model access, budgets, and SQLite logs.
+
 Open the visual dashboard:
 
 ```text

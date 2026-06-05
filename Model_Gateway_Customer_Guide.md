@@ -66,6 +66,7 @@ The prototype supports:
 - Customer plans with token and cost budgets
 - Bring Your Own Key provider mapping
 - Provider adapter scaffolds for OpenAI and Claude
+- Automated mock regression test
 - Mock mode
 - Live Qwen mode
 
@@ -174,6 +175,25 @@ The dashboard shows:
 The most important part is the route simulation.
 
 It shows how `smart-fast` becomes `qwen-plus`.
+
+## Why The Test Script Matters
+
+The repository includes `test_gateway.py`.
+
+It starts the gateway in mock mode and checks the important demo behavior.
+
+It proves the main flow without spending model credits.
+
+The test checks:
+
+- API key rejection
+- Model listing
+- Chat route tracing
+- SQLite usage records
+- Fallback routing
+- Customer model access
+- Token budget blocking
+- Status output without provider key leaks
 
 ## Technical Challenges
 

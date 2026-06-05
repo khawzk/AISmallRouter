@@ -232,6 +232,7 @@ def build():
         "Simple customer plans with token and cost budgets.",
         "Bring Your Own Key mapping through environment variables.",
         "Provider adapter scaffolds for OpenAI-compatible APIs and Claude-style APIs.",
+        "Automated mock regression test that does not spend provider credits.",
         "Mock mode for demos and planning.",
         "Live Qwen mode when DASHSCOPE_API_KEY is available.",
     ]:
@@ -254,6 +255,14 @@ def build():
     )
     difficulties.setStyle(table_style())
     story.append(difficulties)
+
+    story.append(Paragraph("Why The Test Script Matters", styles["H1Custom"]))
+    story.append(
+        Paragraph(
+            "The repository includes test_gateway.py. It starts the gateway in mock mode and checks API keys, model listing, route tracing, fallback, model access rules, token budget blocking, SQLite logs, and status output without leaking provider keys.",
+            styles["BodyCustom"],
+        )
+    )
 
     story.append(Paragraph("Recommended Roadmap", styles["H1Custom"]))
     roadmap = Table(
