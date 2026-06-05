@@ -143,26 +143,39 @@ curl -i http://127.0.0.1:8787/v1/chat/completions \
 Open:
 
 ```text
-http://127.0.0.1:8787/admin
+http://127.0.0.1:8787/admin?admin_key=dev-admin-key
 ```
 
 Or fetch JSON:
 
 ```bash
-curl http://127.0.0.1:8787/v1/gateway/requests
-curl http://127.0.0.1:8787/v1/gateway/usage
-curl http://127.0.0.1:8787/v1/gateway/customers
-curl http://127.0.0.1:8787/v1/gateway/providers
-curl http://127.0.0.1:8787/v1/gateway/customer-usage
-curl http://127.0.0.1:8787/v1/gateway/model-usage
-curl http://127.0.0.1:8787/v1/gateway/request-summary
+curl http://127.0.0.1:8787/v1/gateway/requests \
+  -H "Authorization: Bearer dev-admin-key"
+
+curl http://127.0.0.1:8787/v1/gateway/usage \
+  -H "Authorization: Bearer dev-admin-key"
+
+curl http://127.0.0.1:8787/v1/gateway/customers \
+  -H "Authorization: Bearer dev-admin-key"
+
+curl http://127.0.0.1:8787/v1/gateway/providers \
+  -H "Authorization: Bearer dev-admin-key"
+
+curl http://127.0.0.1:8787/v1/gateway/customer-usage \
+  -H "Authorization: Bearer dev-admin-key"
+
+curl http://127.0.0.1:8787/v1/gateway/model-usage \
+  -H "Authorization: Bearer dev-admin-key"
+
+curl http://127.0.0.1:8787/v1/gateway/request-summary \
+  -H "Authorization: Bearer dev-admin-key"
 ```
 
 The JSON endpoints read from SQLite.
 
-In this prototype, these admin endpoints are open on localhost.
+In this prototype, admin endpoints use the demo admin key `dev-admin-key`.
 
-In production, put them behind admin authentication.
+In production, change the admin key with `GATEWAY_ADMIN_API_KEY`.
 
 The default database path is:
 
@@ -216,7 +229,8 @@ curl -i http://127.0.0.1:8787/v1/chat/completions \
 Fetch customer budget status:
 
 ```bash
-curl http://127.0.0.1:8787/v1/gateway/status
+curl http://127.0.0.1:8787/v1/gateway/status \
+  -H "Authorization: Bearer dev-admin-key"
 ```
 
 ## Start In Live Qwen Mode

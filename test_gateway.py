@@ -20,9 +20,9 @@ def find_free_port():
         return sock.getsockname()[1]
 
 
-def request_json(base_url, method="GET", path="/", api_key=None, payload=None):
+def request_json(base_url, method="GET", path="/", api_key=None, payload=None, headers=None):
     body = None
-    headers = {}
+    headers = dict(headers or {})
     if api_key:
         headers["Authorization"] = f"Bearer {api_key}"
     if payload is not None:
@@ -149,11 +149,11 @@ class GatewayPrototypeTest(unittest.TestCase):
         self.assertEqual(payload["gateway"]["resolved_model"], "qwen-plus")
         self.assertIn("customer_budget", payload["gateway"])
 
-        status, usage = request_json(self.base_url, path="/v1/gateway/usage")
+        status, usage = request_json(self.base_url, path="/v1/gateway/usage", api_key="dev-admin-key")
         self.assertEqual(status, 200)
         self.assertGreaterEqual(len(usage["data"]), 1)
 
-        status, requests = request_json(self.base_url, path="/v1/gateway/requests")
+        status, requests = request_json(self.base_url, path="/v1/gateway/requests", api_key="dev-admin-key")
         self.assertEqual(status, 200)
         self.assertTrue(any(row["code"] == "ok" for row in requests["data"]))
 
@@ -219,6 +219,14 @@ class GatewayPrototypeTest(unittest.TestCase):
 
     def test_status_exposes_customer_budget_without_provider_secret(self):
         status, payload = request_json(self.base_url, path="/v1/gateway/status")
+        self.assertEqual(status, 401)
+        self.assertEqual(payload["error"]["code"], "invalid_admin_key")
+
+        status, payload = request_json(
+            self.base_url,
+            path="/v1/gateway/status",
+            api_key="dev-admin-key",
+        )
         self.assertEqual(status, 200)
         customers = {customer["id"]: customer for customer in payload["customers"]}
         self.assertIn("budget", customers["dev"])
@@ -239,26 +247,36 @@ class GatewayPrototypeTest(unittest.TestCase):
         )
 
         status, providers = request_json(self.base_url, path="/v1/gateway/providers")
+        self.assertEqual(status, 401)
+
+        status, providers = request_json(self.base_url, path="/v1/gateway/providers", api_key="dev-admin-key")
         self.assertEqual(status, 200)
         dashscope = {provider["id"]: provider for provider in providers["data"]}["dashscope"]
         self.assertIn("smart-fast", dashscope["models"])
         self.assertIn("dev", dashscope["byok_customers"])
         self.assertNotIn("provider_api_keys", dashscope)
 
-        status, customer_usage = request_json(self.base_url, path="/v1/gateway/customer-usage")
+        status, customer_usage = request_json(self.base_url, path="/v1/gateway/customer-usage", api_key="dev-admin-key")
         self.assertEqual(status, 200)
         customer_ids = {row["id"] for row in customer_usage["data"]}
         self.assertIn("dev", customer_ids)
 
-        status, model_usage = request_json(self.base_url, path="/v1/gateway/model-usage")
+        status, model_usage = request_json(self.base_url, path="/v1/gateway/model-usage", api_key="dev-admin-key")
         self.assertEqual(status, 200)
         model_ids = {row["id"] for row in model_usage["data"]}
         self.assertIn("smart-fast", model_ids)
 
-        status, request_summary = request_json(self.base_url, path="/v1/gateway/request-summary")
+        status, request_summary = request_json(self.base_url, path="/v1/gateway/request-summary", api_key="dev-admin-key")
         self.assertEqual(status, 200)
         self.assertIn("by_customer", request_summary)
         self.assertIn("by_code", request_summary)
+
+    def test_admin_page_accepts_query_admin_key_for_browser_demo(self):
+        request = urllib.request.Request(self.base_url + "/admin?admin_key=dev-admin-key")
+        with urllib.request.urlopen(request, timeout=5) as response:
+            html = response.read().decode("utf-8")
+        self.assertEqual(response.status, 200)
+        self.assertIn("Gateway Admin", html)
 
 
 if __name__ == "__main__":

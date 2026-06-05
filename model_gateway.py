@@ -9,6 +9,7 @@ import uuid
 import urllib.error
 import urllib.request
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+from urllib.parse import parse_qs, urlparse
 
 
 DEFAULT_HOST = "127.0.0.1"
@@ -19,8 +20,20 @@ DEFAULT_DASHBOARD_PATH = "dashboard.html"
 DEFAULT_LOG_DIR = "logs"
 DEFAULT_DATA_DIR = "data"
 DEFAULT_GATEWAY_API_KEY = "dev-gateway-key"
+DEFAULT_ADMIN_API_KEY = "dev-admin-key"
 DEFAULT_REQUEST_LIMIT = 60
 DEFAULT_LIMIT_WINDOW_SECONDS = 60
+ADMIN_PATHS = {
+    "/admin",
+    "/v1/gateway/status",
+    "/v1/gateway/requests",
+    "/v1/gateway/usage",
+    "/v1/gateway/customers",
+    "/v1/gateway/providers",
+    "/v1/gateway/customer-usage",
+    "/v1/gateway/model-usage",
+    "/v1/gateway/request-summary",
+}
 
 
 class GatewayError(Exception):
@@ -590,7 +603,11 @@ def dashboard_html(server):
     dashboard_path = os.getenv("GATEWAY_DASHBOARD_PATH", DEFAULT_DASHBOARD_PATH)
     if os.path.exists(dashboard_path):
         with open(dashboard_path, "r", encoding="utf-8") as file:
-            return file.read().replace("__GATEWAY_STATE__", state)
+            return (
+                file.read()
+                .replace("__GATEWAY_STATE__", state)
+                .replace("__ADMIN_API_KEY__", server.admin_api_key)
+            )
     return "<!doctype html><title>Model Gateway</title><h1>Model Gateway</h1>"
 
 
@@ -1021,56 +1038,70 @@ def should_force_failover(payload, candidate_index):
 
 
 class GatewayHandler(BaseHTTPRequestHandler):
-    server_version = "AISmallRouter/0.5"
+    server_version = "AISmallRouter/0.6"
 
     def log_message(self, format_text, *args):
         if self.server.quiet:
             return
         super().log_message(format_text, *args)
 
+    def parsed_path(self):
+        return urlparse(self.path)
+
+    def route_path(self):
+        return self.parsed_path().path
+
     def do_HEAD(self):
-        if self.path in {"/", "/dashboard", "/admin"}:
-            html = admin_html(self.server) if self.path == "/admin" else dashboard_html(self.server)
+        path = self.route_path()
+        if path in {"/", "/dashboard", "/admin"}:
+            if path == "/admin" and not self.authenticate_admin():
+                return
+            html = admin_html(self.server) if path == "/admin" else dashboard_html(self.server)
             self.send_response(200)
             self.send_header("Content-Type", "text/html; charset=utf-8")
             self.send_header("Content-Length", str(len(html.encode("utf-8"))))
             self.end_headers()
             return
-        self.send_response(200 if self.path in {"/health", "/v1/gateway/status"} else 404)
+        if path in ADMIN_PATHS and not self.authenticate_admin():
+            return
+        self.send_response(200 if path in {"/health", "/v1/gateway/status"} else 404)
         self.end_headers()
 
     def do_GET(self):
-        if self.path in {"/", "/dashboard"}:
+        path = self.route_path()
+        if path in {"/", "/dashboard"}:
             make_html_response(self, 200, dashboard_html(self.server))
             return
-        if self.path == "/admin":
+        if path in ADMIN_PATHS and not self.authenticate_admin():
+            return
+        if path == "/admin":
             make_html_response(self, 200, admin_html(self.server))
             return
-        if self.path == "/health":
+        if path == "/health":
             make_json_response(self, 200, {"status": "ok"})
             return
-        if self.path == "/v1/gateway/status":
+        if path == "/v1/gateway/status":
             make_json_response(self, 200, gateway_status(self.server))
             return
-        if self.path == "/v1/gateway/requests":
+        if path == "/v1/gateway/requests":
             make_json_response(self, 200, {"data": db_tail(self.server.db_path, "requests", 100)})
             return
-        if self.path == "/v1/gateway/usage":
+        if path == "/v1/gateway/usage":
             make_json_response(self, 200, {"data": db_tail(self.server.db_path, "usage_records", 100)})
             return
-        if self.path == "/v1/gateway/customers":
+        if path == "/v1/gateway/customers":
             make_json_response(self, 200, {"data": db_tail(self.server.db_path, "customers", 100)})
             return
-        if self.path == "/v1/gateway/providers":
+        if path == "/v1/gateway/providers":
             make_json_response(self, 200, {"data": provider_status(self.server)})
             return
-        if self.path == "/v1/gateway/customer-usage":
+        if path == "/v1/gateway/customer-usage":
             make_json_response(self, 200, {"data": usage_grouped_by(self.server.db_path, "customer_id")})
             return
-        if self.path == "/v1/gateway/model-usage":
+        if path == "/v1/gateway/model-usage":
             make_json_response(self, 200, {"data": usage_grouped_by(self.server.db_path, "model")})
             return
-        if self.path == "/v1/gateway/request-summary":
+        if path == "/v1/gateway/request-summary":
             make_json_response(
                 self,
                 200,
@@ -1082,7 +1113,7 @@ class GatewayHandler(BaseHTTPRequestHandler):
                 },
             )
             return
-        if self.path == "/v1/models":
+        if path == "/v1/models":
             if not self.authenticate():
                 return
             if not self.check_usage_limit():
@@ -1092,7 +1123,7 @@ class GatewayHandler(BaseHTTPRequestHandler):
         make_error(self, 404, "Route not found.", "route_not_found")
 
     def do_POST(self):
-        if self.path != "/v1/chat/completions":
+        if self.route_path() != "/v1/chat/completions":
             make_error(self, 404, "Route not found.", "route_not_found")
             return
         if not self.authenticate():
@@ -1125,6 +1156,20 @@ class GatewayHandler(BaseHTTPRequestHandler):
         self.customer_api_key = api_key
         self.customer = customer
         return True
+
+    def authenticate_admin(self):
+        if not self.server.admin_api_key:
+            return True
+        header = self.headers.get("Authorization", "")
+        token = ""
+        if header.startswith("Bearer "):
+            token = header.removeprefix("Bearer ").strip()
+        query = parse_qs(self.parsed_path().query)
+        query_token = query.get("admin_key", [""])[0]
+        if token == self.server.admin_api_key or query_token == self.server.admin_api_key:
+            return True
+        make_error(self, 401, "Missing or invalid admin API key.", "invalid_admin_key")
+        return False
 
     def check_usage_limit(self):
         customer = getattr(self, "customer", None)
@@ -1335,6 +1380,7 @@ def parse_args():
     parser.add_argument("--log-dir", default=os.getenv("GATEWAY_LOG_DIR", DEFAULT_LOG_DIR))
     parser.add_argument("--data-dir", default=os.getenv("GATEWAY_DATA_DIR", DEFAULT_DATA_DIR))
     parser.add_argument("--db-path", default=os.getenv("GATEWAY_DB_PATH"))
+    parser.add_argument("--admin-key", default=os.getenv("GATEWAY_ADMIN_API_KEY", DEFAULT_ADMIN_API_KEY))
     parser.add_argument("--timeout", type=int, default=int(os.getenv("UPSTREAM_TIMEOUT", "60")))
     parser.add_argument("--request-limit", type=int, default=int(os.getenv("GATEWAY_REQUEST_LIMIT", DEFAULT_REQUEST_LIMIT)))
     parser.add_argument("--limit-window-seconds", type=int, default=int(os.getenv("GATEWAY_LIMIT_WINDOW_SECONDS", DEFAULT_LIMIT_WINDOW_SECONDS)))
@@ -1363,6 +1409,7 @@ def main():
     server.customers_by_key = customers_by_key
     server.mock_mode = args.mock
     server.timeout = args.timeout
+    server.admin_api_key = args.admin_key
     server.quiet = args.quiet
     server.default_request_limit = args.request_limit
     server.default_limit_window_seconds = args.limit_window_seconds
@@ -1377,6 +1424,7 @@ def main():
     print(f"Customers: {', '.join(customer['id'] for customer in customers_by_key.values())}")
     print(f"Logs: {args.log_dir}")
     print(f"Database: {db_path}")
+    print("Admin: protected" if args.admin_key else "Admin: unprotected")
     server.serve_forever()
 
 

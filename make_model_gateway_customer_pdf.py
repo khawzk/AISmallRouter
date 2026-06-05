@@ -268,7 +268,7 @@ def build():
     story.append(Paragraph("Admin Summary Endpoints", styles["H1Custom"]))
     story.append(
         Paragraph(
-            "The prototype exposes local admin JSON views for provider status, usage by customer, usage by model, and request summaries. These make the control layer easier to explain. In production, these endpoints should be protected by admin authentication.",
+            "The prototype exposes local admin JSON views for provider status, usage by customer, usage by model, and request summaries. These make the control layer easier to explain. The local demo uses a separate admin key. In production, this key should be changed and protected.",
             styles["BodyCustom"],
         )
     )

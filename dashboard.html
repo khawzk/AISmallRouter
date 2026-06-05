@@ -592,8 +592,8 @@
         <a href="#quickstart">Quickstart</a>
       </div>
       <div class="nav-actions">
-        <a class="btn" href="/admin">Admin</a>
-        <a class="btn" href="/v1/gateway/status">Status</a>
+        <a class="btn" href="/admin?admin_key=__ADMIN_API_KEY__">Admin</a>
+        <a class="btn" href="/v1/gateway/status?admin_key=__ADMIN_API_KEY__">Status</a>
         <a class="btn primary" href="#console">Test request</a>
       </div>
     </nav>
@@ -754,6 +754,7 @@
 
   <script>
     const state = __GATEWAY_STATE__;
+    const adminKey = "__ADMIN_API_KEY__";
     const modelCount = document.getElementById("modelCount");
     const customerCount = document.getElementById("customerCount");
     const requestCount = document.getElementById("requestCount");

@@ -207,9 +207,11 @@ They help explain the control layer:
 - Usage by model
 - Request summary by customer, model, provider, and error code
 
-In the prototype, these endpoints are open on localhost.
+In the prototype, these endpoints use a separate demo admin key.
 
-In production, they should be protected by admin authentication.
+The local demo key is `dev-admin-key`.
+
+In production, the admin key should be changed and protected.
 
 ## Technical Challenges
 

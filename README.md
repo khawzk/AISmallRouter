@@ -177,6 +177,31 @@ The current version also supports:
 - SQLite persistence for request and usage records
 - disabled example provider configs for OpenAI and Anthropic
 
+## Admin Access
+
+Admin pages and admin JSON endpoints use a separate admin key.
+
+The local demo admin key is:
+
+```text
+dev-admin-key
+```
+
+Open the admin page:
+
+```text
+http://127.0.0.1:8787/admin?admin_key=dev-admin-key
+```
+
+Fetch admin JSON:
+
+```bash
+curl http://127.0.0.1:8787/v1/gateway/status \
+  -H "Authorization: Bearer dev-admin-key"
+```
+
+For production, change the key with `GATEWAY_ADMIN_API_KEY`.
+
 ## Customer Plans And Budgets
 
 Each customer can have a simple plan in `customer_keys.json`.
