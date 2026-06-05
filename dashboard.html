@@ -3,36 +3,47 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Model Gateway Console</title>
+  <title>Model Gateway</title>
   <style>
     :root {
-      color-scheme: light;
-      --bg: #f7f7f5;
-      --panel: #ffffff;
-      --panel-alt: #fbfbfa;
-      --text: #202124;
-      --muted: #62666d;
-      --faint: #8a8e96;
-      --border: #d8d9d6;
-      --border-strong: #bfc1bd;
-      --accent: #0f766e;
-      --accent-bg: #eef7f5;
-      --warning: #8a5a00;
-      --warning-bg: #fff7df;
-      --code: #161819;
+      color-scheme: dark;
+      --bg: #08090b;
+      --bg-2: #0d0f12;
+      --panel: #111318;
+      --panel-2: #151821;
+      --panel-3: #0f1116;
+      --line: #252a33;
+      --line-2: #343a46;
+      --text: #f4f6f8;
+      --muted: #9aa4b2;
+      --faint: #687385;
+      --green: #41d99d;
+      --green-dim: #14251d;
+      --blue: #72a7ff;
+      --violet: #b795ff;
+      --amber: #ffc46b;
+      --red: #ff7b7b;
+      --code: #07080a;
+      --radius: 14px;
     }
 
     * {
       box-sizing: border-box;
     }
 
+    html {
+      scroll-behavior: smooth;
+    }
+
     body {
       margin: 0;
-      background: var(--bg);
+      background:
+        radial-gradient(circle at 50% -10%, rgba(71, 105, 255, 0.25), transparent 36rem),
+        linear-gradient(180deg, #0b0d11 0, var(--bg) 36rem);
       color: var(--text);
-      font-family: "SF Pro Text", "Helvetica Neue", sans-serif;
-      font-size: 14px;
-      line-height: 1.45;
+      font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Helvetica Neue", sans-serif;
+      font-size: 15px;
+      line-height: 1.5;
     }
 
     button,
@@ -40,627 +51,728 @@
     select,
     textarea {
       font: inherit;
+    }
+
+    a {
+      color: inherit;
+      text-decoration: none;
+    }
+
+    .page {
+      width: min(1180px, calc(100% - 36px));
+      margin: 0 auto;
+    }
+
+    .nav {
+      height: 70px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 11px;
+      font-weight: 750;
       letter-spacing: 0;
     }
 
-    .shell {
-      max-width: 1280px;
-      margin: 0 auto;
-      padding: 24px;
+    .mark {
+      width: 27px;
+      height: 27px;
+      border-radius: 8px;
+      background:
+        linear-gradient(135deg, var(--green), var(--blue));
+      box-shadow: 0 0 22px rgba(65, 217, 157, 0.22);
     }
 
-    .topbar {
+    .nav-links {
       display: flex;
-      justify-content: space-between;
-      align-items: flex-start;
+      align-items: center;
       gap: 24px;
-      padding-bottom: 18px;
-      border-bottom: 1px solid var(--border);
-      margin-bottom: 18px;
-    }
-
-    .title-block h1 {
-      margin: 0;
-      font-size: 22px;
-      line-height: 1.25;
-      font-weight: 700;
-    }
-
-    .title-block p {
-      margin: 6px 0 0;
-      max-width: 760px;
       color: var(--muted);
+      font-size: 14px;
     }
 
-    .env-table {
-      border-collapse: collapse;
-      min-width: 310px;
-      background: var(--panel);
-      border: 1px solid var(--border);
+    .nav-links a:hover {
+      color: var(--text);
     }
 
-    .env-table th,
-    .env-table td {
-      padding: 8px 10px;
-      border-bottom: 1px solid var(--border);
-      text-align: left;
-      white-space: nowrap;
-      font-size: 13px;
-    }
-
-    .env-table tr:last-child th,
-    .env-table tr:last-child td {
-      border-bottom: 0;
-    }
-
-    .env-table th {
-      color: var(--muted);
-      font-weight: 600;
-      background: var(--panel-alt);
-    }
-
-    .tabs {
+    .nav-actions {
       display: flex;
-      gap: 18px;
-      border-bottom: 1px solid var(--border);
-      margin-bottom: 18px;
+      gap: 10px;
+      align-items: center;
     }
 
-    .tabs a {
+    .btn {
       display: inline-flex;
       align-items: center;
-      height: 40px;
-      color: var(--muted);
-      text-decoration: none;
-      border-bottom: 2px solid transparent;
-      font-weight: 600;
-    }
-
-    .tabs a:first-child {
+      justify-content: center;
+      min-height: 38px;
+      border-radius: 10px;
+      border: 1px solid var(--line-2);
+      padding: 0 14px;
+      background: rgba(255, 255, 255, 0.03);
       color: var(--text);
-      border-color: var(--text);
-    }
-
-    .layout {
-      display: grid;
-      grid-template-columns: minmax(0, 1fr) 380px;
-      gap: 18px;
-      align-items: start;
-    }
-
-    section {
-      background: var(--panel);
-      border: 1px solid var(--border);
-      margin-bottom: 18px;
-    }
-
-    .section-header {
-      display: flex;
-      justify-content: space-between;
-      gap: 18px;
-      align-items: center;
-      min-height: 48px;
-      padding: 0 16px;
-      border-bottom: 1px solid var(--border);
-      background: var(--panel-alt);
-    }
-
-    .section-header h2 {
-      margin: 0;
-      font-size: 15px;
-      font-weight: 700;
-    }
-
-    .section-header span {
-      color: var(--muted);
-      font-size: 13px;
-    }
-
-    .section-body {
-      padding: 16px;
-    }
-
-    .architecture-table,
-    .model-table,
-    .route-table {
-      width: 100%;
-      border-collapse: collapse;
-      table-layout: fixed;
-    }
-
-    .architecture-table th,
-    .architecture-table td,
-    .model-table th,
-    .model-table td,
-    .route-table th,
-    .route-table td {
-      border-bottom: 1px solid var(--border);
-      padding: 10px 12px;
-      text-align: left;
-      vertical-align: top;
-    }
-
-    .architecture-table th,
-    .model-table th,
-    .route-table th {
-      color: var(--muted);
       font-weight: 650;
-      background: var(--panel-alt);
-      font-size: 13px;
+      cursor: pointer;
     }
 
-    .architecture-table tr:last-child td,
-    .model-table tr:last-child td,
-    .route-table tr:last-child td {
-      border-bottom: 0;
+    .btn.primary {
+      border-color: rgba(65, 217, 157, 0.55);
+      background: var(--green);
+      color: #06100c;
     }
 
-    .number {
-      width: 48px;
-      color: var(--faint);
-      font-variant-numeric: tabular-nums;
+    .hero {
+      padding: 70px 0 42px;
+      text-align: center;
     }
 
-    .muted {
+    .hero h1 {
+      margin: 0 auto 16px;
+      max-width: 830px;
+      font-size: clamp(42px, 7vw, 78px);
+      line-height: 0.98;
+      letter-spacing: -0.04em;
+      font-weight: 820;
+    }
+
+    .hero p {
+      margin: 0 auto;
+      max-width: 690px;
       color: var(--muted);
+      font-size: 18px;
+      line-height: 1.6;
     }
 
-    .code {
-      font-family: "SF Mono", "Menlo", monospace;
-      font-size: 13px;
-      color: var(--text);
+    .hero-actions {
+      margin-top: 28px;
+      display: flex;
+      justify-content: center;
+      gap: 12px;
+      flex-wrap: wrap;
     }
 
-    .route-state {
-      display: inline-flex;
-      align-items: center;
-      min-height: 24px;
-      padding: 0 7px;
-      border: 1px solid var(--border);
-      background: var(--panel);
-      color: var(--muted);
-      font-size: 12px;
-      border-radius: 6px;
-    }
-
-    .route-state.active {
-      color: var(--accent);
-      border-color: #adcfc9;
-      background: var(--accent-bg);
-    }
-
-    .mapping-line {
+    .stats {
       display: grid;
-      grid-template-columns: 1fr 32px 1fr;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 1px;
+      overflow: hidden;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: var(--line);
+      margin: 0 auto 22px;
+    }
+
+    .stat {
+      background: rgba(17, 19, 24, 0.92);
+      padding: 19px;
+      text-align: center;
+    }
+
+    .stat strong {
+      display: block;
+      font-size: 24px;
+      line-height: 1.1;
+      letter-spacing: -0.02em;
+    }
+
+    .stat span {
+      display: block;
+      margin-top: 5px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1.05fr) minmax(340px, 0.95fr);
+      gap: 18px;
+      align-items: stretch;
+      margin-bottom: 18px;
+    }
+
+    .card {
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: rgba(17, 19, 24, 0.88);
+      overflow: hidden;
+    }
+
+    .card-head {
+      min-height: 56px;
+      border-bottom: 1px solid var(--line);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+      padding: 0 18px;
+    }
+
+    .card-head h2 {
+      margin: 0;
+      font-size: 16px;
+      letter-spacing: -0.01em;
+    }
+
+    .card-head span {
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .card-body {
+      padding: 18px;
+    }
+
+    .feature-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 14px;
+      margin-bottom: 18px;
+    }
+
+    .feature {
+      min-height: 170px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.035), rgba(255, 255, 255, 0.012));
+      padding: 18px;
+    }
+
+    .feature h3 {
+      margin: 0 0 10px;
+      font-size: 17px;
+      letter-spacing: -0.01em;
+    }
+
+    .feature p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    .mini-visual {
+      height: 54px;
+      margin-top: 18px;
+      display: grid;
+      grid-template-columns: 1fr 28px 1fr;
       align-items: center;
       gap: 10px;
-      margin-bottom: 14px;
     }
 
-    .mapping-cell {
-      border: 1px solid var(--border);
-      background: var(--panel-alt);
-      padding: 12px;
-    }
-
-    .mapping-cell label {
-      display: block;
-      color: var(--muted);
+    .visual-box {
+      min-height: 44px;
+      border: 1px solid var(--line-2);
+      border-radius: 10px;
+      background: #0c0e12;
+      display: grid;
+      place-items: center;
+      color: var(--text);
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
       font-size: 12px;
-      margin-bottom: 4px;
     }
 
-    .mapping-cell strong {
-      display: block;
-      font-family: "SF Mono", "Menlo", monospace;
-      font-size: 15px;
-    }
-
-    .arrow {
+    .visual-arrow {
       text-align: center;
-      color: var(--muted);
-      font-weight: 700;
+      color: var(--green);
+      font-weight: 900;
     }
 
-    .notice {
-      border-left: 3px solid var(--accent);
-      background: var(--accent-bg);
-      padding: 10px 12px;
-      color: #21413e;
-      margin-bottom: 14px;
-    }
-
-    .form-grid {
+    .route-flow {
       display: grid;
       gap: 12px;
     }
 
-    label.field {
+    .route-step {
       display: grid;
-      gap: 5px;
+      grid-template-columns: 36px 1fr auto;
+      align-items: center;
+      gap: 12px;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 13px;
+      background: var(--panel-3);
+    }
+
+    .route-step.active {
+      border-color: rgba(65, 217, 157, 0.45);
+      background: linear-gradient(90deg, rgba(65, 217, 157, 0.12), rgba(17, 19, 24, 0.9));
+    }
+
+    .index {
+      width: 30px;
+      height: 30px;
+      display: grid;
+      place-items: center;
+      border: 1px solid var(--line-2);
+      border-radius: 999px;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 800;
+    }
+
+    .route-step.active .index {
+      border-color: var(--green);
+      color: var(--green);
+    }
+
+    .route-copy strong {
+      display: block;
+      margin-bottom: 3px;
+      font-size: 14px;
+    }
+
+    .route-copy span {
       color: var(--muted);
       font-size: 13px;
-      font-weight: 600;
+    }
+
+    .chip {
+      border: 1px solid var(--line-2);
+      border-radius: 999px;
+      padding: 5px 9px;
+      color: var(--muted);
+      font-size: 12px;
+      white-space: nowrap;
+    }
+
+    .chip.green {
+      border-color: rgba(65, 217, 157, 0.45);
+      color: var(--green);
+      background: rgba(65, 217, 157, 0.08);
+    }
+
+    .terminal {
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: var(--code);
+      overflow: hidden;
+    }
+
+    .terminal-head {
+      height: 42px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid var(--line);
+      padding: 0 14px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .dots {
+      display: flex;
+      gap: 7px;
+    }
+
+    .dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: #3a404b;
+    }
+
+    .terminal pre {
+      margin: 0;
+      min-height: 260px;
+      max-height: 390px;
+      overflow: auto;
+      padding: 16px;
+      color: #d8dee9;
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-size: 12.5px;
+      line-height: 1.55;
+      white-space: pre-wrap;
+    }
+
+    .models {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 12px;
+    }
+
+    .model {
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: var(--panel-3);
+      padding: 14px;
+    }
+
+    .model-title {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      align-items: center;
+      margin-bottom: 9px;
+    }
+
+    .model-title strong {
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-size: 14px;
+    }
+
+    .model p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .console {
+      display: grid;
+      gap: 12px;
+    }
+
+    label {
+      display: grid;
+      gap: 6px;
+      color: var(--muted);
+      font-size: 13px;
     }
 
     input,
     select,
     textarea {
       width: 100%;
-      border: 1px solid var(--border-strong);
-      background: #fff;
+      border: 1px solid var(--line-2);
+      border-radius: 10px;
+      background: #0b0d10;
       color: var(--text);
-      border-radius: 6px;
-      padding: 9px 10px;
+      padding: 10px 11px;
       outline: none;
     }
 
     input:focus,
     select:focus,
     textarea:focus {
-      border-color: var(--accent);
-      box-shadow: 0 0 0 2px rgba(15, 118, 110, 0.12);
+      border-color: var(--green);
+      box-shadow: 0 0 0 3px rgba(65, 217, 157, 0.1);
     }
 
     textarea {
-      min-height: 104px;
+      min-height: 106px;
       resize: vertical;
     }
 
-    .actions {
+    .form-actions {
       display: flex;
-      gap: 8px;
+      gap: 10px;
       align-items: center;
+      flex-wrap: wrap;
     }
 
     button {
-      border: 1px solid var(--border-strong);
-      border-radius: 6px;
-      min-height: 36px;
-      padding: 0 12px;
+      border: 1px solid var(--line-2);
+      border-radius: 10px;
+      min-height: 40px;
+      padding: 0 14px;
+      background: #191d25;
       color: var(--text);
-      background: var(--panel);
       cursor: pointer;
-      font-weight: 650;
+      font-weight: 700;
     }
 
     button.primary {
-      background: var(--text);
-      color: white;
-      border-color: var(--text);
+      background: var(--green);
+      border-color: var(--green);
+      color: #04110c;
     }
 
     button:disabled {
-      opacity: 0.6;
+      opacity: 0.55;
       cursor: wait;
     }
 
-    .trace-list {
+    .trace {
       display: grid;
-      gap: 0;
-      border: 1px solid var(--border);
-      background: var(--panel);
+      gap: 8px;
+      margin-top: 14px;
     }
 
     .trace-item {
-      display: grid;
-      grid-template-columns: 34px 1fr;
-      gap: 8px;
-      padding: 9px 10px;
-      border-bottom: 1px solid var(--border);
-    }
-
-    .trace-item:last-child {
-      border-bottom: 0;
-    }
-
-    .trace-index {
-      color: var(--faint);
-      font-variant-numeric: tabular-nums;
-    }
-
-    .response-box {
-      margin-top: 12px;
-      border: 1px solid var(--border);
-      background: var(--code);
-      color: #f2f2ef;
-      padding: 12px;
-      min-height: 210px;
-      max-height: 360px;
-      overflow: auto;
-      font-family: "SF Mono", "Menlo", monospace;
-      font-size: 12px;
-      line-height: 1.45;
-      white-space: pre-wrap;
-    }
-
-    .small-list {
-      margin: 0;
-      padding-left: 18px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: var(--panel-3);
+      padding: 10px 11px;
       color: var(--muted);
+      font-size: 13px;
     }
 
-    .small-list li {
-      margin: 0 0 6px;
+    .trace-item strong {
+      color: var(--text);
+      margin-right: 6px;
+    }
+
+    .quickstart {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 14px;
+      margin: 18px 0 34px;
+    }
+
+    .step-card {
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: rgba(17, 19, 24, 0.8);
+      padding: 18px;
+    }
+
+    .step-card strong {
+      display: block;
+      margin-bottom: 8px;
+      font-size: 15px;
+    }
+
+    .step-card p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 14px;
     }
 
     @media (max-width: 980px) {
-      .topbar,
-      .layout {
-        grid-template-columns: 1fr;
-        display: grid;
+      .nav-links {
+        display: none;
       }
 
-      .env-table {
-        min-width: 0;
-        width: 100%;
+      .grid,
+      .feature-grid,
+      .quickstart {
+        grid-template-columns: 1fr;
+      }
+
+      .stats,
+      .models {
+        grid-template-columns: repeat(2, 1fr);
+      }
+
+      .hero {
+        padding-top: 46px;
       }
     }
 
-    @media (max-width: 700px) {
-      .shell {
-        padding: 14px;
+    @media (max-width: 640px) {
+      .page {
+        width: min(100% - 24px, 1180px);
       }
 
-      .tabs {
-        overflow-x: auto;
+      .nav-actions {
+        display: none;
       }
 
-      .mapping-line {
+      .stats,
+      .models {
         grid-template-columns: 1fr;
       }
 
-      .arrow {
-        text-align: left;
+      .route-step {
+        grid-template-columns: 36px 1fr;
+      }
+
+      .chip {
+        grid-column: 2;
+        width: fit-content;
       }
     }
   </style>
 </head>
 <body>
-  <div class="shell">
-    <header class="topbar">
-      <div class="title-block">
-        <h1>Model Gateway Console</h1>
-        <p>Use this page to explain the prototype: a customer calls one API, the gateway checks the request, and the model registry routes a public model name to a real Qwen model.</p>
+  <div class="page">
+    <nav class="nav">
+      <a class="brand" href="#">
+        <span class="mark"></span>
+        <span>ModelGateway</span>
+      </a>
+      <div class="nav-links">
+        <a href="#models">Models</a>
+        <a href="#routing">Routing</a>
+        <a href="#console">Console</a>
+        <a href="#quickstart">Quickstart</a>
       </div>
-      <table class="env-table" aria-label="Gateway environment">
-        <tbody>
-          <tr><th>Server</th><td>online</td></tr>
-          <tr><th>Mode</th><td id="modeText">loading</td></tr>
-          <tr><th>Limit</th><td id="limitText">loading</td></tr>
-          <tr><th>Provider</th><td>DashScope / Qwen</td></tr>
-        </tbody>
-      </table>
-    </header>
-
-    <nav class="tabs" aria-label="Sections">
-      <a href="#architecture">Architecture</a>
-      <a href="#routing">Routing</a>
-      <a href="#models">Models</a>
-      <a href="#test">Test request</a>
+      <div class="nav-actions">
+        <a class="btn" href="/v1/gateway/status">Status</a>
+        <a class="btn primary" href="#console">Test request</a>
+      </div>
     </nav>
 
-    <div class="layout">
-      <main>
-        <section id="architecture">
-          <div class="section-header">
-            <h2>Architecture layers</h2>
-            <span>What the customer sees vs. what the gateway manages</span>
-          </div>
-          <div class="section-body">
-            <table class="architecture-table">
-              <thead>
-                <tr>
-                  <th class="number">#</th>
-                  <th>Layer</th>
-                  <th>Purpose</th>
-                  <th>Current prototype</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr>
-                  <td class="number">01</td>
-                  <td>Customer system</td>
-                  <td class="muted">Application, backend service, or agent.</td>
-                  <td>Browser demo and curl client.</td>
-                </tr>
-                <tr>
-                  <td class="number">02</td>
-                  <td>One API</td>
-                  <td class="muted">A standard OpenAI-compatible request format.</td>
-                  <td><span class="code">/v1/chat/completions</span></td>
-                </tr>
-                <tr>
-                  <td class="number">03</td>
-                  <td>Entry control</td>
-                  <td class="muted">Customer API key, request limit, and logs.</td>
-                  <td><span class="code">dev-gateway-key</span> plus in-memory limit.</td>
-                </tr>
-                <tr>
-                  <td class="number">04</td>
-                  <td>Model control</td>
-                  <td class="muted">Public model names, route rules, and future fallback.</td>
-                  <td><span class="code">smart-fast</span> maps to <span class="code">qwen-plus</span>.</td>
-                </tr>
-                <tr>
-                  <td class="number">05</td>
-                  <td>Provider adapter</td>
-                  <td class="muted">Convert the gateway request to provider format.</td>
-                  <td>DashScope OpenAI-compatible adapter.</td>
-                </tr>
-                <tr>
-                  <td class="number">06</td>
-                  <td>Model provider</td>
-                  <td class="muted">The real upstream AI model service.</td>
-                  <td>Alibaba Cloud Model Studio / Qwen.</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        </section>
+    <header class="hero">
+      <h1>The Unified Interface For Your Models</h1>
+      <p>Route one OpenAI-compatible request through customer controls, model aliases, provider adapters, and Qwen. Mock mode lets you explain the full path without spending provider credits.</p>
+      <div class="hero-actions">
+        <a class="btn primary" href="#console">Try the local API</a>
+        <a class="btn" href="#routing">View routing</a>
+      </div>
+    </header>
 
-        <section id="routing">
-          <div class="section-header">
-            <h2>Routing example</h2>
-            <span>Show this first when explaining the value</span>
-          </div>
-          <div class="section-body">
-            <div class="notice">Mock mode does not call Alibaba Cloud. It only demonstrates how routing works.</div>
-            <div class="mapping-line">
-              <div class="mapping-cell">
-                <label>Customer-facing model</label>
-                <strong>smart-fast</strong>
-              </div>
-              <div class="arrow">-></div>
-              <div class="mapping-cell">
-                <label>Upstream provider model</label>
-                <strong>qwen-plus</strong>
-              </div>
+    <section class="stats" aria-label="Gateway stats">
+      <div class="stat"><strong>1</strong><span>Unified API</span></div>
+      <div class="stat"><strong id="modelCount">2</strong><span>Models in registry</span></div>
+      <div class="stat"><strong>0</strong><span>Credits used in mock</span></div>
+      <div class="stat"><strong id="modeText">mock</strong><span>Current mode</span></div>
+    </section>
+
+    <section class="feature-grid">
+      <article class="feature">
+        <h3>One API for model access</h3>
+        <p>Customer apps use one OpenAI-compatible request instead of learning each provider integration.</p>
+        <div class="mini-visual">
+          <div class="visual-box">/v1/chat</div>
+          <div class="visual-arrow">-></div>
+          <div class="visual-box">gateway</div>
+        </div>
+      </article>
+      <article class="feature">
+        <h3>Model routing made visible</h3>
+        <p>The public model name <strong>smart-fast</strong> maps to the upstream Qwen model <strong>qwen-plus</strong>.</p>
+        <div class="mini-visual">
+          <div class="visual-box">smart-fast</div>
+          <div class="visual-arrow">-></div>
+          <div class="visual-box">qwen-plus</div>
+        </div>
+      </article>
+      <article class="feature">
+        <h3>Provider control later</h3>
+        <p>Start with Qwen. Add OpenAI, Claude, Xiaomi, fallback, cost controls, and customer usage records later.</p>
+        <div class="mini-visual">
+          <div class="visual-box">Qwen</div>
+          <div class="visual-arrow">+</div>
+          <div class="visual-box">More</div>
+        </div>
+      </article>
+    </section>
+
+    <div class="grid" id="routing">
+      <section class="card">
+        <div class="card-head">
+          <h2>Model routing visualization</h2>
+          <span>what happens to one request</span>
+        </div>
+        <div class="card-body">
+          <div class="route-flow">
+            <div class="route-step">
+              <div class="index">1</div>
+              <div class="route-copy"><strong>Customer sends request</strong><span>model = smart-fast, stream = false</span></div>
+              <span class="chip">OpenAI-compatible</span>
             </div>
-            <table class="route-table">
-              <thead>
-                <tr>
-                  <th class="number">#</th>
-                  <th>Step</th>
-                  <th>What happens</th>
-                  <th>Status</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr>
-                  <td class="number">01</td>
-                  <td>Request</td>
-                  <td class="muted">Customer sends one standard chat request.</td>
-                  <td><span class="route-state active">visible</span></td>
-                </tr>
-                <tr>
-                  <td class="number">02</td>
-                  <td>Entry check</td>
-                  <td class="muted">Gateway checks API key and request limit.</td>
-                  <td><span class="route-state active">enabled</span></td>
-                </tr>
-                <tr>
-                  <td class="number">03</td>
-                  <td>Registry lookup</td>
-                  <td class="muted">Gateway reads <span class="code">model_registry.json</span>.</td>
-                  <td><span class="route-state active">enabled</span></td>
-                </tr>
-                <tr>
-                  <td class="number">04</td>
-                  <td>Model route</td>
-                  <td class="muted"><span class="code">smart-fast</span> routes to <span class="code">qwen-plus</span>.</td>
-                  <td><span class="route-state active">enabled</span></td>
-                </tr>
-                <tr>
-                  <td class="number">05</td>
-                  <td>Provider call</td>
-                  <td class="muted">Mock mode returns a simulated response. Live mode calls DashScope.</td>
-                  <td><span class="route-state">mocked</span></td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        </section>
-      </main>
-
-      <aside>
-        <section id="models">
-          <div class="section-header">
-            <h2>Models</h2>
-            <span id="modelCount">0</span>
-          </div>
-          <div class="section-body">
-            <table class="model-table">
-              <thead>
-                <tr>
-                  <th>Public name</th>
-                  <th>Upstream</th>
-                </tr>
-              </thead>
-              <tbody id="modelRows"></tbody>
-            </table>
-          </div>
-        </section>
-
-        <section id="test">
-          <div class="section-header">
-            <h2>Test request</h2>
-            <span id="traceStatus">waiting</span>
-          </div>
-          <div class="section-body">
-            <div class="form-grid">
-              <label class="field">Gateway API key
-                <input id="apiKey" value="dev-gateway-key" autocomplete="off">
-              </label>
-              <label class="field">Model
-                <select id="modelSelect"></select>
-              </label>
-              <label class="field">Prompt
-                <textarea id="prompt">Explain this gateway in one short sentence.</textarea>
-              </label>
-              <div class="actions">
-                <button class="primary" id="sendButton" type="button">Send request</button>
-                <button id="resetButton" type="button">Reset</button>
-              </div>
+            <div class="route-step active">
+              <div class="index">2</div>
+              <div class="route-copy"><strong>Gateway entry control</strong><span>checks API key and request limit</span></div>
+              <span class="chip green">enabled</span>
+            </div>
+            <div class="route-step active">
+              <div class="index">3</div>
+              <div class="route-copy"><strong>Model registry lookup</strong><span>smart-fast maps to qwen-plus</span></div>
+              <span class="chip green">route found</span>
+            </div>
+            <div class="route-step">
+              <div class="index">4</div>
+              <div class="route-copy"><strong>Provider adapter</strong><span>prepares DashScope-compatible request</span></div>
+              <span class="chip">Qwen adapter</span>
+            </div>
+            <div class="route-step">
+              <div class="index">5</div>
+              <div class="route-copy"><strong>Mock or live provider</strong><span>mock returns route_trace, live calls Model Studio</span></div>
+              <span class="chip">zero spend</span>
             </div>
           </div>
-        </section>
+        </div>
+      </section>
 
-        <section>
-          <div class="section-header">
-            <h2>Route trace</h2>
-            <span>from response</span>
-          </div>
-          <div class="section-body">
-            <div class="trace-list" id="routeTrace">
-              <div class="trace-item"><div class="trace-index">--</div><div>Send a request to see each gateway step.</div></div>
-            </div>
-            <div class="response-box" id="output">Raw JSON response will appear here.</div>
-          </div>
-        </section>
-
-        <section>
-          <div class="section-header">
-            <h2>What to say to a customer</h2>
-          </div>
-          <div class="section-body">
-            <ul class="small-list">
-              <li>The customer only calls one API.</li>
-              <li>The gateway manages model names and provider choices.</li>
-              <li>Mock mode explains routing without model cost.</li>
-              <li>Live mode can call Qwen when the API key is available.</li>
-            </ul>
-          </div>
-        </section>
-      </aside>
+      <section class="terminal">
+        <div class="terminal-head">
+          <div class="dots"><span class="dot"></span><span class="dot"></span><span class="dot"></span></div>
+          <span>route_trace.json</span>
+        </div>
+        <pre id="output">Click "Send test request" to show the gateway response.</pre>
+      </section>
     </div>
+
+    <div class="grid" id="console">
+      <section class="card">
+        <div class="card-head">
+          <h2>Try a request</h2>
+          <span id="limitText">loading limit</span>
+        </div>
+        <div class="card-body">
+          <div class="console">
+            <label>Gateway API Key
+              <input id="apiKey" value="dev-gateway-key" autocomplete="off">
+            </label>
+            <label>Model
+              <select id="modelSelect"></select>
+            </label>
+            <label>Prompt
+              <textarea id="prompt">Explain this gateway in one short sentence.</textarea>
+            </label>
+            <div class="form-actions">
+              <button class="primary" id="sendButton" type="button">Send test request</button>
+              <button id="resetButton" type="button">Reset</button>
+            </div>
+          </div>
+          <div class="trace" id="routeTrace">
+            <div class="trace-item">Route trace will appear here after a test request.</div>
+          </div>
+        </div>
+      </section>
+
+      <section class="card" id="models">
+        <div class="card-head">
+          <h2>Featured models</h2>
+          <span>from model_registry.json</span>
+        </div>
+        <div class="card-body">
+          <div class="models" id="modelsList"></div>
+        </div>
+      </section>
+    </div>
+
+    <section class="quickstart" id="quickstart">
+      <article class="step-card">
+        <strong>1. Explain the idea</strong>
+        <p>One customer API. Multiple providers later. Qwen is the first real provider.</p>
+      </article>
+      <article class="step-card">
+        <strong>2. Show the route</strong>
+        <p>Use smart-fast to show how the gateway hides the upstream model decision.</p>
+      </article>
+      <article class="step-card">
+        <strong>3. Move to live mode</strong>
+        <p>Add DASHSCOPE_API_KEY only when you want a real Qwen response.</p>
+      </article>
+    </section>
   </div>
 
   <script>
     const state = __GATEWAY_STATE__;
+    const modelCount = document.getElementById("modelCount");
     const modeText = document.getElementById("modeText");
     const limitText = document.getElementById("limitText");
-    const modelRows = document.getElementById("modelRows");
-    const modelCount = document.getElementById("modelCount");
+    const modelsList = document.getElementById("modelsList");
     const modelSelect = document.getElementById("modelSelect");
-    const output = document.getElementById("output");
     const routeTrace = document.getElementById("routeTrace");
-    const traceStatus = document.getElementById("traceStatus");
+    const output = document.getElementById("output");
     const sendButton = document.getElementById("sendButton");
     const resetButton = document.getElementById("resetButton");
     const promptInput = document.getElementById("prompt");
 
+    modelCount.textContent = String(state.models.length);
     modeText.textContent = state.mode;
     limitText.textContent = `${state.request_limit} requests / ${state.limit_window_seconds}s`;
-    modelCount.textContent = `${state.models.length} registered`;
 
     state.models.forEach((model) => {
-      const row = document.createElement("tr");
-      row.innerHTML = `
-        <td><span class="code">${model.id}</span><br><span class="muted">${model.provider}</span></td>
-        <td><span class="code">${model.upstream_model}</span><br><span class="muted">${model.capabilities.join(", ")}</span></td>
+      const card = document.createElement("article");
+      card.className = "model";
+      card.innerHTML = `
+        <div class="model-title">
+          <strong>${model.id}</strong>
+          <span class="chip">${model.provider}</span>
+        </div>
+        <p>Routes to <strong>${model.upstream_model}</strong></p>
+        <p>${model.capabilities.join(", ")}</p>
       `;
-      modelRows.appendChild(row);
+      modelsList.appendChild(card);
 
       const option = document.createElement("option");
       option.value = model.id;
@@ -672,17 +784,16 @@
     function renderTrace(steps) {
       routeTrace.innerHTML = "";
       steps.forEach((step, index) => {
-        const item = document.createElement("div");
-        item.className = "trace-item";
-        item.innerHTML = `<div class="trace-index">${String(index + 1).padStart(2, "0")}</div><div>${step}</div>`;
-        routeTrace.appendChild(item);
+        const div = document.createElement("div");
+        div.className = "trace-item";
+        div.innerHTML = `<strong>${index + 1}</strong>${step}`;
+        routeTrace.appendChild(div);
       });
     }
 
     async function sendRequest() {
       sendButton.disabled = true;
-      traceStatus.textContent = "running";
-      routeTrace.innerHTML = '<div class="trace-item"><div class="trace-index">--</div><div>Checking gateway entry controls...</div></div>';
+      routeTrace.innerHTML = '<div class="trace-item">Sending request through gateway...</div>';
       output.textContent = "Sending request...";
 
       try {
@@ -702,15 +813,12 @@
         output.textContent = JSON.stringify(data, null, 2);
         if (data.gateway && data.gateway.route_trace) {
           renderTrace(data.gateway.route_trace);
-          traceStatus.textContent = "complete";
         } else {
-          routeTrace.innerHTML = '<div class="trace-item"><div class="trace-index">--</div><div>No route trace returned.</div></div>';
-          traceStatus.textContent = "missing";
+          routeTrace.innerHTML = '<div class="trace-item">No route trace returned.</div>';
         }
       } catch (error) {
         output.textContent = String(error);
-        routeTrace.innerHTML = '<div class="trace-item"><div class="trace-index">--</div><div>Request failed before route trace was available.</div></div>';
-        traceStatus.textContent = "failed";
+        routeTrace.innerHTML = '<div class="trace-item">Request failed before route trace was available.</div>';
       } finally {
         sendButton.disabled = false;
       }
@@ -719,9 +827,8 @@
     sendButton.addEventListener("click", sendRequest);
     resetButton.addEventListener("click", () => {
       promptInput.value = "Explain this gateway in one short sentence.";
-      traceStatus.textContent = "waiting";
-      routeTrace.innerHTML = '<div class="trace-item"><div class="trace-index">--</div><div>Send a request to see each gateway step.</div></div>';
-      output.textContent = "Raw JSON response will appear here.";
+      routeTrace.innerHTML = '<div class="trace-item">Route trace will appear here after a test request.</div>';
+      output.textContent = 'Click "Send test request" to show the gateway response.';
     });
   </script>
 </body>
