@@ -30,7 +30,7 @@ It does not spend provider credits.
 python3 test_gateway.py
 ```
 
-The test covers auth, model listing, routing, route preview, fallback, model access, budgets, SQLite logs, alerts, access matrix, provider health, model catalog, customer reports, request activity, request detail lookup, and admin summary endpoints.
+The test covers auth, model listing, routing, route preview, cost estimate, fallback, model access, budgets, SQLite logs, alerts, access matrix, provider health, model catalog, customer reports, request activity, request detail lookup, and admin summary endpoints.
 
 Open the visual dashboard:
 
@@ -96,6 +96,20 @@ curl http://127.0.0.1:8787/v1/gateway/route-preview \
   -d '{
     "customer_id": "dev",
     "model": "smart-fast"
+  }'
+```
+
+## Estimate Cost Without Calling A Provider
+
+```bash
+curl http://127.0.0.1:8787/v1/gateway/cost-estimate \
+  -H "Authorization: Bearer dev-admin-key" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "customer_id": "dev",
+    "model": "smart-fast",
+    "prompt": "Explain the gateway.",
+    "max_tokens": 256
   }'
 ```
 

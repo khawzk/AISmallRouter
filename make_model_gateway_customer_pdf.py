@@ -235,6 +235,7 @@ def build():
         "Provider health endpoint for mock-ready, live-ready, degraded, and not-ready states.",
         "Model catalog endpoint for provider status, fallback chain, usage, and pricing metadata.",
         "Route preview endpoint to dry-run model access, budget, provider readiness, and fallback order.",
+        "Cost estimate endpoint to dry-run token estimate, estimated cost, and budget impact.",
         "Customer reports endpoint for request count, errors, token usage, and budget state.",
         "Request activity endpoint with simple filters for troubleshooting.",
         "Request detail lookup using gateway.request_id returned in chat responses.",
@@ -264,6 +265,7 @@ def build():
             ["Provider health", "Customers need to know whether a provider can serve traffic.", "Readiness view based on config and recent traffic"],
             ["Model catalog", "Customers need to understand public model names and routes.", "Catalog with provider status, fallback chain, usage, and pricing metadata"],
             ["Route preview", "Sales and support need to explain a route before spending credits.", "Dry-run endpoint and dashboard preview"],
+            ["Cost estimate", "Customers need budget planning before live calls.", "Dry-run estimate for tokens, cost, and budget impact"],
             ["Customer reporting", "Customers need a simple usage and budget story.", "Per-customer report endpoint and dashboard cards"],
             ["Request troubleshooting", "Support teams need to see what happened to a request.", "Filtered request activity feed"],
             ["Request detail", "Support teams need one-request lookup.", "gateway.request_id and request detail endpoint"],
@@ -328,6 +330,14 @@ def build():
     story.append(
         Paragraph(
             "/v1/gateway/route-preview is a dry run. It does not call the provider. It shows whether a customer can use a model, whether budget is available, which model is primary, which models are fallback routes, which provider would handle the request, and whether that provider is ready.",
+            styles["BodyCustom"],
+        )
+    )
+
+    story.append(Paragraph("Cost Estimate", styles["H1Custom"]))
+    story.append(
+        Paragraph(
+            "/v1/gateway/cost-estimate is a dry run. It does not call the provider. It estimates prompt tokens, completion tokens, estimated cost, and remaining budget after the estimate. This is useful for planning, but real provider token usage can differ.",
             styles["BodyCustom"],
         )
     )

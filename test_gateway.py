@@ -469,6 +469,30 @@ class GatewayPrototypeTest(unittest.TestCase):
         self.assertEqual(status, 403)
         self.assertEqual(preview["error"]["code"], "model_not_allowed")
 
+        status, estimate = request_json(
+            self.base_url,
+            method="POST",
+            path="/v1/gateway/cost-estimate",
+            payload={"customer_id": "dev", "model": "smart-fast", "prompt": "Estimate this request.", "max_tokens": 128},
+        )
+        self.assertEqual(status, 401)
+
+        status, estimate = request_json(
+            self.base_url,
+            method="POST",
+            path="/v1/gateway/cost-estimate",
+            api_key="dev-admin-key",
+            payload={"customer_id": "dev", "model": "smart-fast", "prompt": "Estimate this request.", "max_tokens": 128},
+        )
+        self.assertEqual(status, 200)
+        self.assertEqual(estimate["model"], "smart-fast")
+        self.assertEqual(estimate["resolved_model"], "qwen-plus")
+        self.assertEqual(estimate["provider"], "dashscope")
+        self.assertGreaterEqual(estimate["estimate"]["prompt_tokens"], 1)
+        self.assertEqual(estimate["estimate"]["completion_tokens"], 128)
+        self.assertIn("budget_after_estimate", estimate)
+        self.assertFalse(estimate["budget_after_estimate"]["would_exceed_budget"])
+
         status, customer_usage = request_json(self.base_url, path="/v1/gateway/customer-usage", api_key="dev-admin-key")
         self.assertEqual(status, 200)
         customer_ids = {row["id"] for row in customer_usage["data"]}

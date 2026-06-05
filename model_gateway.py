@@ -38,6 +38,7 @@ ADMIN_PATHS = {
     "/v1/gateway/request-detail",
     "/v1/gateway/alerts",
     "/v1/gateway/access-matrix",
+    "/v1/gateway/cost-estimate",
     "/v1/gateway/customer-usage",
     "/v1/gateway/model-usage",
     "/v1/gateway/request-summary",
@@ -963,6 +964,61 @@ def route_preview(server, payload):
             f"Budget state = {budget_state}",
             f"Route candidates = {', '.join(candidates)}",
         ],
+    }
+
+
+def cost_estimate(server, payload):
+    public_model = payload.get("model")
+    if not public_model:
+        raise GatewayError("Missing required field: model.", "missing_model", 400)
+    customer_id = payload.get("customer_id") or "dev"
+    customer = customer_by_id(server, customer_id)
+    if not customer:
+        raise GatewayError(f"Unknown customer: {customer_id}.", "unknown_customer", 404)
+    candidates, routing_policy = build_candidate_models(server, customer, public_model, payload)
+    primary_model = server.models[candidates[0]]
+    prompt_tokens = estimate_tokens(payload.get("messages", []), payload.get("prompt", ""))
+    completion_tokens = bounded_int(payload.get("max_tokens"), 256, minimum=1, maximum=200000)
+    pricing = primary_model.get("pricing", {})
+    prompt_cost = prompt_tokens / 1000 * float(pricing.get("prompt_per_1k", 0))
+    completion_cost = completion_tokens / 1000 * float(pricing.get("completion_per_1k", 0))
+    estimated_cost = round(prompt_cost + completion_cost, 8)
+    budget = customer_budget_status(server.db_path, customer)
+    remaining_tokens = budget.get("remaining_tokens")
+    remaining_cost = budget.get("remaining_cost")
+    total_tokens = prompt_tokens + completion_tokens
+    after_tokens = None if remaining_tokens is None else remaining_tokens - total_tokens
+    after_cost = None if remaining_cost is None else round(remaining_cost - estimated_cost, 8)
+    blocked_after_estimate = bool(
+        (after_tokens is not None and after_tokens < 0)
+        or (after_cost is not None and after_cost < 0)
+    )
+    return {
+        "mode": "mock" if server.mock_mode else "live",
+        "customer": public_customer_view(customer),
+        "model": public_model,
+        "resolved_model": primary_model.get("upstream_model"),
+        "provider": primary_model.get("provider"),
+        "routing_policy": routing_policy,
+        "estimate": {
+            "prompt_tokens": prompt_tokens,
+            "completion_tokens": completion_tokens,
+            "total_tokens": total_tokens,
+            "prompt_cost": round(prompt_cost, 8),
+            "completion_cost": round(completion_cost, 8),
+            "estimated_cost": estimated_cost,
+            "pricing": {
+                "prompt_per_1k": float(pricing.get("prompt_per_1k", 0)),
+                "completion_per_1k": float(pricing.get("completion_per_1k", 0)),
+            },
+        },
+        "budget": budget,
+        "budget_after_estimate": {
+            "remaining_tokens": after_tokens,
+            "remaining_cost": after_cost,
+            "would_exceed_budget": blocked_after_estimate,
+        },
+        "note": "This is a local estimate. Real provider token usage can differ.",
     }
 
 
@@ -2134,6 +2190,17 @@ class GatewayHandler(BaseHTTPRequestHandler):
                 return
             try:
                 make_json_response(self, 200, route_preview(self.server, payload))
+            except GatewayError as exc:
+                make_error(self, exc.status, exc.message, exc.code, exc.details)
+            return
+        if path == "/v1/gateway/cost-estimate":
+            if not self.authenticate_admin():
+                return
+            payload = self.read_json_body()
+            if payload is None:
+                return
+            try:
+                make_json_response(self, 200, cost_estimate(self.server, payload))
             except GatewayError as exc:
                 make_error(self, exc.status, exc.message, exc.code, exc.details)
             return

@@ -212,6 +212,7 @@ They help explain the control layer:
 - Provider health and readiness
 - Model catalog and routing plan
 - Route preview before a live request
+- Cost estimate before a live request
 - Customer usage reports
 - Request activity feed
 - Request detail lookup
@@ -324,6 +325,27 @@ It shows:
 This is useful before a customer demo.
 
 You can explain the route without spending model credits.
+
+## What Cost Estimate Shows
+
+The prototype includes `/v1/gateway/cost-estimate`.
+
+It is also a dry run.
+
+It does not call the model provider.
+
+It estimates:
+
+- Prompt tokens
+- Completion tokens
+- Estimated cost
+- Budget left after the estimate
+
+This helps explain budget planning.
+
+The estimate is not exact.
+
+Real provider token usage can be different.
 
 ## What Customer Reports Show
 

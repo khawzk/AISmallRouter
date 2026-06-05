@@ -173,6 +173,7 @@ The current version also supports:
 - `GET /v1/gateway/provider-health`
 - `GET /v1/gateway/model-catalog`
 - `POST /v1/gateway/route-preview`
+- `POST /v1/gateway/cost-estimate`
 - `GET /v1/gateway/customer-reports`
 - `GET /v1/gateway/request-activity`
 - `GET /v1/gateway/request-detail`
@@ -186,6 +187,7 @@ The current version also supports:
 - provider readiness view for mock-ready, live-ready, and degraded providers
 - model catalog with provider status, fallback chain, usage, and pricing metadata
 - route preview dry run before a real provider call
+- cost estimate dry run for prompt tokens, completion tokens, and budget impact
 - customer usage reports with request count, errors, token usage, and budget state
 - request activity feed with simple filters for troubleshooting
 - request detail lookup by `request_id`
@@ -342,6 +344,35 @@ It shows:
 - provider readiness
 
 This is useful before a live demo or customer test.
+
+## Cost Estimate
+
+The gateway has a cost estimate endpoint:
+
+```bash
+curl http://127.0.0.1:8787/v1/gateway/cost-estimate \
+  -H "Authorization: Bearer dev-admin-key" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "customer_id": "dev",
+    "model": "smart-fast",
+    "prompt": "Explain the gateway.",
+    "max_tokens": 256
+  }'
+```
+
+It does not call the provider.
+
+It estimates:
+
+- prompt tokens
+- completion tokens
+- estimated cost
+- remaining budget after the estimate
+
+This is a planning estimate.
+
+Real provider token usage can be different.
 
 ## Customer Reports
 
@@ -701,6 +732,7 @@ The tests check:
 - Provider health readiness output
 - Model catalog routing output
 - Route preview dry-run output
+- Cost estimate output
 - Customer usage report output
 - Request activity filtering
 - Request detail lookup

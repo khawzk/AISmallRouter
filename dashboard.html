@@ -1018,6 +1018,7 @@
             </label>
             <div class="form-actions">
               <button id="previewButton" type="button">Preview route</button>
+              <button id="estimateButton" type="button">Estimate cost</button>
             </div>
           </div>
           <div class="trace" id="previewTrace">
@@ -1086,6 +1087,7 @@
     const previewCustomer = document.getElementById("previewCustomer");
     const previewModel = document.getElementById("previewModel");
     const previewButton = document.getElementById("previewButton");
+    const estimateButton = document.getElementById("estimateButton");
     const previewTrace = document.getElementById("previewTrace");
     const detailRequestId = document.getElementById("detailRequestId");
     const detailButton = document.getElementById("detailButton");
@@ -1355,6 +1357,44 @@
         previewTrace.innerHTML = '<div class="trace-item">' + String(error) + '</div>';
       } finally {
         previewButton.disabled = false;
+      }
+    });
+    estimateButton.addEventListener("click", async () => {
+      estimateButton.disabled = true;
+      previewTrace.innerHTML = '<div class="trace-item">Estimating cost...</div>';
+      try {
+        const response = await fetch("/v1/gateway/cost-estimate?admin_key=" + encodeURIComponent(adminKey), {
+          method: "POST",
+          headers: {"Content-Type": "application/json"},
+          body: JSON.stringify({
+            customer_id: previewCustomer.value,
+            model: previewModel.value,
+            messages: [{role: "user", content: promptInput.value}],
+            max_tokens: 256
+          })
+        });
+        const data = await response.json();
+        if (!response.ok) {
+          previewTrace.innerHTML = `<div class="trace-item">${data.error ? data.error.message : "Estimate failed."}</div>`;
+          return;
+        }
+        previewTrace.innerHTML = "";
+        [
+          `model = ${data.model} -> ${data.resolved_model}`,
+          `tokens = ${data.estimate.prompt_tokens} prompt + ${data.estimate.completion_tokens} completion`,
+          `estimated cost = ${data.estimate.estimated_cost}`,
+          `remaining after estimate = ${data.budget_after_estimate.remaining_tokens ?? "-"} tokens / ${data.budget_after_estimate.remaining_cost ?? "-"} cost`,
+          data.note
+        ].forEach((line, index) => {
+          const div = document.createElement("div");
+          div.className = "trace-item";
+          div.innerHTML = `<strong>${index + 1}</strong>${line}`;
+          previewTrace.appendChild(div);
+        });
+      } catch (error) {
+        previewTrace.innerHTML = '<div class="trace-item">' + String(error) + '</div>';
+      } finally {
+        estimateButton.disabled = false;
       }
     });
     detailButton.addEventListener("click", async () => {
