@@ -899,6 +899,8 @@ After key rotation, the old key stops working.
 
 After disable, the customer key stops working.
 
+The dashboard also has a Customer lifecycle panel for preview, create, rotate, and disable demos.
+
 This is not full enterprise IAM.
 
 Production should use:

@@ -1106,6 +1106,8 @@ curl http://127.0.0.1:8787/v1/gateway/customers/disable \
 
 The disabled customer's gateway key stops working.
 
+The dashboard also has a **Customer lifecycle** panel for preview, create, rotate, and disable demos.
+
 This prototype stores customer keys in local JSON. Production should use a database, audit logs, and a secret manager.
 
 ## Audit Events

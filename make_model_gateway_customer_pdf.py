@@ -568,7 +568,7 @@ def build():
     story.append(Paragraph("Customer Key Lifecycle", styles["H1Custom"]))
     story.append(
         Paragraph(
-            "The prototype can also create a customer, rotate a customer gateway key, and disable a customer. These admin actions update customer_keys.json and reload the local runtime. After rotation, the old key stops working. After disable, the customer key stops working. This is useful for demos, but production should use a database, audit logs, approval workflow, and a secret manager.",
+            "The prototype can also create a customer, rotate a customer gateway key, and disable a customer. The dashboard has a Customer lifecycle panel for these demos. These admin actions update customer_keys.json and reload the local runtime. After rotation, the old key stops working. After disable, the customer key stops working. This is useful for demos, but production should use a database, audit logs, approval workflow, and a secret manager.",
             styles["BodyCustom"],
         )
     )

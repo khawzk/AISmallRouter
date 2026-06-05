@@ -1203,13 +1203,13 @@
 
       <section class="card" id="keys">
         <div class="card-head">
-          <h2>Customer key preview</h2>
-          <span>safe demo, no config write</span>
+          <h2>Customer lifecycle</h2>
+          <span>preview, create, rotate, disable</span>
         </div>
         <div class="card-body">
           <div class="console">
             <label>Customer ID
-              <input id="newCustomerId" value="customer-demo">
+              <input id="newCustomerId" value="customer-demo-ui">
             </label>
             <label>Plan
               <input id="newCustomerPlan" value="starter">
@@ -1219,10 +1219,13 @@
             </label>
             <div class="form-actions">
               <button id="keyPreviewButton" type="button">Preview key issue</button>
+              <button id="createCustomerButton" type="button">Create demo customer</button>
+              <button id="rotateCustomerButton" type="button">Rotate key</button>
+              <button id="disableCustomerButton" type="button">Disable customer</button>
             </div>
           </div>
           <div class="trace" id="keyPreviewTrace">
-            <div class="trace-item">Key issuing preview will appear here.</div>
+            <div class="trace-item">Use preview first. Create, rotate, and disable write to the local demo customer config.</div>
           </div>
         </div>
       </section>
@@ -1281,6 +1284,9 @@
     const newCustomerPlan = document.getElementById("newCustomerPlan");
     const newCustomerModels = document.getElementById("newCustomerModels");
     const keyPreviewButton = document.getElementById("keyPreviewButton");
+    const createCustomerButton = document.getElementById("createCustomerButton");
+    const rotateCustomerButton = document.getElementById("rotateCustomerButton");
+    const disableCustomerButton = document.getElementById("disableCustomerButton");
     const keyPreviewTrace = document.getElementById("keyPreviewTrace");
     const routeTrace = document.getElementById("routeTrace");
     const output = document.getElementById("output");
@@ -1627,6 +1633,41 @@
       };
     }
 
+    function newCustomerPayload() {
+      const allowedModels = newCustomerModels.value
+        .split(",")
+        .map((model) => model.trim())
+        .filter(Boolean);
+      return {
+        customer_id: newCustomerId.value.trim(),
+        plan: newCustomerPlan.value.trim() || "starter",
+        allowed_models: allowedModels.length ? allowedModels : ["smart-fast"]
+      };
+    }
+
+    function renderActionTrace(container, lines) {
+      container.innerHTML = "";
+      lines.forEach((line, index) => {
+        const div = document.createElement("div");
+        div.className = "trace-item";
+        div.innerHTML = `<strong>${index + 1}</strong>${escapeHtml(line)}`;
+        container.appendChild(div);
+      });
+    }
+
+    async function postAdminJson(path, payload) {
+      const response = await fetch(path + "?admin_key=" + encodeURIComponent(adminKey), {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify(payload)
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.error ? data.error.message : "Admin request failed.");
+      }
+      return data;
+    }
+
     async function sendRequest() {
       sendButton.disabled = true;
       routeTrace.innerHTML = '<div class="trace-item">Sending request through gateway...</div>';
@@ -1779,42 +1820,77 @@
     keyPreviewButton.addEventListener("click", async () => {
       keyPreviewButton.disabled = true;
       keyPreviewTrace.innerHTML = '<div class="trace-item">Preparing customer key preview...</div>';
-      const allowedModels = newCustomerModels.value
-        .split(",")
-        .map((model) => model.trim())
-        .filter(Boolean);
       try {
-        const response = await fetch("/v1/gateway/key-issue-preview?admin_key=" + encodeURIComponent(adminKey), {
-          method: "POST",
-          headers: {"Content-Type": "application/json"},
-          body: JSON.stringify({
-            customer_id: newCustomerId.value.trim(),
-            plan: newCustomerPlan.value.trim() || "starter",
-            allowed_models: allowedModels.length ? allowedModels : ["smart-fast"]
-          })
-        });
-        const data = await response.json();
-        if (!response.ok) {
-          keyPreviewTrace.innerHTML = `<div class="trace-item">${data.error ? data.error.message : "Key preview failed."}</div>`;
-          return;
-        }
-        keyPreviewTrace.innerHTML = "";
-        [
+        const data = await postAdminJson("/v1/gateway/key-issue-preview", newCustomerPayload());
+        renderActionTrace(keyPreviewTrace, [
           `customer = ${data.customer.id} / ${data.customer.plan}`,
           `one-time key = ${data.generated_api_key_masked}`,
           `models = ${data.customer.allowed_models.join(", ")}`,
           `limits = ${data.customer.request_limit} requests / ${data.customer.limit_window_seconds}s`,
           data.note
-        ].forEach((line, index) => {
-          const div = document.createElement("div");
-          div.className = "trace-item";
-          div.innerHTML = `<strong>${index + 1}</strong>${line}`;
-          keyPreviewTrace.appendChild(div);
-        });
+        ]);
       } catch (error) {
         keyPreviewTrace.innerHTML = '<div class="trace-item">' + String(error) + '</div>';
       } finally {
         keyPreviewButton.disabled = false;
+      }
+    });
+    createCustomerButton.addEventListener("click", async () => {
+      createCustomerButton.disabled = true;
+      keyPreviewTrace.innerHTML = '<div class="trace-item">Creating demo customer in local config...</div>';
+      try {
+        const data = await postAdminJson("/v1/gateway/customers", newCustomerPayload());
+        renderActionTrace(keyPreviewTrace, [
+          `created = ${data.customer.id} / ${data.customer.plan}`,
+          `generated key = ${data.generated_api_key_masked}`,
+          `models = ${(data.customer.allowed_models || []).join(", ")}`,
+          data.note,
+          "Refresh the page to see the customer in reports and access matrix."
+        ]);
+      } catch (error) {
+        keyPreviewTrace.innerHTML = '<div class="trace-item">' + String(error) + '</div>';
+      } finally {
+        createCustomerButton.disabled = false;
+      }
+    });
+    rotateCustomerButton.addEventListener("click", async () => {
+      rotateCustomerButton.disabled = true;
+      keyPreviewTrace.innerHTML = '<div class="trace-item">Rotating customer key...</div>';
+      try {
+        const data = await postAdminJson("/v1/gateway/customers/rotate-key", {
+          customer_id: newCustomerId.value.trim()
+        });
+        renderActionTrace(keyPreviewTrace, [
+          `rotated = ${data.customer.id}`,
+          `new key = ${data.generated_api_key_masked}`,
+          `enabled = ${data.customer.enabled}`,
+          data.note,
+          "Refresh the page to use the new customer state."
+        ]);
+      } catch (error) {
+        keyPreviewTrace.innerHTML = '<div class="trace-item">' + String(error) + '</div>';
+      } finally {
+        rotateCustomerButton.disabled = false;
+      }
+    });
+    disableCustomerButton.addEventListener("click", async () => {
+      disableCustomerButton.disabled = true;
+      keyPreviewTrace.innerHTML = '<div class="trace-item">Disabling customer key...</div>';
+      try {
+        const data = await postAdminJson("/v1/gateway/customers/disable", {
+          customer_id: newCustomerId.value.trim()
+        });
+        renderActionTrace(keyPreviewTrace, [
+          `disabled = ${data.customer.id}`,
+          `enabled = ${data.customer.enabled}`,
+          `key = ${data.customer.api_key_masked}`,
+          data.note,
+          "Refresh the page to see the disabled state."
+        ]);
+      } catch (error) {
+        keyPreviewTrace.innerHTML = '<div class="trace-item">' + String(error) + '</div>';
+      } finally {
+        disableCustomerButton.disabled = false;
       }
     });
     detailButton.addEventListener("click", async () => {

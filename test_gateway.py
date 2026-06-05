@@ -1704,6 +1704,10 @@ class GatewayPrototypeTest(unittest.TestCase):
         self.assertIn("demoScriptSteps", html)
         self.assertIn("/v1/gateway/demo-script?admin_key=", html)
         self.assertIn("15 minute customer walkthrough", html)
+        self.assertIn("Customer lifecycle", html)
+        self.assertIn("createCustomerButton", html)
+        self.assertIn("/v1/gateway/customers/rotate-key", html)
+        self.assertIn("/v1/gateway/customers/disable", html)
 
     def test_config_check_reports_demo_warnings(self):
         status, payload = request_json(self.base_url, path="/v1/gateway/config-check")
