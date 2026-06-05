@@ -526,6 +526,7 @@ Chat requests can also opt in:
 
 - `gateway_safety_check=true` returns the safety preview in the gateway metadata.
 - `gateway_block_sensitive=true` blocks the request when sensitive data is detected.
+- `gateway_redact_sensitive=true` redacts detected sensitive data before the provider call.
 
 This is a simple local preview.
 

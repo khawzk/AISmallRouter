@@ -1002,6 +1002,10 @@
             <label>Prompt
               <textarea id="prompt">Explain this gateway in one short sentence.</textarea>
             </label>
+            <label>
+              <input id="redactSensitive" type="checkbox">
+              Redact sensitive data before provider call
+            </label>
             <div class="form-actions">
               <button class="primary" id="sendButton" type="button">Send test request</button>
               <button id="resetButton" type="button">Reset</button>
@@ -1148,6 +1152,7 @@
     const sendButton = document.getElementById("sendButton");
     const resetButton = document.getElementById("resetButton");
     const promptInput = document.getElementById("prompt");
+    const redactSensitive = document.getElementById("redactSensitive");
 
     modelCount.textContent = String(state.models.length);
     customerCount.textContent = String((state.customers || []).length);
@@ -1419,6 +1424,7 @@
           body: JSON.stringify({
             model: modelSelect.value,
             messages: [{ role: "user", content: promptInput.value }],
+            gateway_redact_sensitive: redactSensitive.checked,
             stream: false
           })
         });
@@ -1537,6 +1543,7 @@
         [
           `status = ${data.status}`,
           `findings = ${data.summary.total} total / ${data.summary.critical} critical / ${data.summary.warning} warning`,
+          `redactions = ${data.summary.redactions}`,
           data.next_step,
           data.note
         ].forEach((line, index) => {

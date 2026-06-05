@@ -361,6 +361,9 @@ class GatewayPrototypeTest(unittest.TestCase):
         self.assertEqual(status, 200)
         self.assertEqual(preview["status"], "blocked")
         self.assertGreaterEqual(preview["summary"]["critical"], 1)
+        self.assertTrue(preview["redaction_available"])
+        self.assertGreaterEqual(preview["summary"]["redactions"], 1)
+        self.assertIn("[REDACTED_", preview["redacted_preview"]["messages"][0]["content"])
         self.assertIn("not a full DLP", preview["note"])
 
         status, payload = request_json(
@@ -377,6 +380,23 @@ class GatewayPrototypeTest(unittest.TestCase):
         )
         self.assertEqual(status, 200)
         self.assertEqual(payload["gateway"]["safety_preview"]["status"], "review")
+
+        status, payload = request_json(
+            self.base_url,
+            method="POST",
+            path="/v1/chat/completions",
+            api_key="dev-gateway-key",
+            payload={
+                "model": "smart-fast",
+                "messages": [{"role": "user", "content": "My email is user@example.com"}],
+                "gateway_redact_sensitive": True,
+                "stream": False,
+            },
+        )
+        self.assertEqual(status, 200)
+        self.assertTrue(payload["gateway"]["redaction_applied"])
+        self.assertIn("[REDACTED_EMAIL]", payload["choices"][0]["message"]["content"])
+        self.assertNotIn("user@example.com", payload["choices"][0]["message"]["content"])
 
         status, payload = request_json(
             self.base_url,

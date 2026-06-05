@@ -1674,6 +1674,42 @@ def payload_text_segments(payload):
     return segments
 
 
+def redact_sensitive_text(text):
+    redacted = text
+    applied = []
+    for rule in SAFETY_PATTERNS:
+        replacement = f"[REDACTED_{rule['type'].upper()}]"
+        redacted, count = rule["pattern"].subn(replacement, redacted)
+        if count:
+            applied.append({"type": rule["type"], "count": count})
+    return redacted, applied
+
+
+def redact_sensitive_payload(payload):
+    redacted_payload = dict(payload)
+    redactions = []
+    if isinstance(redacted_payload.get("prompt"), str):
+        redacted_text, applied = redact_sensitive_text(redacted_payload["prompt"])
+        redacted_payload["prompt"] = redacted_text
+        for item in applied:
+            redactions.append({"location": "prompt", **item})
+    messages = []
+    for index, message in enumerate(redacted_payload.get("messages") or []):
+        if not isinstance(message, dict):
+            messages.append(message)
+            continue
+        message_copy = dict(message)
+        if isinstance(message_copy.get("content"), str):
+            redacted_text, applied = redact_sensitive_text(message_copy["content"])
+            message_copy["content"] = redacted_text
+            for item in applied:
+                redactions.append({"location": f"messages[{index}].content", **item})
+        messages.append(message_copy)
+    if "messages" in redacted_payload:
+        redacted_payload["messages"] = messages
+    return redacted_payload, redactions
+
+
 def safety_preview(payload):
     findings = []
     for segment in payload_text_segments(payload):
@@ -1691,13 +1727,21 @@ def safety_preview(payload):
     severity_rank = {"critical": 2, "warning": 1, "info": 0}
     max_rank = max((severity_rank.get(item["severity"], 0) for item in findings), default=0)
     status = "blocked" if max_rank >= 2 else "review" if max_rank == 1 else "clear"
+    redacted_payload, redactions = redact_sensitive_payload(payload)
     return {
         "status": status,
         "findings": findings,
+        "redaction_available": bool(redactions),
+        "redactions": redactions,
+        "redacted_preview": {
+            "prompt": redacted_payload.get("prompt"),
+            "messages": redacted_payload.get("messages", []),
+        },
         "summary": {
             "critical": sum(1 for item in findings if item["severity"] == "critical"),
             "warning": sum(1 for item in findings if item["severity"] == "warning"),
             "total": len(findings),
+            "redactions": sum(item["count"] for item in redactions),
         },
         "next_step": (
             "Remove secrets before sending this request to a model provider."
@@ -2818,6 +2862,12 @@ class GatewayHandler(BaseHTTPRequestHandler):
                 400,
                 safety,
             )
+        provider_payload_source = payload
+        redaction_applied = False
+        if payload.get("gateway_redact_sensitive"):
+            provider_payload_source, redactions = redact_sensitive_payload(payload)
+            redaction_applied = bool(redactions)
+            safety["redaction_applied"] = redaction_applied
         stream = bool(payload.get("stream"))
         candidates, routing_policy = self.candidate_models(public_model, payload)
         errors = []
@@ -2826,7 +2876,7 @@ class GatewayHandler(BaseHTTPRequestHandler):
             if should_force_failover(payload, index):
                 errors.append({"model": candidate_name, "error": "forced_failover"})
                 continue
-            payload_for_provider = dict(payload)
+            payload_for_provider = dict(provider_payload_source)
             payload_for_provider["model"] = public_model
             route_trace = self.route_trace(public_model, model_config["upstream_model"], routing_policy)
             try:
@@ -2853,8 +2903,9 @@ class GatewayHandler(BaseHTTPRequestHandler):
                         ),
                     }
                 )
-                if payload.get("gateway_safety_check"):
+                if payload.get("gateway_safety_check") or payload.get("gateway_redact_sensitive"):
                     response["gateway"]["safety_preview"] = safety
+                    response["gateway"]["redaction_applied"] = redaction_applied
                 self.write_usage(response, public_model, model_config)
                 response["gateway"]["customer_budget"] = customer_budget_status(self.server.db_path, self.customer)
                 request_record = self.write_request_log(started_at, public_model, model_config["upstream_model"], model_config["provider"], 200, "ok")

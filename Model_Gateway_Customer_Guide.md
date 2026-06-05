@@ -480,6 +480,8 @@ Chat requests can also opt in.
 
 `gateway_block_sensitive=true` blocks the request when sensitive data is detected.
 
+`gateway_redact_sensitive=true` replaces detected sensitive data before the provider call.
+
 This is useful for explaining gateway guardrails.
 
 It is not a full DLP or compliance system.

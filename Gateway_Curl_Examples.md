@@ -216,6 +216,25 @@ curl http://127.0.0.1:8787/v1/gateway/safety-preview \
         "content": "My email is user@example.com"
       }
     ]
+}'
+```
+
+## Redact Sensitive Data Before Provider Call
+
+```bash
+curl http://127.0.0.1:8787/v1/chat/completions \
+  -H "Authorization: Bearer dev-gateway-key" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "smart-fast",
+    "messages": [
+      {
+        "role": "user",
+        "content": "My email is user@example.com"
+      }
+    ],
+    "gateway_redact_sensitive": true,
+    "stream": false
   }'
 ```
 

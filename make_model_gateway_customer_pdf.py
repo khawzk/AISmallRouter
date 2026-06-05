@@ -357,7 +357,7 @@ def build():
     story.append(Paragraph("Safety Preview", styles["H1Custom"]))
     story.append(
         Paragraph(
-            "/v1/gateway/safety-preview checks for obvious sensitive data before a provider call. It can detect examples such as email addresses, possible phone numbers, possible API keys, and secret assignments. Chat requests can also use gateway_safety_check to return safety metadata or gateway_block_sensitive to block detected sensitive data. This is useful for explaining gateway guardrails, but it is not a full DLP or compliance system.",
+            "/v1/gateway/safety-preview checks for obvious sensitive data before a provider call. It can detect examples such as email addresses, possible phone numbers, possible API keys, and secret assignments. Chat requests can also use gateway_safety_check to return safety metadata, gateway_block_sensitive to block detected sensitive data, or gateway_redact_sensitive to replace detected sensitive data before the provider call. This is useful for explaining gateway guardrails, but it is not a full DLP or compliance system.",
             styles["BodyCustom"],
         )
     )
