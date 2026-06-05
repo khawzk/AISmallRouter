@@ -59,6 +59,7 @@ The prototype supports:
 - Demo bundle manifest
 - Customer integration guide
 - Operational alerts
+- Incident playbook
 - Access matrix
 - OpenAI-compatible chat endpoint
 - Customer API key check
@@ -368,6 +369,32 @@ It combines several signals:
 Each alert includes a simple next step.
 
 This helps non-technical users understand what needs attention before a live demo.
+
+## What The Incident Playbook Shows
+
+The prototype includes `/v1/gateway/incident-playbook`.
+
+This endpoint explains what to do when something goes wrong.
+
+It includes common scenarios:
+
+- Provider cannot serve traffic
+- Recent customer requests are failing
+- Customer is blocked by budget or limit
+- Demo key or secret handling risk
+- New provider is not ready for customer traffic
+
+Each scenario includes:
+
+- trigger
+- signals to check
+- current evidence
+- operator steps
+- customer-safe wording
+
+It is not a legal SLA.
+
+It helps sales, support, and technical teams explain the same problem in the same way.
 
 ## What The Access Matrix Shows
 

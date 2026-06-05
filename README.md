@@ -171,6 +171,7 @@ The current version also supports:
 - `GET /v1/gateway/status`
 - `GET /v1/gateway/audit-events`
 - `GET /v1/gateway/alerts`
+- `GET /v1/gateway/incident-playbook`
 - `GET /v1/gateway/access-matrix`
 - `GET /v1/gateway/requests`
 - `GET /v1/gateway/usage`
@@ -229,6 +230,7 @@ The current version also supports:
 - request activity feed with simple filters for troubleshooting
 - request detail lookup by `request_id`
 - operational alerts with next steps
+- incident playbook with support scenarios and customer-safe wording
 - production readiness report for go-live gaps
 - customer model access matrix
 - customer self-service profile with no provider secret exposure
@@ -238,6 +240,7 @@ The current version also supports:
 - SQLite persistence for request and usage records
 - disabled example provider configs for OpenAI and Anthropic
 - provider type contracts for OpenAI-compatible, Anthropic, and planned Xiaomi-style providers
+- incident playbook for provider, request, budget, key, and contract issues
 - OpenAPI contract at `/openapi.json`
 - Postman collection at `/postman_collection.json`
 - demo bundle manifest at `/v1/gateway/demo-bundle`
@@ -419,6 +422,35 @@ It combines:
 Each alert includes a `next_step`.
 
 This helps non-technical users understand what needs attention before a live customer demo.
+
+## Incident Playbook
+
+The gateway has an incident playbook endpoint:
+
+```bash
+curl http://127.0.0.1:8787/v1/gateway/incident-playbook \
+  -H "Authorization: Bearer dev-admin-key"
+```
+
+It explains common support scenarios:
+
+- provider cannot serve traffic
+- recent customer requests are failing
+- customer is blocked by budget or limit
+- demo key or secret handling risk
+- new provider is not ready for customer traffic
+
+Each scenario includes:
+
+- trigger
+- signals to check
+- current evidence
+- operator steps
+- customer-safe wording
+
+It is not a legal SLA.
+
+It is a simple support playbook for demos and early customer discussions.
 
 ## Access Matrix
 

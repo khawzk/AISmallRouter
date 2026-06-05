@@ -85,6 +85,7 @@ ADMIN_PATHS = {
     "/v1/gateway/policy-presets",
     "/v1/gateway/demo-bundle",
     "/v1/gateway/production-readiness",
+    "/v1/gateway/incident-playbook",
     "/v1/gateway/request-activity",
     "/v1/gateway/model-catalog",
     "/v1/gateway/route-preview",
@@ -2823,6 +2824,159 @@ def production_readiness(server):
     }
 
 
+def incident_playbook(server):
+    alerts = gateway_alerts(server)
+    alert_codes = {alert.get("code") for alert in alerts.get("alerts", [])}
+    recent_errors = request_activity(server.db_path, {"status": "error"}, limit=5)
+    provider_rows = provider_health(server)
+    customer_rows = customer_reports(server)
+    scenarios = [
+        {
+            "id": "provider_not_ready",
+            "title": "Provider cannot serve traffic",
+            "trigger": "Provider health is not_ready or live mode has no usable provider key.",
+            "signals": [
+                "/v1/gateway/provider-health",
+                "/v1/gateway/alerts",
+                "/v1/gateway/production-readiness",
+            ],
+            "current_evidence": {
+                "active": "provider_not_ready" in alert_codes,
+                "providers": [
+                    provider
+                    for provider in provider_rows
+                    if provider.get("status") in {"not_ready", "degraded"}
+                ],
+            },
+            "operator_steps": [
+                "Check provider health and confirm whether the gateway is in mock or live mode.",
+                "Confirm server provider key or customer BYOK key is available.",
+                "Use fallback routing if a healthy fallback provider exists.",
+                "Keep customer-facing model names stable while changing upstream routes.",
+            ],
+            "customer_message": "The public model route is being checked. We can keep the same customer API while reviewing the upstream provider path.",
+        },
+        {
+            "id": "recent_request_errors",
+            "title": "Recent customer requests are failing",
+            "trigger": "Recent request activity includes error responses.",
+            "signals": [
+                "/v1/gateway/request-activity?status=error",
+                "/v1/gateway/request-detail?request_id=...",
+                "/v1/gateway/alerts",
+            ],
+            "current_evidence": {
+                "active": bool(recent_errors),
+                "recent_errors": recent_errors,
+            },
+            "operator_steps": [
+                "Open request activity and filter by customer, model, provider, or error code.",
+                "Use request detail with gateway.request_id from the customer response.",
+                "Check route decision, selected provider, upstream model, and latency.",
+                "If the problem is provider-specific, try fallback or provider allow-list controls.",
+            ],
+            "customer_message": "Please share the gateway.request_id. We can trace the route decision without exposing provider secrets.",
+        },
+        {
+            "id": "customer_budget_blocked",
+            "title": "Customer is blocked by budget or limit",
+            "trigger": "Customer budget state is warning or blocked.",
+            "signals": [
+                "/v1/gateway/customer-reports",
+                "/v1/gateway/me",
+                "/v1/gateway/invoice-preview",
+            ],
+            "current_evidence": {
+                "active": any(customer.get("budget_state") in {"warning", "blocked"} for customer in customer_rows),
+                "customers": [
+                    {
+                        "id": customer.get("id"),
+                        "budget_state": customer.get("budget_state"),
+                        "budget": customer.get("budget"),
+                    }
+                    for customer in customer_rows
+                    if customer.get("budget_state") in {"warning", "blocked"}
+                ],
+            },
+            "operator_steps": [
+                "Check customer report and invoice preview.",
+                "Confirm whether request, token, or cost budget caused the block.",
+                "Decide whether to raise budget, disable the key, or keep the block.",
+                "Record the decision as an audit event in production.",
+            ],
+            "customer_message": "The gateway is enforcing the agreed usage controls. We can review usage and budget before changing limits.",
+        },
+        {
+            "id": "demo_key_or_secret_risk",
+            "title": "Demo key or secret handling risk",
+            "trigger": "Config check finds demo keys or direct provider secrets.",
+            "signals": [
+                "/v1/gateway/config-check",
+                "/v1/gateway/production-readiness",
+            ],
+            "current_evidence": {
+                "active": bool({"default_admin_key", "demo_customer_keys", "plain_provider_secret"} & alert_codes),
+                "matching_alerts": [
+                    alert for alert in alerts.get("alerts", [])
+                    if alert.get("code") in {"default_admin_key", "demo_customer_keys", "plain_provider_secret"}
+                ],
+            },
+            "operator_steps": [
+                "Rotate the admin key and customer demo keys.",
+                "Move provider secrets into environment variables or a secret manager.",
+                "Re-run config check before any live customer traffic.",
+                "Do not send provider secrets to customers or store them in docs.",
+            ],
+            "customer_message": "The demo uses local keys for explanation. Production will use rotated keys and secret management.",
+        },
+        {
+            "id": "provider_contract_gap",
+            "title": "New provider is not ready for customer traffic",
+            "trigger": "Provider contract is scaffolded or planned, not fully implemented and tested.",
+            "signals": [
+                "/v1/gateway/provider-contracts",
+                "/v1/gateway/model-catalog",
+                "/v1/gateway/route-preview",
+            ],
+            "current_evidence": {
+                "active": True,
+                "contract_endpoint": "/v1/gateway/provider-contracts",
+            },
+            "operator_steps": [
+                "Confirm official provider docs for auth, chat, streaming, tools, usage, and errors.",
+                "Add provider as disabled first.",
+                "Write mock and live contract tests.",
+                "Enable one limited test customer before broad rollout.",
+            ],
+            "customer_message": "Adding a provider means validating its AI contract, not only forwarding HTTP.",
+        },
+    ]
+    return {
+        "object": "gateway.incident_playbook",
+        "mode": "mock" if server.mock_mode else "live",
+        "summary": {
+            "alert_status": alerts.get("status"),
+            "active_alerts": alerts.get("summary", {}),
+            "recent_error_count": len(recent_errors),
+            "scenario_count": len(scenarios),
+        },
+        "use_this_when": [
+            "A customer says a model request failed.",
+            "A provider is not ready or degraded.",
+            "A customer asks why usage is blocked.",
+            "A new provider is being prepared.",
+            "A sales or support person needs simple customer wording.",
+        ],
+        "scenarios": scenarios,
+        "escalation_rule": "Escalate to engineering when a provider is degraded, a request_id cannot be traced, or a live provider contract is not tested.",
+        "not_included": [
+            "This is not a legal SLA.",
+            "This is not a full incident management system.",
+            "This does not page people or change routes automatically.",
+        ],
+    }
+
+
 def read_jsonl_tail(path, limit=50):
     if not os.path.exists(path):
         return []
@@ -3303,6 +3457,7 @@ def openapi_spec(server):
         "/v1/gateway/request-summary": "Request summary by dimensions",
         "/v1/gateway/demo-bundle": "Customer demo bundle manifest",
         "/v1/gateway/production-readiness": "Production readiness report",
+        "/v1/gateway/incident-playbook": "Incident response playbook",
     }.items():
         paths[path] = {
             "get": {
@@ -3402,6 +3557,7 @@ def postman_collection(server):
         request_item("Provider Health", "GET", "/v1/gateway/provider-health", "admin_api_key"),
         request_item("Provider Contracts", "GET", "/v1/gateway/provider-contracts", "admin_api_key"),
         request_item("Production Readiness", "GET", "/v1/gateway/production-readiness", "admin_api_key"),
+        request_item("Incident Playbook", "GET", "/v1/gateway/incident-playbook", "admin_api_key"),
         request_item("Model Catalog", "GET", "/v1/gateway/model-catalog", "admin_api_key"),
         request_item("Audit Events", "GET", "/v1/gateway/audit-events", "admin_api_key"),
         request_item("Customer Reports", "GET", "/v1/gateway/customer-reports", "admin_api_key"),
@@ -3557,6 +3713,13 @@ def demo_bundle(server):
                 "auth": "adminBearerAuth",
             },
             {
+                "name": "Incident playbook",
+                "url": f"{base_url}/v1/gateway/incident-playbook",
+                "audience": "business and support",
+                "purpose": "Show common failure scenarios, operator steps, and customer-safe wording.",
+                "auth": "adminBearerAuth",
+            },
+            {
                 "name": "Postman collection",
                 "url": f"{base_url}/postman_collection.json",
                 "audience": "customer technical",
@@ -3639,6 +3802,10 @@ def demo_bundle(server):
             {
                 "name": "Provider contracts",
                 "command": f"curl {base_url}/v1/gateway/provider-contracts -H 'Authorization: Bearer {server.admin_api_key or DEFAULT_ADMIN_API_KEY}'",
+            },
+            {
+                "name": "Incident playbook",
+                "command": f"curl {base_url}/v1/gateway/incident-playbook -H 'Authorization: Bearer {server.admin_api_key or DEFAULT_ADMIN_API_KEY}'",
             },
         ],
         "production_notes": [
@@ -4371,6 +4538,9 @@ class GatewayHandler(BaseHTTPRequestHandler):
             return
         if path == "/v1/gateway/production-readiness":
             make_json_response(self, 200, production_readiness(self.server))
+            return
+        if path == "/v1/gateway/incident-playbook":
+            make_json_response(self, 200, incident_playbook(self.server))
             return
         if path == "/v1/gateway/requests":
             make_json_response(self, 200, {"data": db_tail(self.server.db_path, "requests", 100)})

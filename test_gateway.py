@@ -179,6 +179,7 @@ class GatewayPrototypeTest(unittest.TestCase):
             "/v1/gateway/demo-bundle",
             "/v1/gateway/production-readiness",
             "/v1/gateway/provider-contracts",
+            "/v1/gateway/incident-playbook",
         ]:
             self.assertIn(path, spec["paths"])
         self.assertEqual(
@@ -208,6 +209,7 @@ class GatewayPrototypeTest(unittest.TestCase):
         self.assertIn("Route Preview", admin_names)
         self.assertIn("Production Readiness", admin_names)
         self.assertIn("Provider Contracts", admin_names)
+        self.assertIn("Incident Playbook", admin_names)
         self.assertIn("Create Customer", admin_names)
         chat = next(item for item in folders["Customer API"]["item"] if item["name"] == "Chat Completion")
         self.assertEqual(chat["request"]["auth"]["bearer"][0]["value"], "{{gateway_api_key}}")
@@ -227,6 +229,7 @@ class GatewayPrototypeTest(unittest.TestCase):
         self.assertIn(f"{self.base_url}/postman_collection.json", entry_urls)
         self.assertIn(f"{self.base_url}/v1/gateway/production-readiness", entry_urls)
         self.assertIn(f"{self.base_url}/v1/gateway/provider-contracts", entry_urls)
+        self.assertIn(f"{self.base_url}/v1/gateway/incident-playbook", entry_urls)
         self.assertIn("Model_Gateway_Customer_Guide.pdf", entry_urls)
         self.assertGreaterEqual(len(bundle["recommended_demo_flow"]), 5)
         self.assertGreaterEqual(len(bundle["quick_commands"]), 4)
@@ -253,6 +256,29 @@ class GatewayPrototypeTest(unittest.TestCase):
         self.assertEqual(by_type["xiaomi_planned"]["adapter_status"], "planned")
         self.assertTrue(any("normalizes model names" in line for line in contracts["plain_english"]))
         self.assertNotIn("sk-", json.dumps(contracts))
+
+    def test_incident_playbook_lists_support_scenarios(self):
+        status, payload = request_json(self.base_url, path="/v1/gateway/incident-playbook", api_key="dev-gateway-key")
+        self.assertEqual(status, 401)
+        self.assertEqual(payload["error"]["code"], "invalid_admin_key")
+
+        status, playbook = request_json(self.base_url, path="/v1/gateway/incident-playbook", api_key="dev-admin-key")
+        self.assertEqual(status, 200)
+        self.assertEqual(playbook["object"], "gateway.incident_playbook")
+        self.assertIn("summary", playbook)
+        self.assertGreaterEqual(playbook["summary"]["scenario_count"], 5)
+        scenario_ids = {scenario["id"] for scenario in playbook["scenarios"]}
+        self.assertIn("provider_not_ready", scenario_ids)
+        self.assertIn("recent_request_errors", scenario_ids)
+        self.assertIn("customer_budget_blocked", scenario_ids)
+        self.assertIn("provider_contract_gap", scenario_ids)
+        for scenario in playbook["scenarios"]:
+            self.assertIn("operator_steps", scenario)
+            self.assertIn("customer_message", scenario)
+            self.assertIn("signals", scenario)
+        recent_error = next(scenario for scenario in playbook["scenarios"] if scenario["id"] == "recent_request_errors")
+        self.assertIn("/v1/gateway/request-detail?request_id=...", recent_error["signals"])
+        self.assertNotIn("DASHSCOPE_API_KEY", json.dumps(playbook))
 
     def test_production_readiness_summarizes_go_live_gaps(self):
         status, payload = request_json(self.base_url, path="/v1/gateway/production-readiness", api_key="dev-gateway-key")
