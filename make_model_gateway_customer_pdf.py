@@ -233,6 +233,7 @@ def build():
         "Operational alerts endpoint with simple next steps.",
         "Access matrix endpoint for customer and model permissions.",
         "Provider health endpoint for mock-ready, live-ready, degraded, and not-ready states.",
+        "Provider create, update, and disable actions for provider lifecycle demos.",
         "Model catalog endpoint for provider status, fallback chain, usage, and pricing metadata.",
         "Model route create, update, and disable actions for route lifecycle demos.",
         "Route preview endpoint to dry-run model access, budget, provider readiness, and fallback order.",
@@ -272,6 +273,7 @@ def build():
             ["Operational alerts", "Non-technical users need a clear action list.", "Alerts with severity, area, and next step"],
             ["Access control", "Each customer may be allowed to use different models.", "Access matrix by customer and model"],
             ["Provider health", "Customers need to know whether a provider can serve traffic.", "Readiness view based on config and recent traffic"],
+            ["Provider lifecycle", "Teams need to add and stop providers safely.", "Local JSON-backed create, update, and disable actions"],
             ["Model catalog", "Customers need to understand public model names and routes.", "Catalog with provider status, fallback chain, usage, and pricing metadata"],
             ["Model route lifecycle", "Teams need to change public model routes safely.", "Local JSON-backed create, update, and disable actions"],
             ["Route preview", "Sales and support need to explain a route before spending credits.", "Dry-run endpoint and dashboard preview"],
@@ -341,6 +343,14 @@ def build():
     story.append(
         Paragraph(
             "/v1/gateway/provider-health answers a simple question: can this provider serve traffic now? It checks enabled models, live key readiness, customer BYOK readiness, recent errors, and average latency. In mock mode, ready_mock means the provider can be explained without spending credits. It does not mean the live provider key is ready.",
+            styles["BodyCustom"],
+        )
+    )
+
+    story.append(Paragraph("Provider Lifecycle", styles["H1Custom"]))
+    story.append(
+        Paragraph(
+            "The prototype can create, update, and disable providers. A provider defines the upstream API type, base URL, and API key environment variable name. Disabling a provider also disables active model routes that point to it, so the local registry stays valid. These admin actions update model_registry.json, reload the local runtime, and write audit events. The prototype stores the provider key environment variable name, not the provider secret value. Production should use a database, secret manager, approval workflow, readiness checks, and rollout controls.",
             styles["BodyCustom"],
         )
     )

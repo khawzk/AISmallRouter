@@ -180,6 +180,9 @@ The current version also supports:
 - `POST /v1/gateway/customers`
 - `POST /v1/gateway/customers/rotate-key`
 - `POST /v1/gateway/customers/disable`
+- `POST /v1/gateway/providers`
+- `POST /v1/gateway/providers/update`
+- `POST /v1/gateway/providers/disable`
 - `POST /v1/gateway/model-routes`
 - `POST /v1/gateway/model-routes/update`
 - `POST /v1/gateway/model-routes/disable`
@@ -205,6 +208,7 @@ The current version also supports:
 - customer key issue preview for safe onboarding demos
 - persistent customer create, key rotation, and customer disable actions
 - audit events for customer key lifecycle actions
+- provider create, update, and disable actions
 - model route create, update, and disable actions
 - local safety preview for obvious emails, phone numbers, and secrets
 - invoice preview with JSON and CSV output
@@ -333,6 +337,55 @@ It shows:
 This is not a paid provider ping.
 
 It is a local readiness view based on configuration and recent gateway traffic.
+
+## Provider Lifecycle
+
+The admin can create a provider:
+
+```bash
+curl http://127.0.0.1:8787/v1/gateway/providers \
+  -H "Authorization: Bearer dev-admin-key" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "provider_id": "demo-provider",
+    "name": "Demo Provider",
+    "type": "openai_compatible",
+    "base_url": "https://example.com/v1",
+    "api_key_env": "DEMO_PROVIDER_API_KEY"
+  }'
+```
+
+The admin can update the provider name, type, base URL, API key environment variable, and enabled state:
+
+```bash
+curl http://127.0.0.1:8787/v1/gateway/providers/update \
+  -H "Authorization: Bearer dev-admin-key" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "provider_id": "demo-provider",
+    "name": "Demo Provider Updated",
+    "api_key_env": "DEMO_PROVIDER_API_KEY_2"
+  }'
+```
+
+The admin can disable a provider:
+
+```bash
+curl http://127.0.0.1:8787/v1/gateway/providers/disable \
+  -H "Authorization: Bearer dev-admin-key" \
+  -H "Content-Type: application/json" \
+  -d '{"provider_id": "demo-provider"}'
+```
+
+Disabling a provider also disables active model routes that point to that provider.
+
+This keeps `model_registry.json` valid and reloads the local runtime safely.
+
+Every provider change writes an audit event.
+
+The prototype stores the provider API key environment variable name, not the provider secret value.
+
+Production should use a database, secret manager, approval workflow, readiness checks, and rollout controls.
 
 ## Model Catalog
 

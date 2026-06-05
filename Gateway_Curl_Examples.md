@@ -30,7 +30,7 @@ It does not spend provider credits.
 python3 test_gateway.py
 ```
 
-The test covers auth, model listing, customer self view, customer key lifecycle, audit events, model route lifecycle, routing, route preview, route decision summary, provider allow-list routing, capability routing, safety preview, cost estimate, customer key issue preview, invoice preview, fallback, model access, budgets, SQLite logs, alerts, access matrix, provider health, model catalog, customer reports, request activity, request detail lookup, and admin summary endpoints.
+The test covers auth, model listing, customer self view, customer key lifecycle, audit events, provider lifecycle, model route lifecycle, routing, route preview, route decision summary, provider allow-list routing, capability routing, safety preview, cost estimate, customer key issue preview, invoice preview, fallback, model access, budgets, SQLite logs, alerts, access matrix, provider health, model catalog, customer reports, request activity, request detail lookup, and admin summary endpoints.
 
 Open the visual dashboard:
 
@@ -110,6 +110,49 @@ curl http://127.0.0.1:8787/v1/gateway/customers/disable \
 ```
 
 This updates `customer_keys.json` in the running prototype.
+
+## Create, Update, And Disable A Provider
+
+Create a provider:
+
+```bash
+curl http://127.0.0.1:8787/v1/gateway/providers \
+  -H "Authorization: Bearer dev-admin-key" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "provider_id": "demo-provider",
+    "name": "Demo Provider",
+    "type": "openai_compatible",
+    "base_url": "https://example.com/v1",
+    "api_key_env": "DEMO_PROVIDER_API_KEY"
+  }'
+```
+
+Update the provider:
+
+```bash
+curl http://127.0.0.1:8787/v1/gateway/providers/update \
+  -H "Authorization: Bearer dev-admin-key" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "provider_id": "demo-provider",
+    "name": "Demo Provider Updated",
+    "api_key_env": "DEMO_PROVIDER_API_KEY_2"
+  }'
+```
+
+Disable the provider:
+
+```bash
+curl http://127.0.0.1:8787/v1/gateway/providers/disable \
+  -H "Authorization: Bearer dev-admin-key" \
+  -H "Content-Type: application/json" \
+  -d '{"provider_id": "demo-provider"}'
+```
+
+This updates `model_registry.json`.
+
+Disabling a provider also disables active model routes that point to it.
 
 ## Create, Update, And Disable A Model Route
 

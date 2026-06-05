@@ -1684,11 +1684,152 @@ def find_model_config(config, model_id):
     return None, None
 
 
+def find_provider_config(config, provider_id):
+    for index, provider in enumerate(config.get("providers", [])):
+        if provider.get("id") == provider_id:
+            return index, provider
+    return None, None
+
+
 def active_provider_ids_from_config(config):
     return {
         provider.get("id")
         for provider in config.get("providers", [])
         if provider.get("id") and provider.get("enabled", True)
+    }
+
+
+def provider_payload(payload, existing=None):
+    existing = existing or {}
+    provider_id = (payload.get("provider_id") or payload.get("id") or existing.get("id") or "").strip()
+    if not provider_id:
+        raise GatewayError("Missing required field: provider_id.", "missing_provider_id", 400)
+    name = (payload.get("name") or existing.get("name") or provider_id).strip()
+    provider_type = (payload.get("type") or existing.get("type") or "openai_compatible").strip()
+    if provider_type not in {"openai_compatible", "anthropic"}:
+        raise GatewayError(
+            "type must be openai_compatible or anthropic.",
+            "invalid_provider_type",
+            400,
+        )
+    base_url = (payload.get("base_url") or existing.get("base_url") or "").strip()
+    if not base_url:
+        raise GatewayError("Missing required field: base_url.", "missing_base_url", 400)
+    api_key_env = (payload.get("api_key_env") or existing.get("api_key_env") or "").strip()
+    if not api_key_env:
+        raise GatewayError("Missing required field: api_key_env.", "missing_api_key_env", 400)
+
+    provider = {
+        "id": provider_id,
+        "name": name,
+        "type": provider_type,
+        "base_url": base_url,
+        "api_key_env": api_key_env,
+        "enabled": bool(payload.get("enabled", existing.get("enabled", True))),
+    }
+    api_version = (payload.get("api_version") or existing.get("api_version") or "").strip()
+    if api_version:
+        provider["api_version"] = api_version
+    return provider
+
+
+def provider_public_view(provider):
+    view = {
+        "id": provider.get("id"),
+        "name": provider.get("name", provider.get("id")),
+        "type": provider.get("type", "openai_compatible"),
+        "base_url": provider.get("base_url"),
+        "api_key_env": provider.get("api_key_env"),
+        "enabled": bool(provider.get("enabled", True)),
+    }
+    if provider.get("api_version"):
+        view["api_version"] = provider.get("api_version")
+    return view
+
+
+def provider_create(server, payload):
+    config = load_registry_config(server.registry_path)
+    provider_id = (payload.get("provider_id") or payload.get("id") or "").strip()
+    if not provider_id:
+        raise GatewayError("Missing required field: provider_id.", "missing_provider_id", 400)
+    _, existing = find_provider_config(config, provider_id)
+    if existing is not None:
+        raise GatewayError(f"Provider already exists: {provider_id}.", "provider_already_exists", 409)
+    provider = provider_payload(payload)
+    config.setdefault("providers", []).append(provider)
+    write_json(server.registry_path, config)
+    reload_registry_runtime(server)
+    write_audit_event(
+        server,
+        "provider.created",
+        "provider",
+        provider["id"],
+        details=provider_public_view(provider),
+    )
+    return {
+        "object": "provider.created",
+        "provider": provider_public_view(provider),
+        "note": "This prototype stores providers in model_registry.json. Production should use a database, secret manager, approval workflow, and readiness checks.",
+    }
+
+
+def provider_update(server, payload):
+    config = load_registry_config(server.registry_path)
+    provider_id = (payload.get("provider_id") or payload.get("id") or "").strip()
+    if not provider_id:
+        raise GatewayError("Missing required field: provider_id.", "missing_provider_id", 400)
+    index, existing = find_provider_config(config, provider_id)
+    if existing is None:
+        raise GatewayError(f"Unknown provider: {provider_id}.", "unknown_provider", 404)
+    provider = provider_payload(payload, existing=existing)
+    config["providers"][index] = provider
+    write_json(server.registry_path, config)
+    reload_registry_runtime(server)
+    write_audit_event(
+        server,
+        "provider.updated",
+        "provider",
+        provider["id"],
+        details=provider_public_view(provider),
+    )
+    return {
+        "object": "provider.updated",
+        "provider": provider_public_view(provider),
+    }
+
+
+def provider_disable(server, payload):
+    config = load_registry_config(server.registry_path)
+    provider_id = (payload.get("provider_id") or payload.get("id") or "").strip()
+    if not provider_id:
+        raise GatewayError("Missing required field: provider_id.", "missing_provider_id", 400)
+    index, existing = find_provider_config(config, provider_id)
+    if existing is None:
+        raise GatewayError(f"Unknown provider: {provider_id}.", "unknown_provider", 404)
+    provider = dict(existing)
+    provider["enabled"] = False
+    disabled_routes = []
+    for model in config.get("models", []):
+        if model.get("provider") == provider_id and model.get("enabled", True):
+            model["enabled"] = False
+            disabled_routes.append(model.get("id"))
+    config["providers"][index] = provider
+    write_json(server.registry_path, config)
+    reload_registry_runtime(server)
+    details = provider_public_view(provider)
+    details["disabled_model_routes"] = disabled_routes
+    write_audit_event(
+        server,
+        "provider.disabled",
+        "provider",
+        provider_id,
+        details=details,
+    )
+    return {
+        "object": "provider.disabled",
+        "provider": provider_public_view(provider),
+        "disabled_model_routes": disabled_routes,
+        "note": "The disabled provider and its active model routes are removed from the active runtime maps.",
     }
 
 
@@ -3248,6 +3389,39 @@ class GatewayHandler(BaseHTTPRequestHandler):
                 return
             try:
                 make_json_response(self, 200, customer_rotate_key(self.server, payload))
+            except GatewayError as exc:
+                make_error(self, exc.status, exc.message, exc.code, exc.details)
+            return
+        if path == "/v1/gateway/providers":
+            if not self.authenticate_admin():
+                return
+            payload = self.read_json_body()
+            if payload is None:
+                return
+            try:
+                make_json_response(self, 201, provider_create(self.server, payload))
+            except GatewayError as exc:
+                make_error(self, exc.status, exc.message, exc.code, exc.details)
+            return
+        if path == "/v1/gateway/providers/update":
+            if not self.authenticate_admin():
+                return
+            payload = self.read_json_body()
+            if payload is None:
+                return
+            try:
+                make_json_response(self, 200, provider_update(self.server, payload))
+            except GatewayError as exc:
+                make_error(self, exc.status, exc.message, exc.code, exc.details)
+            return
+        if path == "/v1/gateway/providers/disable":
+            if not self.authenticate_admin():
+                return
+            payload = self.read_json_body()
+            if payload is None:
+                return
+            try:
+                make_json_response(self, 200, provider_disable(self.server, payload))
             except GatewayError as exc:
                 make_error(self, exc.status, exc.message, exc.code, exc.details)
             return

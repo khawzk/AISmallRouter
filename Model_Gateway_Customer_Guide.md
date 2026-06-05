@@ -70,6 +70,7 @@ The prototype supports:
 - Mock streaming
 - Customer plans with token and cost budgets
 - Bring Your Own Key provider mapping
+- Provider create, update, and disable actions
 - Request-level provider allow-list
 - Capability routing control
 - Local safety preview
@@ -219,6 +220,7 @@ They help explain the control layer:
 - Operational alerts
 - Access matrix
 - Provider health and readiness
+- Provider lifecycle actions
 - Model catalog and routing plan
 - Model route lifecycle actions
 - Route preview before a live request
@@ -326,6 +328,35 @@ In mock mode, a provider can be `ready_mock`.
 That means the provider can be explained in the demo without spending credits.
 
 It does not mean the live provider key is ready.
+
+## What Provider Lifecycle Shows
+
+The prototype includes three admin actions:
+
+- `/v1/gateway/providers`
+- `/v1/gateway/providers/update`
+- `/v1/gateway/providers/disable`
+
+These actions update `model_registry.json` in the local prototype.
+
+They can show a simple provider lifecycle:
+
+- Add a provider
+- Set the provider type
+- Set the base URL
+- Set the API key environment variable name
+- Update provider config
+- Disable the provider when it should stop
+
+Disabling a provider also disables active model routes that point to it.
+
+Every provider change writes an audit event.
+
+The prototype stores the environment variable name for the provider key.
+
+It does not store the provider secret value.
+
+Production should use a database, secret manager, approval workflow, readiness checks, and rollout controls.
 
 ## What The Model Catalog Shows
 

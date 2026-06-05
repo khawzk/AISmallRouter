@@ -952,6 +952,119 @@ class GatewayPrototypeTest(unittest.TestCase):
         self.assertIn("model_route.updated", route_actions)
         self.assertIn("model_route.disabled", route_actions)
 
+        status, created_provider = request_json(
+            self.base_url,
+            method="POST",
+            path="/v1/gateway/providers",
+            api_key="dev-admin-key",
+            payload={
+                "provider_id": "demo-provider",
+                "name": "Demo Provider",
+                "type": "openai_compatible",
+                "base_url": "https://example.com/v1",
+                "api_key_env": "DEMO_PROVIDER_API_KEY",
+            },
+        )
+        self.assertEqual(status, 201)
+        self.assertEqual(created_provider["object"], "provider.created")
+        self.assertEqual(created_provider["provider"]["id"], "demo-provider")
+        self.assertNotIn("provider_api_keys", json.dumps(created_provider))
+        self.assertNotIn("api_key_value", json.dumps(created_provider))
+
+        status, provider_list = request_json(self.base_url, path="/v1/gateway/providers", api_key="dev-admin-key")
+        self.assertEqual(status, 200)
+        self.assertIn("demo-provider", {provider["id"] for provider in provider_list["data"]})
+
+        status, duplicate_provider = request_json(
+            self.base_url,
+            method="POST",
+            path="/v1/gateway/providers",
+            api_key="dev-admin-key",
+            payload={
+                "provider_id": "demo-provider",
+                "base_url": "https://example.com/v1",
+                "api_key_env": "DEMO_PROVIDER_API_KEY",
+            },
+        )
+        self.assertEqual(status, 409)
+        self.assertEqual(duplicate_provider["error"]["code"], "provider_already_exists")
+
+        status, bad_provider = request_json(
+            self.base_url,
+            method="POST",
+            path="/v1/gateway/providers",
+            api_key="dev-admin-key",
+            payload={
+                "provider_id": "bad-provider",
+                "type": "bad_type",
+                "base_url": "https://example.com/v1",
+                "api_key_env": "BAD_PROVIDER_API_KEY",
+            },
+        )
+        self.assertEqual(status, 400)
+        self.assertEqual(bad_provider["error"]["code"], "invalid_provider_type")
+
+        status, provider_route = request_json(
+            self.base_url,
+            method="POST",
+            path="/v1/gateway/model-routes",
+            api_key="dev-admin-key",
+            payload={
+                "model_id": "demo-provider-route",
+                "provider": "demo-provider",
+                "upstream_model": "demo-model",
+                "capabilities": ["chat"],
+            },
+        )
+        self.assertEqual(status, 201)
+        self.assertEqual(provider_route["model"]["provider"], "demo-provider")
+
+        status, updated_provider = request_json(
+            self.base_url,
+            method="POST",
+            path="/v1/gateway/providers/update",
+            api_key="dev-admin-key",
+            payload={
+                "provider_id": "demo-provider",
+                "name": "Demo Provider Updated",
+                "api_key_env": "DEMO_PROVIDER_API_KEY_2",
+            },
+        )
+        self.assertEqual(status, 200)
+        self.assertEqual(updated_provider["object"], "provider.updated")
+        self.assertEqual(updated_provider["provider"]["name"], "Demo Provider Updated")
+        self.assertEqual(updated_provider["provider"]["api_key_env"], "DEMO_PROVIDER_API_KEY_2")
+
+        status, disabled_provider = request_json(
+            self.base_url,
+            method="POST",
+            path="/v1/gateway/providers/disable",
+            api_key="dev-admin-key",
+            payload={"provider_id": "demo-provider"},
+        )
+        self.assertEqual(status, 200)
+        self.assertEqual(disabled_provider["object"], "provider.disabled")
+        self.assertIn("demo-provider-route", disabled_provider["disabled_model_routes"])
+
+        status, catalog_after_provider_disable = request_json(
+            self.base_url,
+            path="/v1/gateway/model-catalog",
+            api_key="dev-admin-key",
+        )
+        self.assertEqual(status, 200)
+        self.assertNotIn("demo-provider-route", {model["id"] for model in catalog_after_provider_disable["data"]})
+
+        status, provider_audit = request_json(
+            self.base_url,
+            path="/v1/gateway/audit-events?target_id=demo-provider",
+            api_key="dev-admin-key",
+        )
+        self.assertEqual(status, 200)
+        provider_actions = {event["action"] for event in provider_audit["data"]}
+        self.assertIn("provider.created", provider_actions)
+        self.assertIn("provider.updated", provider_actions)
+        self.assertIn("provider.disabled", provider_actions)
+
         status, customer_usage = request_json(self.base_url, path="/v1/gateway/customer-usage", api_key="dev-admin-key")
         self.assertEqual(status, 200)
         customer_ids = {row["id"] for row in customer_usage["data"]}
