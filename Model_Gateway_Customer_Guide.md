@@ -269,6 +269,10 @@ Fallback means trying another model if the first one fails.
 
 This sounds simple, but it needs rules.
 
+The prototype supports request-level fallback controls.
+
+A request can use the registry fallback list, disable fallback, or provide its own fallback model list.
+
 Example questions:
 
 - When should fallback happen?

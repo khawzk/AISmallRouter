@@ -364,6 +364,46 @@ curl http://127.0.0.1:8787/v1/chat/completions \
   }'
 ```
 
+Disable fallback for one request:
+
+```bash
+curl http://127.0.0.1:8787/v1/chat/completions \
+  -H "Authorization: Bearer dev-gateway-key" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "smart-fast",
+    "gateway_force_failover": true,
+    "gateway_disable_fallback": true,
+    "messages": [
+      {
+        "role": "user",
+        "content": "Do not use fallback for this request."
+      }
+    ],
+    "stream": false
+  }'
+```
+
+Choose fallback models for one request:
+
+```bash
+curl http://127.0.0.1:8787/v1/chat/completions \
+  -H "Authorization: Bearer dev-gateway-key" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "smart-fast",
+    "gateway_force_failover": true,
+    "gateway_fallback_models": ["qwen-turbo"],
+    "messages": [
+      {
+        "role": "user",
+        "content": "Use my fallback list."
+      }
+    ],
+    "stream": false
+  }'
+```
+
 Test streaming in mock mode:
 
 ```bash

@@ -1199,7 +1199,7 @@ def should_force_failover(payload, candidate_index):
 
 
 class GatewayHandler(BaseHTTPRequestHandler):
-    server_version = "AISmallRouter/0.7"
+    server_version = "AISmallRouter/0.8"
 
     def log_message(self, format_text, *args):
         if self.server.quiet:
@@ -1408,18 +1408,54 @@ class GatewayHandler(BaseHTTPRequestHandler):
                 budget,
             )
 
-    def candidate_models(self, public_model):
+    def candidate_models(self, public_model, payload):
         model = self.server.models.get(public_model)
         if not model:
             raise GatewayError(f"Unknown model: {public_model}.", "unknown_model", 404)
-        candidates = [public_model] + model.get("fallback_models", [])
-        return [name for name in candidates if name in self.server.models]
+        routing_policy = {
+            "source": "model_registry",
+            "fallback_enabled": not bool(payload.get("gateway_disable_fallback")),
+            "requested_fallback_models": None,
+        }
+        fallback_models = model.get("fallback_models", [])
+        requested_fallbacks = False
+        if "gateway_fallback_models" in payload:
+            requested = payload.get("gateway_fallback_models")
+            if not isinstance(requested, list) or not all(isinstance(name, str) for name in requested):
+                raise GatewayError(
+                    "gateway_fallback_models must be a list of model names.",
+                    "invalid_routing_policy",
+                    400,
+                )
+            fallback_models = requested
+            requested_fallbacks = True
+            routing_policy["source"] = "request"
+            routing_policy["requested_fallback_models"] = requested
+        if not routing_policy["fallback_enabled"]:
+            fallback_models = []
+            routing_policy["source"] = "request"
 
-    def route_trace(self, public_model, resolved_model):
+        candidates = [public_model]
+        for name in fallback_models:
+            if name == public_model or name in candidates:
+                continue
+            if name not in self.server.models:
+                raise GatewayError(f"Unknown fallback model: {name}.", "unknown_fallback_model", 404)
+            if requested_fallbacks:
+                self.ensure_model_access(name)
+            candidates.append(name)
+        routing_policy["candidates"] = candidates
+        return candidates, routing_policy
+
+    def route_trace(self, public_model, resolved_model, routing_policy):
+        fallback_text = "disabled"
+        if routing_policy.get("fallback_enabled"):
+            fallback_text = ", ".join(routing_policy.get("candidates", [])[1:]) or "none"
         return [
             "Customer sends one OpenAI-compatible request",
             f"Gateway reads model = {public_model}",
             f"Model registry maps {public_model} to {resolved_model}",
+            f"Routing policy source = {routing_policy.get('source')}, fallback = {fallback_text}",
             "Provider adapter prepares the upstream request",
         ]
 
@@ -1430,7 +1466,7 @@ class GatewayHandler(BaseHTTPRequestHandler):
         self.ensure_model_access(public_model)
         self.ensure_budget_available()
         stream = bool(payload.get("stream"))
-        candidates = self.candidate_models(public_model)
+        candidates, routing_policy = self.candidate_models(public_model, payload)
         errors = []
         for index, candidate_name in enumerate(candidates):
             model_config = self.server.models[candidate_name]
@@ -1439,7 +1475,7 @@ class GatewayHandler(BaseHTTPRequestHandler):
                 continue
             payload_for_provider = dict(payload)
             payload_for_provider["model"] = public_model
-            route_trace = self.route_trace(public_model, model_config["upstream_model"])
+            route_trace = self.route_trace(public_model, model_config["upstream_model"], routing_policy)
             try:
                 adapter = adapter_for(model_config, self.server.mock_mode, self.customer)
                 if stream:
@@ -1454,6 +1490,7 @@ class GatewayHandler(BaseHTTPRequestHandler):
                         "resolved_model": model_config["upstream_model"],
                         "provider": model_config["provider"],
                         "fallback_attempts": errors,
+                        "routing_policy": routing_policy,
                     }
                 )
                 self.write_usage(response, public_model, model_config)

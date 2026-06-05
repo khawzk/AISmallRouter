@@ -173,6 +173,43 @@ class GatewayPrototypeTest(unittest.TestCase):
         self.assertEqual(status, 200)
         self.assertEqual(payload["gateway"]["resolved_model"], "qwen-turbo")
         self.assertEqual(payload["gateway"]["fallback_attempts"][0]["error"], "forced_failover")
+        self.assertEqual(payload["gateway"]["routing_policy"]["source"], "model_registry")
+
+    def test_request_can_disable_fallback(self):
+        status, payload = request_json(
+            self.base_url,
+            method="POST",
+            path="/v1/chat/completions",
+            api_key="dev-gateway-key",
+            payload={
+                "model": "smart-fast",
+                "gateway_force_failover": True,
+                "gateway_disable_fallback": True,
+                "messages": [{"role": "user", "content": "Do not fallback."}],
+                "stream": False,
+            },
+        )
+        self.assertEqual(status, 502)
+        self.assertEqual(payload["error"]["code"], "route_failed")
+
+    def test_request_can_choose_fallback_models(self):
+        status, payload = request_json(
+            self.base_url,
+            method="POST",
+            path="/v1/chat/completions",
+            api_key="dev-gateway-key",
+            payload={
+                "model": "smart-fast",
+                "gateway_force_failover": True,
+                "gateway_fallback_models": ["qwen-turbo"],
+                "messages": [{"role": "user", "content": "Use custom fallback list."}],
+                "stream": False,
+            },
+        )
+        self.assertEqual(status, 200)
+        self.assertEqual(payload["gateway"]["resolved_model"], "qwen-turbo")
+        self.assertEqual(payload["gateway"]["routing_policy"]["source"], "request")
+        self.assertEqual(payload["gateway"]["routing_policy"]["candidates"], ["smart-fast", "qwen-turbo"])
 
     def test_customer_model_access_is_enforced(self):
         status, payload = request_json(
