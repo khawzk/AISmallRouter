@@ -523,6 +523,31 @@
       background: #0b0d10;
     }
 
+    .activity-list {
+      display: grid;
+      gap: 8px;
+    }
+
+    .activity-row {
+      display: grid;
+      grid-template-columns: 88px 1fr auto;
+      gap: 10px;
+      align-items: center;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 10px 11px;
+      background: var(--panel-3);
+    }
+
+    .activity-row strong {
+      font-size: 13px;
+    }
+
+    .activity-row span {
+      color: var(--muted);
+      font-size: 12px;
+    }
+
     .model {
       border: 1px solid var(--line);
       border-radius: 12px;
@@ -703,9 +728,17 @@
         grid-template-columns: 36px 1fr;
       }
 
+      .activity-row {
+        grid-template-columns: 1fr;
+      }
+
       .chip {
         grid-column: 2;
         width: fit-content;
+      }
+
+      .activity-row .chip {
+        grid-column: auto;
       }
     }
   </style>
@@ -721,6 +754,7 @@
         <a href="#models">Models</a>
         <a href="#health">Health</a>
         <a href="#reports">Reports</a>
+        <a href="#activity">Activity</a>
         <a href="#routing">Routing</a>
         <a href="#console">Console</a>
         <a href="#quickstart">Quickstart</a>
@@ -730,6 +764,7 @@
         <a class="btn" href="/v1/gateway/status?admin_key=__ADMIN_API_KEY__">Status</a>
         <a class="btn" href="/v1/gateway/provider-health?admin_key=__ADMIN_API_KEY__">Health</a>
         <a class="btn" href="/v1/gateway/customer-reports?admin_key=__ADMIN_API_KEY__">Reports</a>
+        <a class="btn" href="/v1/gateway/request-activity?admin_key=__ADMIN_API_KEY__">Activity</a>
         <a class="btn" href="/v1/gateway/config-check?admin_key=__ADMIN_API_KEY__">Config</a>
         <a class="btn primary" href="#console">Test request</a>
       </div>
@@ -801,6 +836,16 @@
       </div>
       <div class="card-body">
         <div class="report-grid" id="customerReportList"></div>
+      </div>
+    </section>
+
+    <section class="card" id="activity" style="margin-bottom: 18px;">
+      <div class="card-head">
+        <h2>Request activity</h2>
+        <span>latest gateway decisions</span>
+      </div>
+      <div class="card-body">
+        <div class="activity-list" id="activityList"></div>
       </div>
     </section>
 
@@ -922,6 +967,7 @@
     const modelsList = document.getElementById("modelsList");
     const providerHealthList = document.getElementById("providerHealthList");
     const customerReportList = document.getElementById("customerReportList");
+    const activityList = document.getElementById("activityList");
     const modelSelect = document.getElementById("modelSelect");
     const routeTrace = document.getElementById("routeTrace");
     const output = document.getElementById("output");
@@ -1022,6 +1068,26 @@
       `;
       customerReportList.appendChild(card);
     });
+
+    const activity = state.request_activity || [];
+    if (activity.length === 0) {
+      activityList.innerHTML = '<div class="trace-item">No stored requests yet. Send a test request to populate the activity feed.</div>';
+    } else {
+      activity.forEach((item) => {
+        const row = document.createElement("div");
+        row.className = "activity-row";
+        const chipClass = item.outcome === "success" ? "chip green" : "chip";
+        row.innerHTML = `
+          <span class="${chipClass}">${item.outcome}</span>
+          <div>
+            <strong>${item.summary}</strong><br>
+            <span>${item.resolved_model || "-"} / ${item.request_id || "-"}</span>
+          </div>
+          <span>${Math.round(item.latency_ms || 0)}ms</span>
+        `;
+        activityList.appendChild(row);
+      });
+    }
 
     function renderTrace(steps) {
       routeTrace.innerHTML = "";

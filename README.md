@@ -170,6 +170,7 @@ The current version also supports:
 - `GET /v1/gateway/providers`
 - `GET /v1/gateway/provider-health`
 - `GET /v1/gateway/customer-reports`
+- `GET /v1/gateway/request-activity`
 - `GET /v1/gateway/customer-usage`
 - `GET /v1/gateway/model-usage`
 - `GET /v1/gateway/request-summary`
@@ -179,6 +180,7 @@ The current version also supports:
 - OpenAI-style `tools` request with mock tool call response
 - provider readiness view for mock-ready, live-ready, and degraded providers
 - customer usage reports with request count, errors, token usage, and budget state
+- request activity feed with simple filters for troubleshooting
 - multiple customer keys through `customer_keys.json`
 - customer plans with request limits, token budgets, and cost budgets
 - SQLite persistence for request and usage records
@@ -264,6 +266,33 @@ This helps explain the business layer.
 The customer does not only buy model access.
 
 The customer also needs limits, reports, and accountability.
+
+## Request Activity
+
+The gateway has a request activity endpoint:
+
+```bash
+curl "http://127.0.0.1:8787/v1/gateway/request-activity?customer_id=dev&status=success&limit=10" \
+  -H "Authorization: Bearer dev-admin-key"
+```
+
+It can filter by:
+
+- `customer_id`
+- `model`
+- `provider`
+- `code`
+- `status=success`
+- `status=error`
+- `limit`
+
+This is useful when a customer asks:
+
+Why did this request fail?
+
+Which model did it use?
+
+Which provider did it route to?
 
 ## Customer Plans And Budgets
 
@@ -547,6 +576,7 @@ The tests check:
 - Status output without leaking provider keys
 - Provider health readiness output
 - Customer usage report output
+- Request activity filtering
 - Provider, customer, model, and request summary admin endpoints
 
 ## Customer Materials

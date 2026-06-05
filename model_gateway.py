@@ -32,6 +32,7 @@ ADMIN_PATHS = {
     "/v1/gateway/providers",
     "/v1/gateway/provider-health",
     "/v1/gateway/customer-reports",
+    "/v1/gateway/request-activity",
     "/v1/gateway/customer-usage",
     "/v1/gateway/model-usage",
     "/v1/gateway/request-summary",
@@ -280,6 +281,66 @@ def db_tail(path, table, limit=50):
                 (limit,),
             ).fetchall()
     return [dict(row) for row in rows]
+
+
+def bounded_int(value, default, minimum=1, maximum=500):
+    try:
+        number = int(value)
+    except (TypeError, ValueError):
+        return default
+    return max(minimum, min(maximum, number))
+
+
+def request_activity(path, filters=None, limit=50):
+    filters = filters or {}
+    if not os.path.exists(path):
+        return []
+    allowed_filters = {
+        "customer_id": "customer_id",
+        "model": "model",
+        "provider": "provider",
+        "code": "code",
+    }
+    clauses = []
+    values = []
+    for filter_name, column in allowed_filters.items():
+        value = filters.get(filter_name)
+        if value:
+            clauses.append(f"{column} = ?")
+            values.append(value)
+    status_filter = filters.get("status")
+    if status_filter == "error":
+        clauses.append("status >= 400")
+    elif status_filter == "success":
+        clauses.append("status < 400")
+    where = f"where {' and '.join(clauses)}" if clauses else ""
+    values.append(bounded_int(limit, 50))
+    with sqlite3.connect(path) as conn:
+        conn.row_factory = sqlite3.Row
+        rows = conn.execute(
+            f"""
+            select
+                created, request_id, customer_id, model, resolved_model,
+                provider, status, code, latency_ms, mock_mode
+            from requests
+            {where}
+            order by id desc
+            limit ?
+            """,
+            values,
+        ).fetchall()
+    activity = []
+    for row in rows:
+        record = dict(row)
+        status_code = int(record.get("status") or 0)
+        record["outcome"] = "error" if status_code >= 400 else "success"
+        record["summary"] = (
+            f"{record.get('customer_id') or 'unknown'} used "
+            f"{record.get('model') or 'unknown'} via "
+            f"{record.get('provider') or 'none'}: {record.get('code') or status_code}"
+        )
+        activity.append(record)
+    return activity
 
 
 def db_summary(path):
@@ -938,6 +999,7 @@ def gateway_status(server):
         "provider_summary": provider_status(server),
         "provider_health": provider_health(server),
         "customer_reports": customer_reports(server),
+        "request_activity": request_activity(server.db_path, limit=10),
         "usage_by_customer": usage_grouped_by(server.db_path, "customer_id"),
         "usage_by_model": usage_grouped_by(server.db_path, "model"),
         "request_limit": server.default_request_limit,
@@ -1092,6 +1154,20 @@ def admin_html(server):
             f"<td>{json.dumps(record.get('details', {}))}</td>"
             "</tr>"
         )
+    activity_rows = ""
+    for record in request_activity(server.db_path, limit=50):
+        activity_rows += (
+            "<tr>"
+            f"<td>{record.get('created', '')}</td>"
+            f"<td>{record.get('outcome', '')}</td>"
+            f"<td>{record.get('customer_id', '')}</td>"
+            f"<td>{record.get('model', '')}</td>"
+            f"<td>{record.get('resolved_model', '')}</td>"
+            f"<td>{record.get('provider', '')}</td>"
+            f"<td>{record.get('code', '')}</td>"
+            f"<td>{record.get('latency_ms', '')}</td>"
+            "</tr>"
+        )
     summary = db_summary(server.db_path)
     return f"""<!doctype html>
 <html lang="en">
@@ -1113,7 +1189,7 @@ def admin_html(server):
 <body>
   <main>
     <h1>Gateway Admin</h1>
-    <p><a href="/">Dashboard</a> | <a href="/v1/gateway/status">Status JSON</a> | <a href="/v1/gateway/config-check">Config Check JSON</a> | <a href="/v1/gateway/provider-health">Provider Health JSON</a> | <a href="/v1/gateway/customer-reports">Customer Reports JSON</a> | <a href="/v1/gateway/providers">Providers JSON</a> | <a href="/v1/gateway/customer-usage">Customer Usage JSON</a> | <a href="/v1/gateway/model-usage">Model Usage JSON</a> | <a href="/v1/gateway/requests">Requests JSON</a> | <a href="/v1/gateway/usage">Usage JSON</a> | <a href="/v1/gateway/customers">Customers JSON</a></p>
+    <p><a href="/">Dashboard</a> | <a href="/v1/gateway/status">Status JSON</a> | <a href="/v1/gateway/config-check">Config Check JSON</a> | <a href="/v1/gateway/provider-health">Provider Health JSON</a> | <a href="/v1/gateway/customer-reports">Customer Reports JSON</a> | <a href="/v1/gateway/request-activity">Request Activity JSON</a> | <a href="/v1/gateway/providers">Providers JSON</a> | <a href="/v1/gateway/customer-usage">Customer Usage JSON</a> | <a href="/v1/gateway/model-usage">Model Usage JSON</a> | <a href="/v1/gateway/requests">Requests JSON</a> | <a href="/v1/gateway/usage">Usage JSON</a> | <a href="/v1/gateway/customers">Customers JSON</a></p>
     <h2>Summary</h2>
     <table>
       <tbody>
@@ -1133,6 +1209,11 @@ def admin_html(server):
     <table>
       <thead><tr><th>Created</th><th>Customer</th><th>Public model</th><th>Resolved</th><th>Provider</th><th>Status</th><th>Latency ms</th></tr></thead>
       <tbody>{request_rows}</tbody>
+    </table>
+    <h2>Request Activity</h2>
+    <table>
+      <thead><tr><th>Created</th><th>Outcome</th><th>Customer</th><th>Public model</th><th>Resolved</th><th>Provider</th><th>Code</th><th>Latency ms</th></tr></thead>
+      <tbody>{activity_rows}</tbody>
     </table>
     <h2>Recent Usage</h2>
     <table>
@@ -1523,6 +1604,7 @@ class GatewayHandler(BaseHTTPRequestHandler):
 
     def do_GET(self):
         path = self.route_path()
+        query = parse_qs(self.parsed_path().query)
         if path in {"/", "/dashboard"}:
             make_html_response(self, 200, dashboard_html(self.server))
             return
@@ -1557,6 +1639,23 @@ class GatewayHandler(BaseHTTPRequestHandler):
             return
         if path == "/v1/gateway/customer-reports":
             make_json_response(self, 200, {"data": customer_reports(self.server)})
+            return
+        if path == "/v1/gateway/request-activity":
+            filters = {
+                key: values[0]
+                for key, values in query.items()
+                if values and key in {"customer_id", "model", "provider", "code", "status"}
+            }
+            limit = bounded_int(query.get("limit", [50])[0], 50)
+            make_json_response(
+                self,
+                200,
+                {
+                    "filters": filters,
+                    "limit": limit,
+                    "data": request_activity(self.server.db_path, filters, limit),
+                },
+            )
             return
         if path == "/v1/gateway/customer-usage":
             make_json_response(self, 200, {"data": usage_grouped_by(self.server.db_path, "customer_id")})

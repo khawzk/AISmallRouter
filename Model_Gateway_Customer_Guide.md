@@ -205,6 +205,7 @@ They help explain the control layer:
 - Provider status
 - Provider health and readiness
 - Customer usage reports
+- Request activity feed
 - Usage by customer
 - Usage by model
 - Request summary by customer, model, provider, and error code
@@ -258,6 +259,25 @@ This is important for business conversations.
 A model gateway is not only a technical router.
 
 It is also a control and reporting layer for customers.
+
+## What Request Activity Shows
+
+The prototype includes `/v1/gateway/request-activity`.
+
+It shows recent gateway decisions.
+
+It can filter by customer, model, provider, code, status, and limit.
+
+This helps answer:
+
+- Which customer sent the request?
+- Which public model was requested?
+- Which upstream model was used?
+- Which provider handled it?
+- Did it succeed or fail?
+- How long did it take?
+
+This is useful for support and customer explanation.
 
 ## Why Config Check Matters
 

@@ -232,6 +232,7 @@ def build():
         "Provider, customer, model, and request summary endpoints.",
         "Provider health endpoint for mock-ready, live-ready, degraded, and not-ready states.",
         "Customer reports endpoint for request count, errors, token usage, and budget state.",
+        "Request activity endpoint with simple filters for troubleshooting.",
         "Config check endpoint for demo keys and missing production settings.",
         "Request-level fallback controls for routing demos.",
         "Mock OpenAI-style tool call response for agent demos.",
@@ -255,6 +256,7 @@ def build():
             ["Token usage", "Billing and quota require reliable usage data.", "Stored in SQLite"],
             ["Provider health", "Customers need to know whether a provider can serve traffic.", "Readiness view based on config and recent traffic"],
             ["Customer reporting", "Customers need a simple usage and budget story.", "Per-customer report endpoint and dashboard cards"],
+            ["Request troubleshooting", "Support teams need to see what happened to a request.", "Filtered request activity feed"],
             ["Fallback", "Retrying another model needs clear business rules.", "Registry fallback plus request-level controls"],
             ["Customer key management", "Each customer needs limits, logs, and access control.", "Minimum version plus BYOK mapping"],
             ["Cost control", "Different models have different prices and limits.", "Simple token and cost budgets included"],
@@ -275,7 +277,7 @@ def build():
     story.append(Paragraph("Admin Summary Endpoints", styles["H1Custom"]))
     story.append(
         Paragraph(
-            "The prototype exposes local admin JSON views for provider status, provider health, customer reports, usage by customer, usage by model, and request summaries. These make the control layer easier to explain. The local demo uses a separate admin key. In production, this key should be changed and protected.",
+            "The prototype exposes local admin JSON views for provider status, provider health, customer reports, request activity, usage by customer, usage by model, and request summaries. These make the control layer easier to explain. The local demo uses a separate admin key. In production, this key should be changed and protected.",
             styles["BodyCustom"],
         )
     )
@@ -292,6 +294,14 @@ def build():
     story.append(
         Paragraph(
             "/v1/gateway/customer-reports shows one report per customer. It includes request count, error count, token usage, remaining budget, models used, providers used, and recent requests. This helps explain that a gateway is also a control and reporting layer, not only a model router.",
+            styles["BodyCustom"],
+        )
+    )
+
+    story.append(Paragraph("Request Activity", styles["H1Custom"]))
+    story.append(
+        Paragraph(
+            "/v1/gateway/request-activity shows recent gateway decisions. It can filter by customer, model, provider, error code, status, and limit. This helps explain which customer sent a request, which public model was requested, which upstream model was used, which provider handled it, and whether the request succeeded or failed.",
             styles["BodyCustom"],
         )
     )

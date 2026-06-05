@@ -331,6 +331,7 @@ class GatewayPrototypeTest(unittest.TestCase):
         self.assertIn("dev", reports)
         self.assertIn("budget_state", reports["dev"])
         self.assertNotIn("provider_api_keys", reports["dev"])
+        self.assertIn("request_activity", payload)
 
     def test_admin_summary_endpoints(self):
         request_json(
@@ -395,6 +396,23 @@ class GatewayPrototypeTest(unittest.TestCase):
         self.assertEqual(status, 200)
         self.assertIn("by_customer", request_summary)
         self.assertIn("by_code", request_summary)
+
+        status, activity = request_json(self.base_url, path="/v1/gateway/request-activity")
+        self.assertEqual(status, 401)
+
+        status, activity = request_json(
+            self.base_url,
+            path="/v1/gateway/request-activity?customer_id=dev&status=success&limit=5",
+            api_key="dev-admin-key",
+        )
+        self.assertEqual(status, 200)
+        self.assertEqual(activity["filters"]["customer_id"], "dev")
+        self.assertEqual(activity["filters"]["status"], "success")
+        self.assertLessEqual(len(activity["data"]), 5)
+        self.assertTrue(any(row["customer_id"] == "dev" for row in activity["data"]))
+        self.assertTrue(all(row["outcome"] == "success" for row in activity["data"]))
+        self.assertIn("summary", activity["data"][0])
+        self.assertNotIn("provider_api_keys", activity["data"][0])
 
     def test_admin_page_accepts_query_admin_key_for_browser_demo(self):
         request = urllib.request.Request(self.base_url + "/admin?admin_key=dev-admin-key")
