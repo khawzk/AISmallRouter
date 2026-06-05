@@ -35,6 +35,7 @@ ADMIN_PATHS = {
     "/v1/gateway/request-activity",
     "/v1/gateway/model-catalog",
     "/v1/gateway/route-preview",
+    "/v1/gateway/request-detail",
     "/v1/gateway/customer-usage",
     "/v1/gateway/model-usage",
     "/v1/gateway/request-summary",
@@ -343,6 +344,57 @@ def request_activity(path, filters=None, limit=50):
         )
         activity.append(record)
     return activity
+
+
+def request_detail(path, request_id):
+    if not request_id or not os.path.exists(path):
+        return None
+    with sqlite3.connect(path) as conn:
+        conn.row_factory = sqlite3.Row
+        request_row = conn.execute(
+            """
+            select
+                created, request_id, customer_id, model, resolved_model,
+                provider, status, code, latency_ms, mock_mode
+            from requests
+            where request_id = ?
+            """,
+            (request_id,),
+        ).fetchone()
+        if not request_row:
+            return None
+        usage_row = conn.execute(
+            """
+            select
+                prompt_tokens, completion_tokens, total_tokens,
+                estimated_cost, mock_mode
+            from usage_records
+            where customer_id = ?
+              and model = ?
+              and resolved_model = ?
+              and provider = ?
+              and abs(created - ?) <= 2
+            order by id desc
+            limit 1
+            """,
+            (
+                request_row["customer_id"],
+                request_row["model"],
+                request_row["resolved_model"],
+                request_row["provider"],
+                request_row["created"],
+            ),
+        ).fetchone()
+    detail = dict(request_row)
+    status_code = int(detail.get("status") or 0)
+    detail["outcome"] = "error" if status_code >= 400 else "success"
+    detail["summary"] = (
+        f"{detail.get('customer_id') or 'unknown'} used "
+        f"{detail.get('model') or 'unknown'} via "
+        f"{detail.get('provider') or 'none'}: {detail.get('code') or status_code}"
+    )
+    detail["usage"] = dict(usage_row) if usage_row else None
+    return detail
 
 
 def db_summary(path):
@@ -1845,6 +1897,13 @@ class GatewayHandler(BaseHTTPRequestHandler):
                 },
             )
             return
+        if path == "/v1/gateway/request-detail":
+            detail = request_detail(self.server.db_path, query.get("request_id", [""])[0])
+            if not detail:
+                make_error(self, 404, "Request record was not found.", "request_not_found")
+                return
+            make_json_response(self, 200, detail)
+            return
         if path == "/v1/gateway/customer-usage":
             make_json_response(self, 200, {"data": usage_grouped_by(self.server.db_path, "customer_id")})
             return
@@ -2056,7 +2115,8 @@ class GatewayHandler(BaseHTTPRequestHandler):
                 )
                 self.write_usage(response, public_model, model_config)
                 response["gateway"]["customer_budget"] = customer_budget_status(self.server.db_path, self.customer)
-                self.write_request_log(started_at, public_model, model_config["upstream_model"], model_config["provider"], 200, "ok")
+                request_record = self.write_request_log(started_at, public_model, model_config["upstream_model"], model_config["provider"], 200, "ok")
+                response["gateway"]["request_id"] = request_record["request_id"]
                 make_json_response(self, 200, response)
                 return
             except (ProviderError, GatewayError) as exc:
@@ -2106,6 +2166,7 @@ class GatewayHandler(BaseHTTPRequestHandler):
         insert_request_db(self.server.db_path, record)
         if not self.server.quiet:
             print(json.dumps(record, ensure_ascii=False), flush=True)
+        return record
 
     def write_usage(self, response, public_model, model_config):
         usage = response.get("usage") or {}

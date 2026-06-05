@@ -208,6 +208,7 @@ They help explain the control layer:
 - Route preview before a live request
 - Customer usage reports
 - Request activity feed
+- Request detail lookup
 - Usage by customer
 - Usage by model
 - Request summary by customer, model, provider, and error code
@@ -323,6 +324,24 @@ This helps answer:
 - How long did it take?
 
 This is useful for support and customer explanation.
+
+## What Request Detail Shows
+
+The prototype returns a `gateway.request_id` for each successful chat request.
+
+The admin can use `/v1/gateway/request-detail` to look up that request.
+
+It shows:
+
+- Which customer sent it
+- Which model was requested
+- Which upstream model was used
+- Which provider handled it
+- Whether it succeeded or failed
+- Latency
+- Usage record, if available
+
+This helps support teams explain one customer issue clearly.
 
 ## Why Config Check Matters
 

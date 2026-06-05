@@ -173,6 +173,7 @@ The current version also supports:
 - `POST /v1/gateway/route-preview`
 - `GET /v1/gateway/customer-reports`
 - `GET /v1/gateway/request-activity`
+- `GET /v1/gateway/request-detail`
 - `GET /v1/gateway/customer-usage`
 - `GET /v1/gateway/model-usage`
 - `GET /v1/gateway/request-summary`
@@ -185,6 +186,7 @@ The current version also supports:
 - route preview dry run before a real provider call
 - customer usage reports with request count, errors, token usage, and budget state
 - request activity feed with simple filters for troubleshooting
+- request detail lookup by `request_id`
 - multiple customer keys through `customer_keys.json`
 - customer plans with request limits, token budgets, and cost budgets
 - SQLite persistence for request and usage records
@@ -350,6 +352,27 @@ Why did this request fail?
 Which model did it use?
 
 Which provider did it route to?
+
+## Request Detail
+
+Every successful chat response includes a gateway request id:
+
+```json
+{
+  "gateway": {
+    "request_id": "abc123..."
+  }
+}
+```
+
+Use it to look up one request:
+
+```bash
+curl "http://127.0.0.1:8787/v1/gateway/request-detail?request_id=abc123" \
+  -H "Authorization: Bearer dev-admin-key"
+```
+
+It shows the request route, outcome, latency, and nearby usage record.
 
 ## Customer Plans And Budgets
 
@@ -636,6 +659,7 @@ The tests check:
 - Route preview dry-run output
 - Customer usage report output
 - Request activity filtering
+- Request detail lookup
 - Provider, customer, model, and request summary admin endpoints
 
 ## Customer Materials

@@ -150,6 +150,33 @@ class GatewayPrototypeTest(unittest.TestCase):
         self.assertEqual(payload["model"], "smart-fast")
         self.assertEqual(payload["gateway"]["resolved_model"], "qwen-plus")
         self.assertIn("customer_budget", payload["gateway"])
+        request_id = payload["gateway"]["request_id"]
+        self.assertTrue(request_id)
+
+        status, detail = request_json(self.base_url, path=f"/v1/gateway/request-detail?request_id={request_id}")
+        self.assertEqual(status, 401)
+
+        status, detail = request_json(
+            self.base_url,
+            path=f"/v1/gateway/request-detail?request_id={request_id}",
+            api_key="dev-admin-key",
+        )
+        self.assertEqual(status, 200)
+        self.assertEqual(detail["request_id"], request_id)
+        self.assertEqual(detail["customer_id"], "dev")
+        self.assertEqual(detail["model"], "smart-fast")
+        self.assertEqual(detail["resolved_model"], "qwen-plus")
+        self.assertEqual(detail["outcome"], "success")
+        self.assertIn("summary", detail)
+        self.assertIn("usage", detail)
+
+        status, detail = request_json(
+            self.base_url,
+            path="/v1/gateway/request-detail?request_id=missing",
+            api_key="dev-admin-key",
+        )
+        self.assertEqual(status, 404)
+        self.assertEqual(detail["error"]["code"], "request_not_found")
 
         status, usage = request_json(self.base_url, path="/v1/gateway/usage", api_key="dev-admin-key")
         self.assertEqual(status, 200)

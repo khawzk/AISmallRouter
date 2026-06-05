@@ -960,6 +960,14 @@
           <div class="trace" id="previewTrace">
             <div class="trace-item">Preview route will appear here before a real request.</div>
           </div>
+          <div class="console" style="margin-top: 12px;">
+            <label>Request ID
+              <input id="detailRequestId" placeholder="Paste a request_id">
+            </label>
+            <div class="form-actions">
+              <button id="detailButton" type="button">Lookup request</button>
+            </div>
+          </div>
         </div>
       </section>
 
@@ -1013,6 +1021,8 @@
     const previewModel = document.getElementById("previewModel");
     const previewButton = document.getElementById("previewButton");
     const previewTrace = document.getElementById("previewTrace");
+    const detailRequestId = document.getElementById("detailRequestId");
+    const detailButton = document.getElementById("detailButton");
     const routeTrace = document.getElementById("routeTrace");
     const output = document.getElementById("output");
     const sendButton = document.getElementById("sendButton");
@@ -1187,6 +1197,9 @@
         });
         const data = await response.json();
         output.textContent = JSON.stringify(data, null, 2);
+        if (data.gateway && data.gateway.request_id) {
+          detailRequestId.value = data.gateway.request_id;
+        }
         if (data.gateway && data.gateway.route_trace) {
           renderTrace(data.gateway.route_trace);
         } else {
@@ -1229,6 +1242,40 @@
         previewTrace.innerHTML = '<div class="trace-item">' + String(error) + '</div>';
       } finally {
         previewButton.disabled = false;
+      }
+    });
+    detailButton.addEventListener("click", async () => {
+      const requestId = detailRequestId.value.trim();
+      if (!requestId) {
+        previewTrace.innerHTML = '<div class="trace-item">Enter a request_id first.</div>';
+        return;
+      }
+      detailButton.disabled = true;
+      previewTrace.innerHTML = '<div class="trace-item">Looking up request detail...</div>';
+      try {
+        const response = await fetch("/v1/gateway/request-detail?admin_key=" + encodeURIComponent(adminKey) + "&request_id=" + encodeURIComponent(requestId));
+        const data = await response.json();
+        if (!response.ok) {
+          previewTrace.innerHTML = `<div class="trace-item">${data.error ? data.error.message : "Request detail not found."}</div>`;
+          return;
+        }
+        previewTrace.innerHTML = "";
+        [
+          data.summary,
+          `request_id = ${data.request_id}`,
+          `model = ${data.model} -> ${data.resolved_model}`,
+          `provider = ${data.provider}`,
+          `usage = ${data.usage ? data.usage.total_tokens + " tokens" : "not recorded"}`
+        ].forEach((line, index) => {
+          const div = document.createElement("div");
+          div.className = "trace-item";
+          div.innerHTML = `<strong>${index + 1}</strong>${line}`;
+          previewTrace.appendChild(div);
+        });
+      } catch (error) {
+        previewTrace.innerHTML = '<div class="trace-item">' + String(error) + '</div>';
+      } finally {
+        detailButton.disabled = false;
       }
     });
     resetButton.addEventListener("click", () => {

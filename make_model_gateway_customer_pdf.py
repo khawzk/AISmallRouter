@@ -235,6 +235,7 @@ def build():
         "Route preview endpoint to dry-run model access, budget, provider readiness, and fallback order.",
         "Customer reports endpoint for request count, errors, token usage, and budget state.",
         "Request activity endpoint with simple filters for troubleshooting.",
+        "Request detail lookup using gateway.request_id returned in chat responses.",
         "Config check endpoint for demo keys and missing production settings.",
         "Request-level fallback controls for routing demos.",
         "Mock OpenAI-style tool call response for agent demos.",
@@ -261,6 +262,7 @@ def build():
             ["Route preview", "Sales and support need to explain a route before spending credits.", "Dry-run endpoint and dashboard preview"],
             ["Customer reporting", "Customers need a simple usage and budget story.", "Per-customer report endpoint and dashboard cards"],
             ["Request troubleshooting", "Support teams need to see what happened to a request.", "Filtered request activity feed"],
+            ["Request detail", "Support teams need one-request lookup.", "gateway.request_id and request detail endpoint"],
             ["Fallback", "Retrying another model needs clear business rules.", "Registry fallback plus request-level controls"],
             ["Customer key management", "Each customer needs limits, logs, and access control.", "Minimum version plus BYOK mapping"],
             ["Cost control", "Different models have different prices and limits.", "Simple token and cost budgets included"],
@@ -281,7 +283,7 @@ def build():
     story.append(Paragraph("Admin Summary Endpoints", styles["H1Custom"]))
     story.append(
         Paragraph(
-            "The prototype exposes local admin JSON views for provider status, provider health, model catalog, route preview, customer reports, request activity, usage by customer, usage by model, and request summaries. These make the control layer easier to explain. The local demo uses a separate admin key. In production, this key should be changed and protected.",
+            "The prototype exposes local admin JSON views for provider status, provider health, model catalog, route preview, customer reports, request activity, request detail lookup, usage by customer, usage by model, and request summaries. These make the control layer easier to explain. The local demo uses a separate admin key. In production, this key should be changed and protected.",
             styles["BodyCustom"],
         )
     )
@@ -322,6 +324,14 @@ def build():
     story.append(
         Paragraph(
             "/v1/gateway/request-activity shows recent gateway decisions. It can filter by customer, model, provider, error code, status, and limit. This helps explain which customer sent a request, which public model was requested, which upstream model was used, which provider handled it, and whether the request succeeded or failed.",
+            styles["BodyCustom"],
+        )
+    )
+
+    story.append(Paragraph("Request Detail", styles["H1Custom"]))
+    story.append(
+        Paragraph(
+            "Every successful chat response includes gateway.request_id. /v1/gateway/request-detail can look up one request by that id. It shows the customer, public model, upstream model, provider, outcome, latency, and nearby usage record when available.",
             styles["BodyCustom"],
         )
     )

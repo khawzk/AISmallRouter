@@ -30,7 +30,7 @@ It does not spend provider credits.
 python3 test_gateway.py
 ```
 
-The test covers auth, model listing, routing, route preview, fallback, model access, budgets, SQLite logs, provider health, model catalog, customer reports, request activity, and admin summary endpoints.
+The test covers auth, model listing, routing, route preview, fallback, model access, budgets, SQLite logs, provider health, model catalog, customer reports, request activity, request detail lookup, and admin summary endpoints.
 
 Open the visual dashboard:
 
@@ -96,6 +96,15 @@ curl http://127.0.0.1:8787/v1/gateway/customer-reports \
 
 ```bash
 curl "http://127.0.0.1:8787/v1/gateway/request-activity?customer_id=dev&status=success&limit=10" \
+  -H "Authorization: Bearer dev-admin-key"
+```
+
+## Check One Request Detail
+
+Use a `gateway.request_id` returned by `/v1/chat/completions`.
+
+```bash
+curl "http://127.0.0.1:8787/v1/gateway/request-detail?request_id=abc123" \
   -H "Authorization: Bearer dev-admin-key"
 ```
 
