@@ -414,7 +414,7 @@ def build():
     story.append(Paragraph("Decision Guide", styles["H1Custom"]))
     story.append(
         Paragraph(
-            "/v1/gateway/decision-guide compares normal API Gateway, managed AI Gateway, custom Model Gateway, and OpenRouter-like marketplace options. It explains what each option is good at, what it does not solve, and when to choose it. This directly answers the early question: is an API Gateway enough?",
+            "/v1/gateway/decision-guide compares normal API Gateway, managed AI Gateway, custom Model Gateway, and OpenRouter-like marketplace options. The dashboard also renders this as Gateway options comparison cards. It explains what each option is good at, what it does not solve, and when to choose it. This directly answers the early question: is an API Gateway enough?",
             styles["BodyCustom"],
         )
     )

@@ -260,6 +260,7 @@ http://127.0.0.1:8790/
 The dashboard shows:
 
 - Layered architecture map
+- Gateway options comparison
 - Operational alerts
 - Access matrix
 - One API for customers
@@ -503,6 +504,8 @@ It compares:
 - OpenRouter-like marketplace
 
 It explains what each option is good at, what it does not solve, and when to choose it.
+
+The dashboard also renders this as Gateway options comparison cards.
 
 ## What The FAQ Shows
 

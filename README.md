@@ -587,6 +587,8 @@ It compares:
 
 It explains what each option is good at, what it does not solve, and when to choose it.
 
+The dashboard also renders this as **Gateway options comparison** cards.
+
 ## FAQ
 
 The gateway has a FAQ endpoint:
@@ -1363,6 +1365,7 @@ The dashboard is designed for customer explanation. It shows:
 
 - The layered architecture
 - A visual architecture map from customer systems to model providers
+- Gateway options comparison for API Gateway, managed AI Gateway, custom Model Gateway, and OpenRouter-like paths
 - Gateway entry control
 - Model routing
 - Provider adapters

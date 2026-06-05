@@ -334,6 +334,50 @@
       font-size: 11px;
     }
 
+    .option-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+    }
+
+    .option-card {
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: var(--panel-3);
+      padding: 14px;
+    }
+
+    .option-card.recommended {
+      border-color: rgba(65, 217, 157, 0.45);
+      background: linear-gradient(180deg, rgba(65, 217, 157, 0.1), rgba(15, 17, 22, 0.95));
+    }
+
+    .option-card h3 {
+      margin: 0 0 8px;
+      font-size: 15px;
+    }
+
+    .option-card p {
+      margin: 0 0 10px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .option-list {
+      display: grid;
+      gap: 6px;
+      margin-top: 10px;
+    }
+
+    .option-list span {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 6px 7px;
+      color: var(--muted);
+      background: #0b0d10;
+      font-size: 11px;
+    }
+
     .route-flow {
       display: grid;
       gap: 12px;
@@ -904,6 +948,7 @@
       .grid,
       .feature-grid,
       .architecture-map,
+      .option-grid,
       .demo-board,
       .quickstart {
         grid-template-columns: 1fr;
@@ -982,6 +1027,7 @@
       </a>
       <div class="nav-links">
         <a href="#architecture">Architecture</a>
+        <a href="#options">Options</a>
         <a href="#models">Models</a>
         <a href="#health">Health</a>
         <a href="#reports">Reports</a>
@@ -1070,6 +1116,21 @@
             <strong>6. Model providers</strong>
             <p>Real upstream models serve the final response.</p>
             <div class="arch-items"><span>Model Studio</span><span>OpenAI</span><span>Anthropic</span><span>Xiaomi later</span></div>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section class="card" id="options" style="margin-bottom: 18px;">
+      <div class="card-head">
+        <h2>Gateway options comparison</h2>
+        <span>why this is more than a normal API Gateway</span>
+      </div>
+      <div class="card-body">
+        <div class="option-grid" id="gatewayOptionsList">
+          <article class="option-card">
+            <h3>Loading options</h3>
+            <p>The dashboard will load the decision guide from the admin API.</p>
           </article>
         </div>
       </div>
@@ -1451,6 +1512,7 @@
     const providerHealthList = document.getElementById("providerHealthList");
     const alertSummary = document.getElementById("alertSummary");
     const alertList = document.getElementById("alertList");
+    const gatewayOptionsList = document.getElementById("gatewayOptionsList");
     const accessMatrixList = document.getElementById("accessMatrixList");
     const customerReportList = document.getElementById("customerReportList");
     const invoicePreviewList = document.getElementById("invoicePreviewList");
@@ -1770,6 +1832,38 @@
         auditList.appendChild(row);
       });
     }
+
+    async function loadDecisionGuide() {
+      try {
+        const response = await fetch("/v1/gateway/decision-guide?admin_key=" + encodeURIComponent(adminKey));
+        const guide = await response.json();
+        if (!response.ok) {
+          throw new Error(guide.error ? guide.error.message : "Could not load decision guide.");
+        }
+        gatewayOptionsList.innerHTML = "";
+        (guide.options || []).forEach((option) => {
+          const isRecommended = option.option === "Custom Model Gateway";
+          const article = document.createElement("article");
+          article.className = "option-card" + (isRecommended ? " recommended" : "");
+          const goodAt = (option.good_at || []).slice(0, 3).map((item) => `<span>${escapeHtml(item)}</span>`).join("");
+          const gaps = (option.not_enough_for || []).slice(0, 3).map((item) => `<span>${escapeHtml(item)}</span>`).join("");
+          article.innerHTML = `
+            <h3>${escapeHtml(option.option || "")}</h3>
+            <p>${escapeHtml(option.best_for || "")}</p>
+            <span class="${isRecommended ? "chip green" : "chip"}">${isRecommended ? "prototype path" : "compare"}</span>
+            <div class="option-list">${goodAt}</div>
+            <p style="margin-top:10px;">Gaps:</p>
+            <div class="option-list">${gaps}</div>
+            <p style="margin-top:10px;">${escapeHtml(option.recommendation || "")}</p>
+          `;
+          gatewayOptionsList.appendChild(article);
+        });
+      } catch (error) {
+        gatewayOptionsList.innerHTML = '<article class="option-card"><h3>Decision guide unavailable</h3><p>' + escapeHtml(String(error)) + '</p></article>';
+      }
+    }
+
+    loadDecisionGuide();
 
     async function loadDemoScript() {
       try {
