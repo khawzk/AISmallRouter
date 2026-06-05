@@ -230,6 +230,7 @@ def build():
         "Model registry in model_registry.json.",
         "SQLite request and usage records for restart-safe demo data.",
         "Provider, customer, model, and request summary endpoints.",
+        "Operational alerts endpoint with simple next steps.",
         "Provider health endpoint for mock-ready, live-ready, degraded, and not-ready states.",
         "Model catalog endpoint for provider status, fallback chain, usage, and pricing metadata.",
         "Route preview endpoint to dry-run model access, budget, provider readiness, and fallback order.",
@@ -257,6 +258,7 @@ def build():
             ["Streaming", "Chat UIs and agents often need incremental tokens.", "Mock streaming included; live provider differences still need work"],
             ["Tool calling", "OpenAI, Claude, and Qwen may differ in tool format.", "Mock tool_calls plus basic normalization"],
             ["Token usage", "Billing and quota require reliable usage data.", "Stored in SQLite"],
+            ["Operational alerts", "Non-technical users need a clear action list.", "Alerts with severity, area, and next step"],
             ["Provider health", "Customers need to know whether a provider can serve traffic.", "Readiness view based on config and recent traffic"],
             ["Model catalog", "Customers need to understand public model names and routes.", "Catalog with provider status, fallback chain, usage, and pricing metadata"],
             ["Route preview", "Sales and support need to explain a route before spending credits.", "Dry-run endpoint and dashboard preview"],
@@ -283,7 +285,15 @@ def build():
     story.append(Paragraph("Admin Summary Endpoints", styles["H1Custom"]))
     story.append(
         Paragraph(
-            "The prototype exposes local admin JSON views for provider status, provider health, model catalog, route preview, customer reports, request activity, request detail lookup, usage by customer, usage by model, and request summaries. These make the control layer easier to explain. The local demo uses a separate admin key. In production, this key should be changed and protected.",
+            "The prototype exposes local admin JSON views for provider status, operational alerts, provider health, model catalog, route preview, customer reports, request activity, request detail lookup, usage by customer, usage by model, and request summaries. These make the control layer easier to explain. The local demo uses a separate admin key. In production, this key should be changed and protected.",
+            styles["BodyCustom"],
+        )
+    )
+
+    story.append(Paragraph("Operational Alerts", styles["H1Custom"]))
+    story.append(
+        Paragraph(
+            "/v1/gateway/alerts combines config warnings, provider readiness, customer budget state, and recent request errors. Each alert includes severity, area, message, and a simple next step. This helps non-technical users understand what needs attention before a live demo.",
             styles["BodyCustom"],
         )
     )

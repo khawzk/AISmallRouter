@@ -30,7 +30,7 @@ It does not spend provider credits.
 python3 test_gateway.py
 ```
 
-The test covers auth, model listing, routing, route preview, fallback, model access, budgets, SQLite logs, provider health, model catalog, customer reports, request activity, request detail lookup, and admin summary endpoints.
+The test covers auth, model listing, routing, route preview, fallback, model access, budgets, SQLite logs, alerts, provider health, model catalog, customer reports, request activity, request detail lookup, and admin summary endpoints.
 
 Open the visual dashboard:
 
@@ -57,6 +57,13 @@ python3 model_gateway.py --mock \
 ```bash
 curl http://127.0.0.1:8787/v1/models \
   -H "Authorization: Bearer dev-gateway-key"
+```
+
+## Check Operational Alerts
+
+```bash
+curl http://127.0.0.1:8787/v1/gateway/alerts \
+  -H "Authorization: Bearer dev-admin-key"
 ```
 
 ## Check Provider Health

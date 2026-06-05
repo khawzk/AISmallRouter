@@ -164,6 +164,7 @@ The current version also supports:
 
 - `GET /admin`
 - `GET /v1/gateway/status`
+- `GET /v1/gateway/alerts`
 - `GET /v1/gateway/requests`
 - `GET /v1/gateway/usage`
 - `GET /v1/gateway/customers`
@@ -187,6 +188,7 @@ The current version also supports:
 - customer usage reports with request count, errors, token usage, and budget state
 - request activity feed with simple filters for troubleshooting
 - request detail lookup by `request_id`
+- operational alerts with next steps
 - multiple customer keys through `customer_keys.json`
 - customer plans with request limits, token budgets, and cost budgets
 - SQLite persistence for request and usage records
@@ -225,6 +227,26 @@ curl http://127.0.0.1:8787/v1/gateway/config-check \
 The config check warns about demo keys, missing live provider keys, and direct secret values in local config files.
 
 For production, change the key with `GATEWAY_ADMIN_API_KEY`.
+
+## Operational Alerts
+
+The gateway has an alerts endpoint:
+
+```bash
+curl http://127.0.0.1:8787/v1/gateway/alerts \
+  -H "Authorization: Bearer dev-admin-key"
+```
+
+It combines:
+
+- config check warnings
+- provider readiness
+- customer budget state
+- recent request errors
+
+Each alert includes a `next_step`.
+
+This helps non-technical users understand what needs attention before a live customer demo.
 
 ## Provider Health
 
@@ -660,6 +682,7 @@ The tests check:
 - Customer usage report output
 - Request activity filtering
 - Request detail lookup
+- Operational alerts output
 - Provider, customer, model, and request summary admin endpoints
 
 ## Customer Materials

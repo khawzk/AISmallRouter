@@ -528,6 +528,31 @@
       gap: 8px;
     }
 
+    .alert-list {
+      display: grid;
+      gap: 8px;
+    }
+
+    .alert-row {
+      display: grid;
+      grid-template-columns: 96px 1fr;
+      gap: 10px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 10px 11px;
+      background: var(--panel-3);
+    }
+
+    .alert-row strong {
+      display: block;
+      font-size: 13px;
+    }
+
+    .alert-row span {
+      color: var(--muted);
+      font-size: 12px;
+    }
+
     .activity-row {
       display: grid;
       grid-template-columns: 88px 1fr auto;
@@ -806,6 +831,16 @@
       <div class="stat"><strong id="modeText">mock</strong><span>Current mode</span></div>
     </section>
 
+    <section class="card" id="alerts" style="margin-bottom: 18px;">
+      <div class="card-head">
+        <h2>Operational alerts</h2>
+        <span id="alertSummary">readiness checklist</span>
+      </div>
+      <div class="card-body">
+        <div class="alert-list" id="alertList"></div>
+      </div>
+    </section>
+
     <section class="feature-grid">
       <article class="feature">
         <h3>One API for model access</h3>
@@ -1014,6 +1049,8 @@
     const limitText = document.getElementById("limitText");
     const modelsList = document.getElementById("modelsList");
     const providerHealthList = document.getElementById("providerHealthList");
+    const alertSummary = document.getElementById("alertSummary");
+    const alertList = document.getElementById("alertList");
     const customerReportList = document.getElementById("customerReportList");
     const activityList = document.getElementById("activityList");
     const modelSelect = document.getElementById("modelSelect");
@@ -1040,6 +1077,25 @@
     const requestLimit = firstCustomer.request_limit || state.request_limit;
     const limitWindow = firstCustomer.limit_window_seconds || state.limit_window_seconds;
     limitText.textContent = `${requestLimit} requests / ${limitWindow}s`;
+    const alertState = state.alerts || {summary: {}, alerts: []};
+    alertSummary.textContent = `${alertState.status || "ok"} / ${alertState.summary?.critical || 0} critical / ${alertState.summary?.warning || 0} warning`;
+    if ((alertState.alerts || []).length === 0) {
+      alertList.innerHTML = '<div class="trace-item">No operational alerts.</div>';
+    } else {
+      (alertState.alerts || []).slice(0, 6).forEach((alert) => {
+        const row = document.createElement("div");
+        row.className = "alert-row";
+        const chipClass = alert.severity === "info" ? "chip green" : "chip";
+        row.innerHTML = `
+          <span class="${chipClass}">${alert.severity}</span>
+          <div>
+            <strong>${alert.message}</strong>
+            <span>${alert.area} / ${alert.code}<br>${alert.next_step}</span>
+          </div>
+        `;
+        alertList.appendChild(row);
+      });
+    }
 
     (state.customers || []).forEach((customer) => {
       const option = document.createElement("option");

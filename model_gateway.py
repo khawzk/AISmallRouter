@@ -36,6 +36,7 @@ ADMIN_PATHS = {
     "/v1/gateway/model-catalog",
     "/v1/gateway/route-preview",
     "/v1/gateway/request-detail",
+    "/v1/gateway/alerts",
     "/v1/gateway/customer-usage",
     "/v1/gateway/model-usage",
     "/v1/gateway/request-summary",
@@ -937,6 +938,113 @@ def add_config_check(checks, severity, code, message, details=None):
     checks.append(check)
 
 
+def add_alert(alerts, severity, area, code, message, next_step, details=None):
+    alert = {
+        "severity": severity,
+        "area": area,
+        "code": code,
+        "message": message,
+        "next_step": next_step,
+    }
+    if details is not None:
+        alert["details"] = details
+    alerts.append(alert)
+
+
+def gateway_alerts(server):
+    alerts = []
+    for check in gateway_config_check(server).get("checks", []):
+        if check.get("severity") in {"critical", "warning"}:
+            add_alert(
+                alerts,
+                check["severity"],
+                "configuration",
+                check["code"],
+                check["message"],
+                "Review /v1/gateway/config-check before using this gateway with customers.",
+                check.get("details"),
+            )
+
+    for provider in provider_health(server):
+        status = provider.get("status")
+        if status == "not_ready":
+            add_alert(
+                alerts,
+                "critical",
+                "provider",
+                "provider_not_ready",
+                f"Provider {provider['id']} is not ready.",
+                "Enable at least one model and configure a server key or customer BYOK key.",
+                {"provider": provider["id"], "reason": provider.get("reason")},
+            )
+        elif status == "degraded":
+            add_alert(
+                alerts,
+                "warning",
+                "provider",
+                "provider_degraded",
+                f"Provider {provider['id']} has a high recent error rate.",
+                "Review recent request activity and consider fallback routing.",
+                {"provider": provider["id"], "recent": provider.get("recent")},
+            )
+        elif status == "ready_mock":
+            add_alert(
+                alerts,
+                "info",
+                "provider",
+                "provider_mock_only",
+                f"Provider {provider['id']} is ready for mock demos only.",
+                "Configure the provider key before a live customer test.",
+                {"provider": provider["id"]},
+            )
+
+    for report in customer_reports(server):
+        if report.get("budget_state") == "blocked":
+            add_alert(
+                alerts,
+                "critical",
+                "customer",
+                "customer_budget_blocked",
+                f"Customer {report['id']} has reached a budget limit.",
+                "Increase the customer budget or disable the key until billing is reviewed.",
+                {"customer": report["id"], "budget": report.get("budget")},
+            )
+        elif report.get("budget_state") == "warning":
+            add_alert(
+                alerts,
+                "warning",
+                "customer",
+                "customer_budget_low",
+                f"Customer {report['id']} is close to a budget limit.",
+                "Warn the customer or raise the budget before requests are blocked.",
+                {"customer": report["id"], "budget": report.get("budget")},
+            )
+
+    recent_errors = request_activity(server.db_path, {"status": "error"}, limit=5)
+    if recent_errors:
+        add_alert(
+            alerts,
+            "warning",
+            "requests",
+            "recent_request_errors",
+            "Recent request errors were recorded.",
+            "Open request activity or request detail to review the failed calls.",
+            {"count": len(recent_errors), "requests": recent_errors},
+        )
+
+    severity_rank = {"critical": 0, "warning": 1, "info": 2}
+    alerts.sort(key=lambda alert: (severity_rank.get(alert["severity"], 3), alert["area"], alert["code"]))
+    return {
+        "status": "critical" if any(alert["severity"] == "critical" for alert in alerts) else "warning" if any(alert["severity"] == "warning" for alert in alerts) else "ok",
+        "summary": {
+            "critical": sum(1 for alert in alerts if alert["severity"] == "critical"),
+            "warning": sum(1 for alert in alerts if alert["severity"] == "warning"),
+            "info": sum(1 for alert in alerts if alert["severity"] == "info"),
+        },
+        "alerts": alerts,
+    }
+
+
 def gateway_config_check(server):
     checks = []
     if server.admin_api_key == DEFAULT_ADMIN_API_KEY:
@@ -1210,6 +1318,7 @@ def gateway_status(server):
         "mode": "mock" if server.mock_mode else "live",
         "database": server.db_path,
         "summary": db_summary(server.db_path),
+        "alerts": gateway_alerts(server),
         "config_check": gateway_config_check(server),
         "provider_summary": provider_status(server),
         "provider_health": provider_health(server),
@@ -1376,6 +1485,18 @@ def admin_html(server):
             "</tr>"
         )
     config_check = gateway_config_check(server)
+    alerts = gateway_alerts(server)
+    alert_rows = ""
+    for record in alerts.get("alerts", []):
+        alert_rows += (
+            "<tr>"
+            f"<td>{record.get('severity', '')}</td>"
+            f"<td>{record.get('area', '')}</td>"
+            f"<td>{record.get('code', '')}</td>"
+            f"<td>{record.get('message', '')}</td>"
+            f"<td>{record.get('next_step', '')}</td>"
+            "</tr>"
+        )
     config_rows = ""
     for record in config_check.get("checks", []):
         config_rows += (
@@ -1421,7 +1542,7 @@ def admin_html(server):
 <body>
   <main>
     <h1>Gateway Admin</h1>
-    <p><a href="/">Dashboard</a> | <a href="/v1/gateway/status">Status JSON</a> | <a href="/v1/gateway/config-check">Config Check JSON</a> | <a href="/v1/gateway/provider-health">Provider Health JSON</a> | <a href="/v1/gateway/model-catalog">Model Catalog JSON</a> | <a href="/v1/gateway/customer-reports">Customer Reports JSON</a> | <a href="/v1/gateway/request-activity">Request Activity JSON</a> | <a href="/v1/gateway/providers">Providers JSON</a> | <a href="/v1/gateway/customer-usage">Customer Usage JSON</a> | <a href="/v1/gateway/model-usage">Model Usage JSON</a> | <a href="/v1/gateway/requests">Requests JSON</a> | <a href="/v1/gateway/usage">Usage JSON</a> | <a href="/v1/gateway/customers">Customers JSON</a></p>
+    <p><a href="/">Dashboard</a> | <a href="/v1/gateway/status">Status JSON</a> | <a href="/v1/gateway/alerts">Alerts JSON</a> | <a href="/v1/gateway/config-check">Config Check JSON</a> | <a href="/v1/gateway/provider-health">Provider Health JSON</a> | <a href="/v1/gateway/model-catalog">Model Catalog JSON</a> | <a href="/v1/gateway/customer-reports">Customer Reports JSON</a> | <a href="/v1/gateway/request-activity">Request Activity JSON</a> | <a href="/v1/gateway/providers">Providers JSON</a> | <a href="/v1/gateway/customer-usage">Customer Usage JSON</a> | <a href="/v1/gateway/model-usage">Model Usage JSON</a> | <a href="/v1/gateway/requests">Requests JSON</a> | <a href="/v1/gateway/usage">Usage JSON</a> | <a href="/v1/gateway/customers">Customers JSON</a></p>
     <h2>Summary</h2>
     <table>
       <tbody>
@@ -1429,8 +1550,14 @@ def admin_html(server):
         <tr><th>Total tokens</th><td>{summary.get('usage', {}).get('total_tokens', 0)}</td></tr>
         <tr><th>Estimated cost</th><td>{summary.get('usage', {}).get('estimated_cost', 0)}</td></tr>
         <tr><th>Config status</th><td>{config_check.get('status')}</td></tr>
+        <tr><th>Alert status</th><td>{alerts.get('status')}</td></tr>
         <tr><th>Database</th><td>{server.db_path}</td></tr>
       </tbody>
+    </table>
+    <h2>Alerts</h2>
+    <table>
+      <thead><tr><th>Severity</th><th>Area</th><th>Code</th><th>Message</th><th>Next step</th></tr></thead>
+      <tbody>{alert_rows}</tbody>
     </table>
     <h2>Config Check</h2>
     <table>
@@ -1855,6 +1982,9 @@ class GatewayHandler(BaseHTTPRequestHandler):
             return
         if path == "/v1/gateway/status":
             make_json_response(self, 200, gateway_status(self.server))
+            return
+        if path == "/v1/gateway/alerts":
+            make_json_response(self, 200, gateway_alerts(self.server))
             return
         if path == "/v1/gateway/config-check":
             make_json_response(self, 200, gateway_config_check(self.server))

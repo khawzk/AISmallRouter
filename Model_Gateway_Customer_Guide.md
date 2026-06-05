@@ -54,6 +54,7 @@ It lets us test the idea with the API key we already have, without spending mone
 The prototype supports:
 
 - Visual dashboard
+- Operational alerts
 - OpenAI-compatible chat endpoint
 - Customer API key check
 - Basic usage limit
@@ -163,6 +164,7 @@ http://127.0.0.1:8790/
 
 The dashboard shows:
 
+- Operational alerts
 - One API for customers
 - Gateway entry control
 - Model registry
@@ -203,6 +205,7 @@ The prototype has simple admin JSON endpoints.
 They help explain the control layer:
 
 - Provider status
+- Operational alerts
 - Provider health and readiness
 - Model catalog and routing plan
 - Route preview before a live request
@@ -219,6 +222,21 @@ In the prototype, these endpoints use a separate demo admin key.
 The local demo key is `dev-admin-key`.
 
 In production, the admin key should be changed and protected.
+
+## What Operational Alerts Show
+
+The prototype includes `/v1/gateway/alerts`.
+
+It combines several signals:
+
+- Config check warnings
+- Provider readiness
+- Customer budget state
+- Recent request errors
+
+Each alert includes a simple next step.
+
+This helps non-technical users understand what needs attention before a live demo.
 
 ## What Provider Health Means
 

@@ -362,6 +362,9 @@ class GatewayPrototypeTest(unittest.TestCase):
         catalog = {model["id"]: model for model in payload["model_catalog"]}
         self.assertIn("smart-fast", catalog)
         self.assertEqual(catalog["smart-fast"]["route_chain"][0], "smart-fast")
+        self.assertIn("alerts", payload)
+        self.assertIn("summary", payload["alerts"])
+        self.assertIn("alerts", payload["alerts"])
 
     def test_admin_summary_endpoints(self):
         request_json(
@@ -398,6 +401,17 @@ class GatewayPrototypeTest(unittest.TestCase):
         self.assertGreaterEqual(dashscope_health["recent"]["requests"], 1)
         self.assertIn("live_ready", dashscope_health)
         self.assertIn("mock_ready", dashscope_health)
+
+        status, alerts = request_json(self.base_url, path="/v1/gateway/alerts")
+        self.assertEqual(status, 401)
+
+        status, alerts = request_json(self.base_url, path="/v1/gateway/alerts", api_key="dev-admin-key")
+        self.assertEqual(status, 200)
+        self.assertIn(alerts["status"], {"ok", "warning", "critical"})
+        self.assertIn("summary", alerts)
+        alert_codes = {alert["code"] for alert in alerts["alerts"]}
+        self.assertIn("default_admin_key", alert_codes)
+        self.assertTrue(all("next_step" in alert for alert in alerts["alerts"]))
 
         status, model_catalog = request_json(self.base_url, path="/v1/gateway/model-catalog")
         self.assertEqual(status, 401)
