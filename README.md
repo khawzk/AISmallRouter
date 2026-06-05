@@ -121,6 +121,7 @@ The prototype includes:
 
 - Multiple customer API keys from `customer_keys.json`
 - Basic per-customer usage limits
+- Per-customer token and cost budgets
 - JSONL request logs
 - JSONL usage records
 - SQLite request and usage storage in `data/aismallrouter.db`
@@ -168,8 +169,37 @@ The current version also supports:
 - `stream=true` Server-Sent Events
 - `gateway_force_failover=true` for fallback testing in mock mode
 - multiple customer keys through `customer_keys.json`
+- customer plans with request limits, token budgets, and cost budgets
 - SQLite persistence for request and usage records
 - disabled example provider configs for OpenAI and Anthropic
+
+## Customer Plans And Budgets
+
+Each customer can have a simple plan in `customer_keys.json`.
+
+Example:
+
+```json
+{
+  "id": "demo-budget",
+  "plan": "budget-demo",
+  "api_key": "demo-budget-key",
+  "request_limit": 20,
+  "limit_window_seconds": 60,
+  "token_budget": 40,
+  "cost_budget": 0.1,
+  "allowed_models": ["smart-fast"]
+}
+```
+
+Simple meaning:
+
+- `request_limit` controls how many requests the customer can send in a short time window.
+- `token_budget` controls total token usage recorded in SQLite.
+- `cost_budget` controls estimated total cost recorded in SQLite.
+- `allowed_models` controls which public model names the customer can use.
+
+If a budget is reached, the gateway returns `402` with a clear error code.
 
 ## What Is Still Hard
 

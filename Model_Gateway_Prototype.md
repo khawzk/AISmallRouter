@@ -142,6 +142,7 @@ Included in the prototype:
 - Basic usage tracking
 - Persistent SQLite records
 - Basic model access control
+- Basic customer plan, token budget, and cost budget control
 - Basic Bring Your Own Key provider mapping
 - Provider adapter scaffolds for OpenAI-compatible APIs and Anthropic-style APIs
 - Basic error response format
@@ -232,6 +233,7 @@ It now has a small product skeleton:
 - Customer keys in `customer_keys.json`
 - Model and provider rules in `model_registry.json`
 - Request and usage records in SQLite
+- Customer plan controls for request limit, token budget, and cost budget
 - JSONL logs for easy local inspection
 - Mock streaming
 - Mock fallback routing
@@ -309,6 +311,7 @@ flowchart TB
 | Model Router | Decides where a request should go |
 | Provider Adapter | Translates between our format and the provider format |
 | Request Logs | Records what happened for support, cost, and monitoring |
+| Customer Budget | Controls how much each customer can use |
 
 ## OpenRouter Reference Concepts
 
@@ -320,12 +323,12 @@ But it uses some public concepts that OpenRouter also shows in its documentation
 | --- | --- | --- |
 | One API for many models | OpenRouter exposes an API with schemas similar to the OpenAI Chat API | We expose an OpenAI-compatible API for customers |
 | API keys | OpenRouter uses Bearer token API keys | We use customer API keys for our gateway |
-| Credit or usage limits | OpenRouter documents key limits and remaining credits | We add basic usage limits per customer key |
+| Credit or usage limits | OpenRouter documents key limits and remaining credits | We add request limits, token budgets, and cost budgets per customer key |
 | Usage tracking | OpenRouter exposes key usage fields such as daily, weekly, and monthly usage | We store request logs and usage records |
 | Model listing | OpenRouter has a models API for listing model properties | We use a model registry and `/v1/models` |
 | Routing | OpenRouter documents provider and model routing concepts | We use a model router to choose provider and model |
 | Fallback | OpenRouter supports fallback models when a model or provider fails | We can add fallback after the first prototype |
-| BYOK | OpenRouter supports bring-your-own provider keys | We can consider customer-owned provider keys later |
+| BYOK | OpenRouter supports bring-your-own provider keys | We support a simple environment-variable BYOK mapping in the prototype |
 | Normalization | OpenRouter describes normalizing schemas across models and providers | We use provider adapters to normalize requests and responses |
 
 References:

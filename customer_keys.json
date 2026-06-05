@@ -3,9 +3,12 @@
     {
       "id": "dev",
       "name": "Development Customer",
+      "plan": "internal-demo",
       "api_key": "dev-gateway-key",
       "request_limit": 60,
       "limit_window_seconds": 60,
+      "token_budget": 50000,
+      "cost_budget": 5.0,
       "allowed_models": ["*"],
       "provider_api_keys": {
         "dashscope": "env:DASHSCOPE_API_KEY"
@@ -15,9 +18,24 @@
     {
       "id": "demo-limited",
       "name": "Demo Limited Customer",
+      "plan": "limited-demo",
       "api_key": "demo-limited-key",
       "request_limit": 3,
       "limit_window_seconds": 60,
+      "token_budget": 1000,
+      "cost_budget": 0.5,
+      "allowed_models": ["smart-fast"],
+      "enabled": true
+    },
+    {
+      "id": "demo-budget",
+      "name": "Demo Budget Customer",
+      "plan": "budget-demo",
+      "api_key": "demo-budget-key",
+      "request_limit": 20,
+      "limit_window_seconds": 60,
+      "token_budget": 40,
+      "cost_budget": 0.1,
       "allowed_models": ["smart-fast"],
       "enabled": true
     }

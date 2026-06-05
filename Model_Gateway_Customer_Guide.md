@@ -63,6 +63,7 @@ The prototype supports:
 - Model routing alias
 - Fallback routing test in mock mode
 - Mock streaming
+- Customer plans with token and cost budgets
 - Bring Your Own Key provider mapping
 - Provider adapter scaffolds for OpenAI and Claude
 - Mock mode
@@ -236,6 +237,19 @@ Different models have different prices.
 
 The gateway should help route by cost, quality, speed, or customer plan.
 
+The prototype now has simple customer budgets.
+
+Simple meaning:
+
+- Request limit protects the gateway from too many calls in a short time.
+- Token budget controls total recorded token usage.
+- Cost budget controls estimated total spend.
+- Model access controls which public models a customer can use.
+
+This is not full billing yet.
+
+It is a demo of the control layer that full billing would need.
+
 ## Recommended Roadmap
 
 ### Phase 1: Current Prototype
@@ -245,6 +259,7 @@ The gateway should help route by cost, quality, speed, or customer plan.
 - Mock mode
 - Visual dashboard
 - Basic API key and usage limit
+- Basic token and cost budget control
 
 ### Phase 2: Real Qwen Demo
 
@@ -258,6 +273,7 @@ The gateway should help route by cost, quality, speed, or customer plan.
 - Save request logs to a file and database
 - Add per-customer usage records
 - Add model access rules
+- Add token and cost budgets
 - Add a simple admin page
 
 ### Phase 4: More Providers
@@ -275,7 +291,7 @@ The gateway should help route by cost, quality, speed, or customer plan.
 - Add secure secret management
 - Add streaming
 - Add fallback
-- Add cost tracking
+- Add production billing and invoices
 - Optional: put an enterprise API Gateway in front
 
 ## OpenRouter Concepts We Can Learn From

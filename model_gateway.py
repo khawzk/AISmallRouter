@@ -61,8 +61,11 @@ def public_customer_view(customer):
     return {
         "id": customer["id"],
         "name": customer.get("name", customer["id"]),
+        "plan": customer.get("plan", "prototype"),
         "request_limit": customer.get("request_limit"),
         "limit_window_seconds": customer.get("limit_window_seconds"),
+        "token_budget": customer.get("token_budget"),
+        "cost_budget": customer.get("cost_budget"),
         "allowed_models": customer.get("allowed_models", []),
         "byok_providers": sorted(provider_keys.keys()),
     }
@@ -125,8 +128,11 @@ def init_db(path):
                 id text primary key,
                 name text,
                 api_key_hash text,
+                plan text,
                 request_limit integer,
                 limit_window_seconds integer,
+                token_budget integer,
+                cost_budget real,
                 allowed_models text,
                 byok_providers text,
                 enabled integer
@@ -137,6 +143,14 @@ def init_db(path):
             row[1]
             for row in conn.execute("pragma table_info(customers)").fetchall()
         }
+        customer_migrations = {
+            "plan": "alter table customers add column plan text",
+            "token_budget": "alter table customers add column token_budget integer",
+            "cost_budget": "alter table customers add column cost_budget real",
+        }
+        for column, sql in customer_migrations.items():
+            if column not in customer_columns:
+                conn.execute(sql)
         if "byok_providers" not in customer_columns:
             conn.execute("alter table customers add column byok_providers text")
         conn.commit()
@@ -148,15 +162,19 @@ def sync_customers_to_db(path, customers_by_key):
             conn.execute(
                 """
                 insert into customers (
-                    id, name, api_key_hash, request_limit,
-                    limit_window_seconds, allowed_models, byok_providers, enabled
+                    id, name, api_key_hash, plan, request_limit,
+                    limit_window_seconds, token_budget, cost_budget,
+                    allowed_models, byok_providers, enabled
                 )
-                values (?, ?, ?, ?, ?, ?, ?, ?)
+                values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 on conflict(id) do update set
                     name=excluded.name,
                     api_key_hash=excluded.api_key_hash,
+                    plan=excluded.plan,
                     request_limit=excluded.request_limit,
                     limit_window_seconds=excluded.limit_window_seconds,
+                    token_budget=excluded.token_budget,
+                    cost_budget=excluded.cost_budget,
                     allowed_models=excluded.allowed_models,
                     byok_providers=excluded.byok_providers,
                     enabled=excluded.enabled
@@ -165,8 +183,11 @@ def sync_customers_to_db(path, customers_by_key):
                     customer["id"],
                     customer.get("name", customer["id"]),
                     key_hash(api_key),
+                    customer.get("plan", "prototype"),
                     int(customer.get("request_limit", DEFAULT_REQUEST_LIMIT)),
                     int(customer.get("limit_window_seconds", DEFAULT_LIMIT_WINDOW_SECONDS)),
+                    customer.get("token_budget"),
+                    customer.get("cost_budget"),
                     json.dumps(customer.get("allowed_models", ["*"])),
                     json.dumps(sorted(customer.get("provider_api_keys", {}).keys())),
                     1 if customer.get("enabled", True) else 0,
@@ -273,6 +294,51 @@ def db_summary(path):
         "request_count": request_count,
         "usage": dict(usage),
         "requests_by_customer": [dict(row) for row in by_customer],
+    }
+
+
+def customer_usage_summary(path, customer_id):
+    empty = {
+        "prompt_tokens": 0,
+        "completion_tokens": 0,
+        "total_tokens": 0,
+        "estimated_cost": 0,
+    }
+    if not customer_id or not os.path.exists(path):
+        return empty
+    with sqlite3.connect(path) as conn:
+        conn.row_factory = sqlite3.Row
+        usage = conn.execute(
+            """
+            select
+                coalesce(sum(prompt_tokens), 0) as prompt_tokens,
+                coalesce(sum(completion_tokens), 0) as completion_tokens,
+                coalesce(sum(total_tokens), 0) as total_tokens,
+                coalesce(sum(estimated_cost), 0) as estimated_cost
+            from usage_records
+            where customer_id = ?
+            """,
+            (customer_id,),
+        ).fetchone()
+    return dict(usage) if usage else empty
+
+
+def customer_budget_status(path, customer):
+    usage = customer_usage_summary(path, customer.get("id"))
+    token_budget = customer.get("token_budget")
+    cost_budget = customer.get("cost_budget")
+    remaining_tokens = None
+    remaining_cost = None
+    if token_budget is not None:
+        remaining_tokens = int(token_budget) - int(usage.get("total_tokens") or 0)
+    if cost_budget is not None:
+        remaining_cost = round(float(cost_budget) - float(usage.get("estimated_cost") or 0), 8)
+    return {
+        "usage": usage,
+        "token_budget": token_budget,
+        "cost_budget": cost_budget,
+        "remaining_tokens": remaining_tokens,
+        "remaining_cost": remaining_cost,
     }
 
 
@@ -412,7 +478,10 @@ def gateway_status(server):
         "request_limit": server.default_request_limit,
         "limit_window_seconds": server.default_limit_window_seconds,
         "customers": [
-            public_customer_view(customer)
+            {
+                **public_customer_view(customer),
+                "budget": customer_budget_status(server.db_path, customer),
+            }
             for customer in server.customers_by_key.values()
         ],
         "models": [
@@ -464,6 +533,20 @@ def admin_html(server):
             f"<td>{record.get('estimated_cost', '')}</td>"
             "</tr>"
         )
+    customer_rows = ""
+    for record in db_tail(server.db_path, "customers", 100):
+        customer_rows += (
+            "<tr>"
+            f"<td>{record.get('id', '')}</td>"
+            f"<td>{record.get('name', '')}</td>"
+            f"<td>{record.get('plan', '')}</td>"
+            f"<td>{record.get('request_limit', '')}</td>"
+            f"<td>{record.get('token_budget', '')}</td>"
+            f"<td>{record.get('cost_budget', '')}</td>"
+            f"<td>{record.get('allowed_models', '')}</td>"
+            f"<td>{record.get('byok_providers', '')}</td>"
+            "</tr>"
+        )
     summary = db_summary(server.db_path)
     return f"""<!doctype html>
 <html lang="en">
@@ -504,6 +587,11 @@ def admin_html(server):
     <table>
       <thead><tr><th>Created</th><th>Customer</th><th>Model</th><th>Provider</th><th>Prompt</th><th>Completion</th><th>Est. cost</th></tr></thead>
       <tbody>{usage_rows}</tbody>
+    </table>
+    <h2>Customers</h2>
+    <table>
+      <thead><tr><th>ID</th><th>Name</th><th>Plan</th><th>Req limit</th><th>Token budget</th><th>Cost budget</th><th>Allowed models</th><th>BYOK providers</th></tr></thead>
+      <tbody>{customer_rows}</tbody>
     </table>
   </main>
 </body>
@@ -797,7 +885,7 @@ def should_force_failover(payload, candidate_index):
 
 
 class GatewayHandler(BaseHTTPRequestHandler):
-    server_version = "AISmallRouter/0.3"
+    server_version = "AISmallRouter/0.4"
 
     def log_message(self, format_text, *args):
         if self.server.quiet:
@@ -934,6 +1022,26 @@ class GatewayHandler(BaseHTTPRequestHandler):
         if "*" not in allowed and public_model not in allowed:
             raise GatewayError(f"Customer is not allowed to use model: {public_model}.", "model_not_allowed", 403)
 
+    def ensure_budget_available(self):
+        budget = customer_budget_status(self.server.db_path, self.customer)
+        token_budget = budget.get("token_budget")
+        cost_budget = budget.get("cost_budget")
+        usage = budget.get("usage", {})
+        if token_budget is not None and int(usage.get("total_tokens") or 0) >= int(token_budget):
+            raise GatewayError(
+                "The customer token budget has been reached.",
+                "token_budget_exceeded",
+                402,
+                budget,
+            )
+        if cost_budget is not None and float(usage.get("estimated_cost") or 0) >= float(cost_budget):
+            raise GatewayError(
+                "The customer cost budget has been reached.",
+                "cost_budget_exceeded",
+                402,
+                budget,
+            )
+
     def candidate_models(self, public_model):
         model = self.server.models.get(public_model)
         if not model:
@@ -954,6 +1062,7 @@ class GatewayHandler(BaseHTTPRequestHandler):
         if not public_model:
             raise GatewayError("Missing required field: model.", "missing_model", 400)
         self.ensure_model_access(public_model)
+        self.ensure_budget_available()
         stream = bool(payload.get("stream"))
         candidates = self.candidate_models(public_model)
         errors = []
@@ -982,6 +1091,7 @@ class GatewayHandler(BaseHTTPRequestHandler):
                     }
                 )
                 self.write_usage(response, public_model, model_config)
+                response["gateway"]["customer_budget"] = customer_budget_status(self.server.db_path, self.customer)
                 self.write_request_log(started_at, public_model, model_config["upstream_model"], model_config["provider"], 200, "ok")
                 make_json_response(self, 200, response)
                 return
@@ -1056,6 +1166,7 @@ class GatewayHandler(BaseHTTPRequestHandler):
         }
         append_jsonl(self.server.usage_log_path, record)
         insert_usage_db(self.server.db_path, record)
+        return record
 
 
 def parse_args():

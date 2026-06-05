@@ -613,6 +613,7 @@
       <div class="stat"><strong id="customerCount">2</strong><span>Customer keys</span></div>
       <div class="stat"><strong id="requestCount">0</strong><span>Stored requests</span></div>
       <div class="stat"><strong id="tokenCount">0</strong><span>Tracked tokens</span></div>
+      <div class="stat"><strong id="budgetText">-</strong><span>Demo token budget</span></div>
       <div class="stat"><strong id="modeText">mock</strong><span>Current mode</span></div>
     </section>
 
@@ -661,8 +662,8 @@
             </div>
             <div class="route-step active">
               <div class="index">2</div>
-              <div class="route-copy"><strong>Gateway entry control</strong><span>checks API key, request limit, and BYOK mapping</span></div>
-              <span class="chip green">customer control</span>
+              <div class="route-copy"><strong>Gateway entry control</strong><span>checks API key, request limit, budget, and BYOK mapping</span></div>
+              <span class="chip green">customer plan</span>
             </div>
             <div class="route-step active">
               <div class="index">3</div>
@@ -746,7 +747,7 @@
       </article>
       <article class="step-card">
         <strong>4. Explain the control layer</strong>
-        <p>Use Admin to show stored requests, usage, customers, and BYOK provider mapping.</p>
+        <p>Use Admin to show stored requests, usage, customers, budgets, and BYOK provider mapping.</p>
       </article>
     </section>
   </div>
@@ -757,6 +758,7 @@
     const customerCount = document.getElementById("customerCount");
     const requestCount = document.getElementById("requestCount");
     const tokenCount = document.getElementById("tokenCount");
+    const budgetText = document.getElementById("budgetText");
     const modeText = document.getElementById("modeText");
     const limitText = document.getElementById("limitText");
     const modelsList = document.getElementById("modelsList");
@@ -773,6 +775,8 @@
     tokenCount.textContent = String((state.summary && state.summary.usage && state.summary.usage.total_tokens) || 0);
     modeText.textContent = state.mode;
     const firstCustomer = (state.customers || [])[0] || {};
+    const firstBudget = firstCustomer.budget || {};
+    budgetText.textContent = firstBudget.remaining_tokens == null ? "-" : String(firstBudget.remaining_tokens);
     const requestLimit = firstCustomer.request_limit || state.request_limit;
     const limitWindow = firstCustomer.limit_window_seconds || state.limit_window_seconds;
     limitText.textContent = `${requestLimit} requests / ${limitWindow}s`;

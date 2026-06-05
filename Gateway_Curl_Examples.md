@@ -169,6 +169,36 @@ Then call `/v1/models` twice with the same API key.
 
 The second request should return `429 Too Many Requests`.
 
+## Test Token Budget
+
+`demo-budget-key` has a very small token budget.
+
+The first chat request should pass.
+
+The next request should return `402` after the stored usage reaches the budget.
+
+```bash
+curl -i http://127.0.0.1:8787/v1/chat/completions \
+  -H "Authorization: Bearer demo-budget-key" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "smart-fast",
+    "messages": [
+      {
+        "role": "user",
+        "content": "Use some demo tokens."
+      }
+    ],
+    "stream": false
+  }'
+```
+
+Fetch customer budget status:
+
+```bash
+curl http://127.0.0.1:8787/v1/gateway/status
+```
+
 ## Start In Live Qwen Mode
 
 Live mode calls Alibaba Cloud Model Studio / DashScope.
@@ -206,7 +236,10 @@ In `customer_keys.json`, a customer can map a provider to an environment variabl
 {
   "id": "dev",
   "name": "Development Customer",
+  "plan": "internal-demo",
   "api_key": "dev-gateway-key",
+  "token_budget": 50000,
+  "cost_budget": 5.0,
   "provider_api_keys": {
     "dashscope": "env:DASHSCOPE_API_KEY"
   },
