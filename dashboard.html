@@ -1229,6 +1229,74 @@
           </div>
         </div>
       </section>
+
+      <section class="card" id="providerLifecycle">
+        <div class="card-head">
+          <h2>Provider lifecycle</h2>
+          <span>create, update, disable</span>
+        </div>
+        <div class="card-body">
+          <div class="console">
+            <label>Provider ID
+              <input id="providerId" value="demo-provider-ui">
+            </label>
+            <label>Type
+              <select id="providerType">
+                <option value="openai_compatible">openai_compatible</option>
+                <option value="anthropic">anthropic</option>
+              </select>
+            </label>
+            <label>Base URL
+              <input id="providerBaseUrl" value="https://example.com/v1">
+            </label>
+            <label>API key env
+              <input id="providerApiKeyEnv" value="DEMO_PROVIDER_API_KEY">
+            </label>
+            <div class="form-actions">
+              <button id="createProviderButton" type="button">Create provider</button>
+              <button id="updateProviderButton" type="button">Update provider</button>
+              <button id="disableProviderButton" type="button">Disable provider</button>
+            </div>
+          </div>
+          <div class="trace" id="providerLifecycleTrace">
+            <div class="trace-item">Provider actions write to the local demo model registry.</div>
+          </div>
+        </div>
+      </section>
+
+      <section class="card" id="routeLifecycle">
+        <div class="card-head">
+          <h2>Model route lifecycle</h2>
+          <span>public alias to provider model</span>
+        </div>
+        <div class="card-body">
+          <div class="console">
+            <label>Public model ID
+              <input id="routeModelId" value="demo-fast-ui">
+            </label>
+            <label>Provider
+              <input id="routeProviderId" value="demo-provider-ui">
+            </label>
+            <label>Upstream model
+              <input id="routeUpstreamModel" value="demo-upstream-model">
+            </label>
+            <label>Capabilities
+              <input id="routeCapabilities" value="chat, streaming">
+            </label>
+            <label>Fallback models
+              <input id="routeFallbackModels" value="smart-fast">
+            </label>
+            <div class="form-actions">
+              <button id="createRouteButton" type="button">Create route</button>
+              <button id="updateRouteButton" type="button">Update route</button>
+              <button id="disableRouteButton" type="button">Disable route</button>
+            </div>
+          </div>
+          <div class="trace" id="routeLifecycleTrace">
+            <div class="trace-item">Create a provider first, then create a public model route for that provider.</div>
+          </div>
+        </div>
+      </section>
     </div>
 
     <section class="quickstart" id="quickstart">
@@ -1288,6 +1356,23 @@
     const rotateCustomerButton = document.getElementById("rotateCustomerButton");
     const disableCustomerButton = document.getElementById("disableCustomerButton");
     const keyPreviewTrace = document.getElementById("keyPreviewTrace");
+    const providerId = document.getElementById("providerId");
+    const providerType = document.getElementById("providerType");
+    const providerBaseUrl = document.getElementById("providerBaseUrl");
+    const providerApiKeyEnv = document.getElementById("providerApiKeyEnv");
+    const createProviderButton = document.getElementById("createProviderButton");
+    const updateProviderButton = document.getElementById("updateProviderButton");
+    const disableProviderButton = document.getElementById("disableProviderButton");
+    const providerLifecycleTrace = document.getElementById("providerLifecycleTrace");
+    const routeModelId = document.getElementById("routeModelId");
+    const routeProviderId = document.getElementById("routeProviderId");
+    const routeUpstreamModel = document.getElementById("routeUpstreamModel");
+    const routeCapabilities = document.getElementById("routeCapabilities");
+    const routeFallbackModels = document.getElementById("routeFallbackModels");
+    const createRouteButton = document.getElementById("createRouteButton");
+    const updateRouteButton = document.getElementById("updateRouteButton");
+    const disableRouteButton = document.getElementById("disableRouteButton");
+    const routeLifecycleTrace = document.getElementById("routeLifecycleTrace");
     const routeTrace = document.getElementById("routeTrace");
     const output = document.getElementById("output");
     const sendButton = document.getElementById("sendButton");
@@ -1645,6 +1730,34 @@
       };
     }
 
+    function providerLifecyclePayload() {
+      return {
+        provider_id: providerId.value.trim(),
+        name: providerId.value.trim(),
+        type: providerType.value,
+        base_url: providerBaseUrl.value.trim(),
+        api_key_env: providerApiKeyEnv.value.trim()
+      };
+    }
+
+    function routeLifecyclePayload() {
+      const capabilities = routeCapabilities.value
+        .split(",")
+        .map((capability) => capability.trim())
+        .filter(Boolean);
+      const fallbackModels = routeFallbackModels.value
+        .split(",")
+        .map((model) => model.trim())
+        .filter(Boolean);
+      return {
+        model_id: routeModelId.value.trim(),
+        provider: routeProviderId.value.trim(),
+        upstream_model: routeUpstreamModel.value.trim(),
+        capabilities: capabilities.length ? capabilities : ["chat"],
+        fallback_models: fallbackModels
+      };
+    }
+
     function renderActionTrace(container, lines) {
       container.innerHTML = "";
       lines.forEach((line, index) => {
@@ -1891,6 +2004,120 @@
         keyPreviewTrace.innerHTML = '<div class="trace-item">' + String(error) + '</div>';
       } finally {
         disableCustomerButton.disabled = false;
+      }
+    });
+    createProviderButton.addEventListener("click", async () => {
+      createProviderButton.disabled = true;
+      providerLifecycleTrace.innerHTML = '<div class="trace-item">Creating provider in local registry...</div>';
+      try {
+        const data = await postAdminJson("/v1/gateway/providers", providerLifecyclePayload());
+        routeProviderId.value = data.provider.id;
+        renderActionTrace(providerLifecycleTrace, [
+          `created = ${data.provider.id}`,
+          `type = ${data.provider.type}`,
+          `base_url = ${data.provider.base_url}`,
+          `api_key_env = ${data.provider.api_key_env}`,
+          data.note
+        ]);
+      } catch (error) {
+        providerLifecycleTrace.innerHTML = '<div class="trace-item">' + String(error) + '</div>';
+      } finally {
+        createProviderButton.disabled = false;
+      }
+    });
+    updateProviderButton.addEventListener("click", async () => {
+      updateProviderButton.disabled = true;
+      providerLifecycleTrace.innerHTML = '<div class="trace-item">Updating provider in local registry...</div>';
+      try {
+        const data = await postAdminJson("/v1/gateway/providers/update", providerLifecyclePayload());
+        routeProviderId.value = data.provider.id;
+        renderActionTrace(providerLifecycleTrace, [
+          `updated = ${data.provider.id}`,
+          `type = ${data.provider.type}`,
+          `base_url = ${data.provider.base_url}`,
+          `enabled = ${data.provider.enabled}`,
+          "Refresh the page to see provider health and catalog changes."
+        ]);
+      } catch (error) {
+        providerLifecycleTrace.innerHTML = '<div class="trace-item">' + String(error) + '</div>';
+      } finally {
+        updateProviderButton.disabled = false;
+      }
+    });
+    disableProviderButton.addEventListener("click", async () => {
+      disableProviderButton.disabled = true;
+      providerLifecycleTrace.innerHTML = '<div class="trace-item">Disabling provider and active routes...</div>';
+      try {
+        const data = await postAdminJson("/v1/gateway/providers/disable", {
+          provider_id: providerId.value.trim()
+        });
+        renderActionTrace(providerLifecycleTrace, [
+          `disabled = ${data.provider.id}`,
+          `enabled = ${data.provider.enabled}`,
+          `disabled routes = ${(data.disabled_model_routes || []).join(", ") || "none"}`,
+          data.note,
+          "Refresh the page to see provider health and catalog changes."
+        ]);
+      } catch (error) {
+        providerLifecycleTrace.innerHTML = '<div class="trace-item">' + String(error) + '</div>';
+      } finally {
+        disableProviderButton.disabled = false;
+      }
+    });
+    createRouteButton.addEventListener("click", async () => {
+      createRouteButton.disabled = true;
+      routeLifecycleTrace.innerHTML = '<div class="trace-item">Creating public model route...</div>';
+      try {
+        const data = await postAdminJson("/v1/gateway/model-routes", routeLifecyclePayload());
+        renderActionTrace(routeLifecycleTrace, [
+          `created = ${data.model.id}`,
+          `provider = ${data.model.provider}`,
+          `upstream = ${data.model.upstream_model}`,
+          `capabilities = ${(data.model.capabilities || []).join(", ")}`,
+          data.note
+        ]);
+      } catch (error) {
+        routeLifecycleTrace.innerHTML = '<div class="trace-item">' + String(error) + '</div>';
+      } finally {
+        createRouteButton.disabled = false;
+      }
+    });
+    updateRouteButton.addEventListener("click", async () => {
+      updateRouteButton.disabled = true;
+      routeLifecycleTrace.innerHTML = '<div class="trace-item">Updating public model route...</div>';
+      try {
+        const data = await postAdminJson("/v1/gateway/model-routes/update", routeLifecyclePayload());
+        renderActionTrace(routeLifecycleTrace, [
+          `updated = ${data.model.id}`,
+          `provider = ${data.model.provider}`,
+          `fallback = ${(data.model.fallback_models || []).join(", ") || "none"}`,
+          `enabled = ${data.model.enabled}`,
+          "Refresh the page to see the model catalog update."
+        ]);
+      } catch (error) {
+        routeLifecycleTrace.innerHTML = '<div class="trace-item">' + String(error) + '</div>';
+      } finally {
+        updateRouteButton.disabled = false;
+      }
+    });
+    disableRouteButton.addEventListener("click", async () => {
+      disableRouteButton.disabled = true;
+      routeLifecycleTrace.innerHTML = '<div class="trace-item">Disabling public model route...</div>';
+      try {
+        const data = await postAdminJson("/v1/gateway/model-routes/disable", {
+          model_id: routeModelId.value.trim()
+        });
+        renderActionTrace(routeLifecycleTrace, [
+          `disabled = ${data.model.id}`,
+          `enabled = ${data.model.enabled}`,
+          `provider = ${data.model.provider}`,
+          data.note,
+          "Refresh the page to see the model catalog update."
+        ]);
+      } catch (error) {
+        routeLifecycleTrace.innerHTML = '<div class="trace-item">' + String(error) + '</div>';
+      } finally {
+        disableRouteButton.disabled = false;
       }
     });
     detailButton.addEventListener("click", async () => {

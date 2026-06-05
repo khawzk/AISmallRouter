@@ -742,6 +742,8 @@ This keeps `model_registry.json` valid and reloads the local runtime safely.
 
 Every provider change writes an audit event.
 
+The dashboard also has a **Provider lifecycle** panel for create, update, and disable demos.
+
 The prototype stores the provider API key environment variable name, not the provider secret value.
 
 Production should use a database, secret manager, approval workflow, readiness checks, and rollout controls.
@@ -818,6 +820,8 @@ curl http://127.0.0.1:8787/v1/gateway/model-routes/disable \
 This updates `model_registry.json` and reloads the local runtime.
 
 Every route change writes an audit event.
+
+The dashboard also has a **Model route lifecycle** panel for create, update, and disable demos.
 
 Production should add approval workflow, version history, rollback, and staged rollout.
 

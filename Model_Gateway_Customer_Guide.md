@@ -634,6 +634,8 @@ Disabling a provider also disables active model routes that point to it.
 
 Every provider change writes an audit event.
 
+The dashboard also has a Provider lifecycle panel for create, update, and disable demos.
+
 The prototype stores the environment variable name for the provider key.
 
 It does not store the provider secret value.
@@ -682,6 +684,8 @@ They can show a simple model route lifecycle:
 - Disable the route when it should stop
 
 Every model route change writes an audit event.
+
+The dashboard also has a Model route lifecycle panel for create, update, and disable demos.
 
 This helps explain that the gateway manages model access, not only customer keys.
 

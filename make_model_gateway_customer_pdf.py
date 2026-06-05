@@ -456,7 +456,7 @@ def build():
     story.append(Paragraph("Provider Lifecycle", styles["H1Custom"]))
     story.append(
         Paragraph(
-            "The prototype can create, update, and disable providers. A provider defines the upstream API type, base URL, and API key environment variable name. Disabling a provider also disables active model routes that point to it, so the local registry stays valid. These admin actions update model_registry.json, reload the local runtime, and write audit events. The prototype stores the provider key environment variable name, not the provider secret value. Production should use a database, secret manager, approval workflow, readiness checks, and rollout controls.",
+            "The prototype can create, update, and disable providers. The dashboard has a Provider lifecycle panel for these demos. A provider defines the upstream API type, base URL, and API key environment variable name. Disabling a provider also disables active model routes that point to it, so the local registry stays valid. These admin actions update model_registry.json, reload the local runtime, and write audit events. The prototype stores the provider key environment variable name, not the provider secret value. Production should use a database, secret manager, approval workflow, readiness checks, and rollout controls.",
             styles["BodyCustom"],
         )
     )
@@ -480,7 +480,7 @@ def build():
     story.append(Paragraph("Model Route Lifecycle", styles["H1Custom"]))
     story.append(
         Paragraph(
-            "The prototype can create, update, and disable public model routes. A route defines the customer-facing model name, provider, upstream model, fallback models, capabilities, and pricing metadata. These admin actions update model_registry.json, reload the local runtime, and write audit events. Production should add approval workflow, version history, rollback, and staged rollout.",
+            "The prototype can create, update, and disable public model routes. The dashboard has a Model route lifecycle panel for these demos. A route defines the customer-facing model name, provider, upstream model, fallback models, capabilities, and pricing metadata. These admin actions update model_registry.json, reload the local runtime, and write audit events. Production should add approval workflow, version history, rollback, and staged rollout.",
             styles["BodyCustom"],
         )
     )
