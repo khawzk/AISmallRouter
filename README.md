@@ -178,6 +178,7 @@ The current version also supports:
 - `GET /v1/gateway/proposal-summary`
 - `GET /v1/gateway/onboarding-plan`
 - `GET /v1/gateway/deployment-readiness`
+- `GET /v1/gateway/production-backlog`
 - `GET /v1/gateway/launch-plan`
 - `GET /v1/gateway/change-management`
 - `GET /v1/gateway/data-governance`
@@ -461,6 +462,40 @@ It covers:
 This is not a one-command production deploy.
 
 It is a plain-English guide for the customer technical team to understand what must be configured, secured, monitored, and approved before real traffic.
+
+## Production Hardening Backlog
+
+The gateway has a production backlog endpoint:
+
+```bash
+curl http://127.0.0.1:8787/v1/gateway/production-backlog \
+  -H "Authorization: Bearer dev-admin-key"
+```
+
+It turns prototype gaps into prioritized engineering tasks.
+
+It groups work into:
+
+- P0 production blockers
+- P1 pilot and limited-production hardening
+- P2 scale and marketplace expansion
+
+It covers:
+
+- secrets
+- storage
+- data governance
+- operations
+- change control
+- provider contracts
+- billing
+- tenant controls
+- marketplace planning
+- deployment automation
+
+This is not an automatic project plan.
+
+It is a simple backlog that helps business, technical, security, platform, and support owners decide what must be funded before a production commitment.
 
 ## Production Launch Plan
 

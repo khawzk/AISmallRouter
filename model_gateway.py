@@ -87,6 +87,7 @@ ADMIN_PATHS = {
     "/v1/gateway/demo-bundle",
     "/v1/gateway/production-readiness",
     "/v1/gateway/deployment-readiness",
+    "/v1/gateway/production-backlog",
     "/v1/gateway/launch-plan",
     "/v1/gateway/change-management",
     "/v1/gateway/data-governance",
@@ -4194,6 +4195,162 @@ def deployment_readiness(server):
     }
 
 
+def production_backlog(server):
+    readiness = production_readiness(server)
+    deployment = deployment_readiness(server)
+    launch = launch_plan(server)
+    return {
+        "object": "gateway.production_backlog",
+        "title": "AISmallRouter Production Hardening Backlog",
+        "audience": "business owner, gateway owner, platform owner, security owner, and support owner",
+        "mode": "mock" if server.mock_mode else "live",
+        "plain_english": "This backlog turns the prototype gaps into prioritized engineering work. It helps the team see what must be built before real production traffic.",
+        "priority_meaning": {
+            "P0": "Must be done before production customer traffic.",
+            "P1": "Needed for a serious pilot or limited production.",
+            "P2": "Useful for scale, automation, or later multi-provider expansion.",
+        },
+        "work_items": [
+            {
+                "id": "P0-001",
+                "priority": "P0",
+                "area": "secrets",
+                "title": "Move provider and admin secrets to a secret manager",
+                "owner": "Security owner",
+                "why": "Local demo keys and environment variables are not enough for shared production traffic.",
+                "evidence": ["/v1/gateway/config-check", "/v1/gateway/deployment-readiness"],
+                "depends_on": ["deployment target selected"],
+                "done_when": "Provider keys, admin key, and customer BYOK secrets are stored outside repo files and can be rotated.",
+            },
+            {
+                "id": "P0-002",
+                "priority": "P0",
+                "area": "storage",
+                "title": "Move customer, provider, model route, usage, and audit data to a database",
+                "owner": "Platform owner",
+                "why": "Local JSON and SQLite are useful for demos but fragile for production operations.",
+                "evidence": ["/v1/gateway/deployment-readiness", "/v1/gateway/audit-events"],
+                "depends_on": ["database selected", "backup policy"],
+                "done_when": "Config and logs are stored in managed persistence with backup, retention, and access controls.",
+            },
+            {
+                "id": "P0-003",
+                "priority": "P0",
+                "area": "data_governance",
+                "title": "Approve logging, retention, redaction, and deletion policy",
+                "owner": "Customer data owner",
+                "why": "Prompt data and request detail may contain sensitive customer information.",
+                "evidence": ["/v1/gateway/data-governance", "/v1/gateway/safety-preview"],
+                "depends_on": ["customer data policy owner named"],
+                "done_when": "The team can say what is logged, who can view it, how long it is retained, and how deletion works.",
+            },
+            {
+                "id": "P0-004",
+                "priority": "P0",
+                "area": "operations",
+                "title": "Add production monitoring, alert routing, and incident ownership",
+                "owner": "Support owner",
+                "why": "A customer-facing gateway needs fast diagnosis and clear customer wording when requests fail.",
+                "evidence": ["/v1/gateway/alerts", "/v1/gateway/incident-playbook", "/v1/gateway/support-policy"],
+                "depends_on": ["support owner named", "deployment target selected"],
+                "done_when": "Health, errors, latency, provider readiness, and budget alerts go to named owners.",
+            },
+            {
+                "id": "P0-005",
+                "priority": "P0",
+                "area": "change_control",
+                "title": "Add approval workflow and rollback for customer, provider, and model route changes",
+                "owner": "Gateway owner",
+                "why": "Provider and route changes can affect cost, data handling, and customer behavior.",
+                "evidence": ["/v1/gateway/change-management", "/v1/gateway/audit-events"],
+                "depends_on": ["database-backed config"],
+                "done_when": "Every production config change has approval, version history, audit event, and rollback path.",
+            },
+            {
+                "id": "P1-001",
+                "priority": "P1",
+                "area": "provider_contracts",
+                "title": "Add live contract tests for Qwen and each future provider",
+                "owner": "Technical owner",
+                "why": "OpenAI-compatible providers can still differ in auth, streaming, tools, errors, and usage fields.",
+                "evidence": ["/v1/gateway/provider-contracts", "/v1/gateway/provider-health"],
+                "depends_on": ["provider docs", "provider test keys"],
+                "done_when": "Each enabled provider has request, response, streaming, tool, usage, and error tests.",
+            },
+            {
+                "id": "P1-002",
+                "priority": "P1",
+                "area": "billing",
+                "title": "Define production pricing, budgets, invoice, and chargeback rules",
+                "owner": "Business owner",
+                "why": "Usage records are only useful if the customer understands cost and budget behavior.",
+                "evidence": ["/v1/gateway/invoice-preview", "/v1/gateway/customer-reports"],
+                "depends_on": ["provider pricing confirmed"],
+                "done_when": "Pricing units, invoice fields, budget actions, and customer reporting cadence are approved.",
+            },
+            {
+                "id": "P1-003",
+                "priority": "P1",
+                "area": "tenant_controls",
+                "title": "Harden tenant isolation and role-based admin access",
+                "owner": "Security owner",
+                "why": "Customers should only see their own access, usage, keys, and request details.",
+                "evidence": ["/v1/gateway/me", "/v1/gateway/access-matrix", "/v1/gateway/request-detail"],
+                "depends_on": ["identity model selected"],
+                "done_when": "Customer and admin roles are separated, tested, and audited.",
+            },
+            {
+                "id": "P2-001",
+                "priority": "P2",
+                "area": "marketplace",
+                "title": "Design OpenRouter-like model catalog and provider marketplace features",
+                "owner": "Product owner",
+                "why": "Marketplace behavior is useful later, but should not block the first private gateway pilot.",
+                "evidence": ["/v1/gateway/decision-guide", "/v1/gateway/model-catalog"],
+                "depends_on": ["private gateway pilot success"],
+                "done_when": "Model discovery, provider comparison, pricing display, and customer model selection are specified.",
+            },
+            {
+                "id": "P2-002",
+                "priority": "P2",
+                "area": "automation",
+                "title": "Automate deployment, smoke tests, and rollback",
+                "owner": "Platform owner",
+                "why": "Manual deployment is acceptable for demo but risky for repeated customer environments.",
+                "evidence": ["/v1/gateway/deployment-readiness", "/openapi.json"],
+                "depends_on": ["deployment target selected"],
+                "done_when": "A deployment pipeline runs health, model list, mock chat, route preview, and rollback tests.",
+            },
+        ],
+        "summary_by_priority": [
+            {"priority": "P0", "count": 5, "meaning": "Production blockers."},
+            {"priority": "P1", "count": 3, "meaning": "Pilot and limited-production hardening."},
+            {"priority": "P2", "count": 2, "meaning": "Scale and marketplace expansion."},
+        ],
+        "recommended_sequence": [
+            "Close P0 secrets and database work first.",
+            "Approve data governance before live customer traffic.",
+            "Add monitoring, support ownership, and change control before production promise.",
+            "Run provider contract tests before adding OpenAI, Claude, Xiaomi, or other providers.",
+            "Treat OpenRouter-like marketplace features as P2 until the private gateway pilot succeeds.",
+        ],
+        "current_context": {
+            "readiness_status": readiness.get("overall_status"),
+            "launch_decision": launch.get("decision"),
+            "deployment_next_action": deployment.get("next_best_action"),
+        },
+        "reference_endpoints": [
+            "/v1/gateway/production-readiness",
+            "/v1/gateway/deployment-readiness",
+            "/v1/gateway/data-governance",
+            "/v1/gateway/change-management",
+            "/v1/gateway/provider-contracts",
+            "/v1/gateway/invoice-preview",
+        ],
+        "next_best_action": "Use this backlog after the proposal summary to decide what must be funded before a production commitment.",
+    }
+
+
 def onboarding_plan(server):
     readiness = production_readiness(server)
     pilot = pilot_checklist(server)
@@ -5233,6 +5390,7 @@ def openapi_spec(server):
         "/v1/gateway/demo-bundle": "Customer demo bundle manifest",
         "/v1/gateway/production-readiness": "Production readiness report",
         "/v1/gateway/deployment-readiness": "Deployment readiness guide",
+        "/v1/gateway/production-backlog": "Production hardening backlog",
         "/v1/gateway/launch-plan": "Production launch plan",
         "/v1/gateway/change-management": "Change management and rollback plan",
         "/v1/gateway/data-governance": "Data governance and privacy review",
@@ -5348,6 +5506,7 @@ def postman_collection(server):
         request_item("Provider Contracts", "GET", "/v1/gateway/provider-contracts", "admin_api_key"),
         request_item("Production Readiness", "GET", "/v1/gateway/production-readiness", "admin_api_key"),
         request_item("Deployment Readiness", "GET", "/v1/gateway/deployment-readiness", "admin_api_key"),
+        request_item("Production Backlog", "GET", "/v1/gateway/production-backlog", "admin_api_key"),
         request_item("Launch Plan", "GET", "/v1/gateway/launch-plan", "admin_api_key"),
         request_item("Change Management", "GET", "/v1/gateway/change-management", "admin_api_key"),
         request_item("Data Governance", "GET", "/v1/gateway/data-governance", "admin_api_key"),
@@ -5522,6 +5681,13 @@ def demo_bundle(server):
                 "url": f"{base_url}/v1/gateway/deployment-readiness",
                 "audience": "customer technical, platform, security, and gateway owners",
                 "purpose": "Show deployment stages, environment requirements, preflight checks, operational checks, rollback, and deployment options.",
+                "auth": "adminBearerAuth",
+            },
+            {
+                "name": "Production hardening backlog",
+                "url": f"{base_url}/v1/gateway/production-backlog",
+                "audience": "business, gateway, platform, security, and support owners",
+                "purpose": "Turn prototype gaps into prioritized P0, P1, and P2 engineering tasks.",
                 "auth": "adminBearerAuth",
             },
             {
@@ -5735,6 +5901,10 @@ def demo_bundle(server):
                 "command": f"curl {base_url}/v1/gateway/deployment-readiness -H 'Authorization: Bearer {server.admin_api_key or DEFAULT_ADMIN_API_KEY}'",
             },
             {
+                "name": "Production backlog",
+                "command": f"curl {base_url}/v1/gateway/production-backlog -H 'Authorization: Bearer {server.admin_api_key or DEFAULT_ADMIN_API_KEY}'",
+            },
+            {
                 "name": "Launch plan",
                 "command": f"curl {base_url}/v1/gateway/launch-plan -H 'Authorization: Bearer {server.admin_api_key or DEFAULT_ADMIN_API_KEY}'",
             },
@@ -5822,6 +5992,7 @@ def gateway_status(server):
         "invoice_preview": invoice_preview(server),
         "production_readiness": production_readiness(server),
         "deployment_readiness": deployment_readiness(server),
+        "production_backlog": production_backlog(server),
         "launch_plan": launch_plan(server),
         "change_management": change_management_plan(server),
         "data_governance": data_governance_review(server),
@@ -6542,6 +6713,9 @@ class GatewayHandler(BaseHTTPRequestHandler):
             return
         if path == "/v1/gateway/deployment-readiness":
             make_json_response(self, 200, deployment_readiness(self.server))
+            return
+        if path == "/v1/gateway/production-backlog":
+            make_json_response(self, 200, production_backlog(self.server))
             return
         if path == "/v1/gateway/launch-plan":
             make_json_response(self, 200, launch_plan(self.server))

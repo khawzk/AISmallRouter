@@ -247,6 +247,7 @@ def build():
         "Discovery checklist endpoint for customer goals, provider scope, governance, reporting, and production expectations.",
         "Proposal summary endpoint for customer-facing pilot scope, exclusions, risks, and next steps.",
         "Deployment readiness endpoint for environment, preflight checks, operations, rollback, and deployment options.",
+        "Production backlog endpoint for prioritized P0, P1, and P2 hardening tasks.",
         "Executive brief endpoint for non-technical customer stakeholders.",
         "Roadmap endpoint for prototype, pilot, production hardening, and multi-provider expansion.",
         "Decision guide endpoint for API Gateway, managed AI Gateway, custom Model Gateway, and OpenRouter-like options.",
@@ -314,6 +315,7 @@ def build():
             ["Demo delivery", "A presenter needs a simple meeting flow, talk track, and likely questions.", "Demo script endpoint"],
             ["Production readiness", "Customers need to understand why demo-ready is not production-ready.", "Plain-English readiness report"],
             ["Deployment readiness", "Customer technical teams need to know what must be configured before running it.", "Environment, preflight, health checks, rollback, and deployment options"],
+            ["Production backlog", "Teams need to convert gaps into fundable engineering tasks.", "P0, P1, and P2 hardening backlog"],
             ["Data governance", "Customers need to know what happens to prompts, logs, retention, and secrets.", "Plain-English governance review"],
             ["Access control", "Each customer may be allowed to use different models.", "Access matrix by customer and model"],
             ["Provider health", "Customers need to know whether a provider can serve traffic.", "Readiness view based on config and recent traffic"],
@@ -677,6 +679,24 @@ def build():
     deployment = Table(deployment_rows, colWidths=[2.1 * inch, 4.35 * inch])
     deployment.setStyle(table_style())
     story.append(deployment)
+    story.append(Spacer(1, 0.15 * inch))
+
+    story.append(Paragraph("Production Hardening Backlog", styles["H1Custom"]))
+    story.append(
+        Paragraph(
+            "/v1/gateway/production-backlog turns prototype gaps into prioritized engineering work. It groups work into P0 production blockers, P1 pilot and limited-production hardening, and P2 scale or marketplace expansion. It covers secrets, storage, data governance, operations, change control, provider contracts, billing, tenant controls, marketplace planning, and deployment automation.",
+            styles["BodyCustom"],
+        )
+    )
+    backlog_rows = [
+        ["Priority", "Meaning"],
+        ["P0", "Must be done before production customer traffic."],
+        ["P1", "Needed for a serious pilot or limited production."],
+        ["P2", "Useful for scale, automation, or later multi-provider expansion."],
+    ]
+    backlog = Table(backlog_rows, colWidths=[2.1 * inch, 4.35 * inch])
+    backlog.setStyle(table_style())
+    story.append(backlog)
     story.append(Spacer(1, 0.15 * inch))
 
     story.append(Paragraph("Production Launch Plan", styles["H1Custom"]))

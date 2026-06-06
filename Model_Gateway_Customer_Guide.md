@@ -1195,6 +1195,35 @@ This is not a one-command production deploy.
 
 It is a plain-English guide for the customer technical team to understand what must be configured, secured, monitored, and approved before real traffic.
 
+## What The Production Backlog Shows
+
+The prototype includes `/v1/gateway/production-backlog`.
+
+This endpoint turns prototype gaps into prioritized engineering tasks.
+
+It groups work into:
+
+- P0 production blockers
+- P1 pilot and limited-production hardening
+- P2 scale and marketplace expansion
+
+It covers:
+
+- secrets
+- storage
+- data governance
+- operations
+- change control
+- provider contracts
+- billing
+- tenant controls
+- marketplace planning
+- deployment automation
+
+This is not an automatic project plan.
+
+It is a simple backlog that helps business, technical, security, platform, and support owners decide what must be funded before a production commitment.
+
 ## What The Launch Plan Shows
 
 The prototype includes `/v1/gateway/launch-plan`.

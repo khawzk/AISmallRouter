@@ -1368,6 +1368,16 @@
       </div>
     </section>
 
+    <section class="card" id="productionBacklog" style="margin-bottom: 18px;">
+      <div class="card-head">
+        <h2>Production backlog</h2>
+        <span>P0, P1, and P2 hardening tasks before production commitment</span>
+      </div>
+      <div class="card-body">
+        <div class="launch-grid" id="productionBacklogList"></div>
+      </div>
+    </section>
+
     <section class="card" id="handoff" style="margin-bottom: 18px;">
       <div class="card-head">
         <h2>Customer handoff package</h2>
@@ -1458,6 +1468,13 @@
               <p>Environment variables, deployment stages, preflight checks, health checks, and rollback path.</p>
             </div>
             <a class="btn" href="/v1/gateway/deployment-readiness?admin_key=__ADMIN_API_KEY__">Open deployment</a>
+          </article>
+          <article class="handoff-card">
+            <div>
+              <h3>Production backlog</h3>
+              <p>P0/P1/P2 engineering tasks for secrets, storage, governance, operations, billing, and providers.</p>
+            </div>
+            <a class="btn" href="/v1/gateway/production-backlog?admin_key=__ADMIN_API_KEY__">Open backlog</a>
           </article>
           <article class="handoff-card">
             <div>
@@ -1955,6 +1972,7 @@
     const discoveryChecklistList = document.getElementById("discoveryChecklistList");
     const proposalSummaryList = document.getElementById("proposalSummaryList");
     const deploymentReadinessList = document.getElementById("deploymentReadinessList");
+    const productionBacklogList = document.getElementById("productionBacklogList");
     const accessMatrixList = document.getElementById("accessMatrixList");
     const customerSuccessSummary = document.getElementById("customerSuccessSummary");
     const customerSuccessList = document.getElementById("customerSuccessList");
@@ -2339,6 +2357,27 @@
         </div>
       `;
       deploymentReadinessList.appendChild(card);
+    });
+
+    const productionBacklog = state.production_backlog || {work_items: []};
+    const groupedBacklog = ["P0", "P1", "P2"].map((priority) => ({
+      priority,
+      items: (productionBacklog.work_items || []).filter((item) => item.priority === priority),
+    }));
+    groupedBacklog.forEach((group) => {
+      const card = document.createElement("article");
+      card.className = "readiness-card " + (group.priority === "P0" ? "blocked" : group.priority === "P1" ? "needs_work" : "ready");
+      card.innerHTML = `
+        <div class="readiness-title">
+          <strong>${escapeHtml(group.priority)} backlog</strong>
+          <span class="${group.priority === "P2" ? "chip green" : "chip"}">${group.items.length} tasks</span>
+        </div>
+        <p>${escapeHtml((productionBacklog.priority_meaning || {})[group.priority] || "")}</p>
+        <div class="option-list">
+          ${group.items.slice(0, 4).map((item) => `<span>${escapeHtml(item.id)}: ${escapeHtml(item.title)}</span>`).join("")}
+        </div>
+      `;
+      productionBacklogList.appendChild(card);
     });
 
     function tokenPercent(report) {
