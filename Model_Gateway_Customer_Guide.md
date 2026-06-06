@@ -1279,6 +1279,29 @@ Do not start with every provider and every feature.
 
 Start with one customer, one use case, one provider, one or two public model names, mock mode first, and clear success evidence.
 
+## What The Proposal Summary Shows
+
+The prototype includes `/v1/gateway/proposal-summary`.
+
+Use this after the discovery checklist.
+
+It gives a simple customer-facing scope summary.
+
+It explains:
+
+- customer problem
+- recommended positioning
+- phase one scope
+- what is not in phase one
+- customer deliverables
+- decision points
+- main risks
+- recommended next steps
+
+This is not a legal quote or final contract.
+
+It is a plain-English scope note that helps the customer understand what the first pilot should include and what should wait until later.
+
 ## Technical Challenges
 
 ### 1. Different Provider Formats

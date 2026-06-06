@@ -245,6 +245,7 @@ def build():
         "Support policy endpoint for prototype, pilot, and production support stages.",
         "Pilot checklist endpoint for before, during, and after a customer trial.",
         "Discovery checklist endpoint for customer goals, provider scope, governance, reporting, and production expectations.",
+        "Proposal summary endpoint for customer-facing pilot scope, exclusions, risks, and next steps.",
         "Executive brief endpoint for non-technical customer stakeholders.",
         "Roadmap endpoint for prototype, pilot, production hardening, and multi-provider expansion.",
         "Decision guide endpoint for API Gateway, managed AI Gateway, custom Model Gateway, and OpenRouter-like options.",
@@ -304,6 +305,7 @@ def build():
             ["Support policy", "Customers need to know what support is promised at each stage.", "Prototype, pilot, and production support guide"],
             ["Pilot planning", "A customer trial needs scope, roles, success criteria, and exit decision.", "Pilot checklist endpoint"],
             ["Customer discovery", "Broad gateway ideas need clear scope before implementation.", "Discovery checklist with questions, evidence, and red flags"],
+            ["Proposal summary", "Customers need a simple scope note after discovery.", "Customer-facing pilot scope, exclusions, risks, and next steps"],
             ["Executive communication", "Non-technical stakeholders need a short business summary.", "Executive brief endpoint"],
             ["Roadmap planning", "Customers need to see the path from demo to production.", "Roadmap endpoint"],
             ["Build or buy decision", "Customers need to compare gateway options clearly.", "Decision guide endpoint"],
@@ -709,6 +711,26 @@ def build():
     discovery = Table(discovery_rows, colWidths=[2.1 * inch, 4.35 * inch])
     discovery.setStyle(table_style())
     story.append(discovery)
+    story.append(Spacer(1, 0.15 * inch))
+
+    story.append(Paragraph("Proposal Summary", styles["H1Custom"]))
+    story.append(
+        Paragraph(
+            "/v1/gateway/proposal-summary turns discovery into a simple customer-facing scope note. It explains the customer problem, recommended positioning, phase one scope, what is not in phase one, customer deliverables, decision points, main risks, and recommended next steps. It is not a legal quote or final contract.",
+            styles["BodyCustom"],
+        )
+    )
+    proposal_rows = [
+        ["Part", "Purpose"],
+        ["Phase one scope", "Show what the first pilot should include."],
+        ["Not in phase one", "Avoid promising marketplace, SLA, billing, or many providers too early."],
+        ["Decision points", "Help the customer choose custom gateway, first provider, mock/live test, and pilot/production path."],
+        ["Risks", "Explain provider differences, data handling, and prototype readiness clearly."],
+        ["Next steps", "Move from discussion to one small technical pilot."],
+    ]
+    proposal = Table(proposal_rows, colWidths=[2.1 * inch, 4.35 * inch])
+    proposal.setStyle(table_style())
+    story.append(proposal)
     story.append(Spacer(1, 0.15 * inch))
 
     story.append(Paragraph("Recommended Roadmap", styles["H1Custom"]))

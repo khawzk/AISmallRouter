@@ -175,6 +175,7 @@ The current version also supports:
 - `GET /v1/gateway/support-policy`
 - `GET /v1/gateway/pilot-checklist`
 - `GET /v1/gateway/discovery-checklist`
+- `GET /v1/gateway/proposal-summary`
 - `GET /v1/gateway/onboarding-plan`
 - `GET /v1/gateway/launch-plan`
 - `GET /v1/gateway/change-management`
@@ -661,6 +662,34 @@ The simple message is:
 Do not start with every provider and every feature.
 
 Start with one customer, one use case, one provider, one or two public model names, mock mode first, and clear success evidence.
+
+## Proposal Summary
+
+The gateway has a customer proposal summary endpoint:
+
+```bash
+curl http://127.0.0.1:8787/v1/gateway/proposal-summary \
+  -H "Authorization: Bearer dev-admin-key"
+```
+
+Use this after the discovery checklist.
+
+It gives a simple customer-facing scope summary.
+
+It explains:
+
+- customer problem
+- recommended positioning
+- phase one scope
+- what is not in phase one
+- customer deliverables
+- decision points
+- main risks
+- recommended next steps
+
+This is not a legal quote or final contract.
+
+It is a plain-English scope note that helps the customer understand what the first pilot should include and what should wait until later.
 
 ## Onboarding Plan
 

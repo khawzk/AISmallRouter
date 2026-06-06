@@ -1348,6 +1348,16 @@
       </div>
     </section>
 
+    <section class="card" id="proposalSummary" style="margin-bottom: 18px;">
+      <div class="card-head">
+        <h2>Proposal summary</h2>
+        <span>customer-facing scope, exclusions, decision points, and next steps</span>
+      </div>
+      <div class="card-body">
+        <div class="launch-grid" id="proposalSummaryList"></div>
+      </div>
+    </section>
+
     <section class="card" id="handoff" style="margin-bottom: 18px;">
       <div class="card-head">
         <h2>Customer handoff package</h2>
@@ -1417,6 +1427,13 @@
               <p>Questions, evidence, red flags, and fit assessment before scoping a gateway pilot.</p>
             </div>
             <a class="btn" href="/v1/gateway/discovery-checklist?admin_key=__ADMIN_API_KEY__">Open checklist</a>
+          </article>
+          <article class="handoff-card">
+            <div>
+              <h3>Proposal summary</h3>
+              <p>Customer-facing pilot scope, exclusions, deliverables, decisions, risks, and next steps.</p>
+            </div>
+            <a class="btn" href="/v1/gateway/proposal-summary?admin_key=__ADMIN_API_KEY__">Open summary</a>
           </article>
           <article class="handoff-card">
             <div>
@@ -1919,6 +1936,7 @@
     const changeManagementList = document.getElementById("changeManagementList");
     const dataGovernanceList = document.getElementById("dataGovernanceList");
     const discoveryChecklistList = document.getElementById("discoveryChecklistList");
+    const proposalSummaryList = document.getElementById("proposalSummaryList");
     const accessMatrixList = document.getElementById("accessMatrixList");
     const customerSuccessSummary = document.getElementById("customerSuccessSummary");
     const customerSuccessList = document.getElementById("customerSuccessList");
@@ -2230,6 +2248,43 @@
         discoveryChecklistList.appendChild(card);
       });
     }
+
+    const proposalSummary = state.proposal_summary || {};
+    const proposalCards = [
+      {
+        title: "Phase one scope",
+        chip: "include",
+        body: proposalSummary.customer_problem || "",
+        items: proposalSummary.phase_one_scope || [],
+      },
+      {
+        title: "Not in phase one",
+        chip: "exclude",
+        body: "Keep the first pilot small and honest.",
+        items: proposalSummary.not_in_phase_one || [],
+      },
+      {
+        title: "Main risks",
+        chip: "risk",
+        body: proposalSummary.customer_safe_close || "",
+        items: (proposalSummary.main_risks || []).map((risk) => risk.risk || ""),
+      },
+    ];
+    proposalCards.forEach((item) => {
+      const card = document.createElement("article");
+      card.className = "readiness-card " + (item.chip === "risk" ? "needs_work" : "ready");
+      card.innerHTML = `
+        <div class="readiness-title">
+          <strong>${escapeHtml(item.title)}</strong>
+          <span class="${item.chip === "include" ? "chip green" : "chip"}">${escapeHtml(item.chip)}</span>
+        </div>
+        <p>${escapeHtml(item.body)}</p>
+        <div class="option-list">
+          ${(item.items || []).slice(0, 4).map((value) => `<span>${escapeHtml(value)}</span>`).join("")}
+        </div>
+      `;
+      proposalSummaryList.appendChild(card);
+    });
 
     function tokenPercent(report) {
       const budget = report.budget || {};

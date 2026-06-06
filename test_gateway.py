@@ -188,6 +188,7 @@ class GatewayPrototypeTest(unittest.TestCase):
             "/v1/gateway/support-policy",
             "/v1/gateway/pilot-checklist",
             "/v1/gateway/discovery-checklist",
+            "/v1/gateway/proposal-summary",
             "/v1/gateway/onboarding-plan",
             "/v1/gateway/executive-brief",
             "/v1/gateway/roadmap",
@@ -232,6 +233,7 @@ class GatewayPrototypeTest(unittest.TestCase):
         self.assertIn("Support Policy", admin_names)
         self.assertIn("Pilot Checklist", admin_names)
         self.assertIn("Discovery Checklist", admin_names)
+        self.assertIn("Proposal Summary", admin_names)
         self.assertIn("Onboarding Plan", admin_names)
         self.assertIn("Executive Brief", admin_names)
         self.assertIn("Roadmap", admin_names)
@@ -266,6 +268,7 @@ class GatewayPrototypeTest(unittest.TestCase):
         self.assertIn(f"{self.base_url}/v1/gateway/support-policy", entry_urls)
         self.assertIn(f"{self.base_url}/v1/gateway/pilot-checklist", entry_urls)
         self.assertIn(f"{self.base_url}/v1/gateway/discovery-checklist", entry_urls)
+        self.assertIn(f"{self.base_url}/v1/gateway/proposal-summary", entry_urls)
         self.assertIn(f"{self.base_url}/v1/gateway/onboarding-plan", entry_urls)
         self.assertIn(f"{self.base_url}/v1/gateway/executive-brief", entry_urls)
         self.assertIn(f"{self.base_url}/v1/gateway/roadmap", entry_urls)
@@ -601,6 +604,30 @@ class GatewayPrototypeTest(unittest.TestCase):
         self.assertIn("/v1/gateway/data-governance", checklist["reference_endpoints"])
         self.assertIn("one customer", checklist["recommended_first_pilot"]["scope"])
         self.assertNotIn("DASHSCOPE_API_KEY", json.dumps(checklist))
+
+    def test_proposal_summary_packages_customer_scope(self):
+        status, payload = request_json(self.base_url, path="/v1/gateway/proposal-summary", api_key="dev-gateway-key")
+        self.assertEqual(status, 401)
+        self.assertEqual(payload["error"]["code"], "invalid_admin_key")
+
+        status, summary = request_json(self.base_url, path="/v1/gateway/proposal-summary", api_key="dev-admin-key")
+        self.assertEqual(status, 200)
+        self.assertEqual(summary["object"], "gateway.proposal_summary")
+        self.assertIn("one controlled API", summary["customer_problem"])
+        self.assertGreaterEqual(len(summary["phase_one_scope"]), 6)
+        self.assertIn("Public OpenRouter-style marketplace.", summary["not_in_phase_one"])
+        deliverables = {item["name"] for item in summary["customer_deliverables"]}
+        self.assertIn("Discovery checklist", deliverables)
+        self.assertIn("Customer guide PDF", deliverables)
+        decisions = {item["decision"] for item in summary["decision_points"]}
+        self.assertIn("Build custom gateway or use managed gateway", decisions)
+        self.assertIn("Mock or live test", decisions)
+        self.assertGreaterEqual(len(summary["main_risks"]), 4)
+        self.assertIn("/v1/gateway/discovery-checklist", summary["reference_endpoints"])
+        self.assertIn("readiness_status", summary["current_context"])
+        self.assertIn("not to build every provider", summary["customer_safe_close"])
+        self.assertNotIn("DASHSCOPE_API_KEY", json.dumps(summary))
+        self.assertNotIn("sk-", json.dumps(summary))
 
     def test_customer_integration_guide_lists_safe_code_examples(self):
         status, payload = request_json(self.base_url, path="/v1/gateway/integration-guide", api_key="wrong-key")
@@ -1006,6 +1033,8 @@ class GatewayPrototypeTest(unittest.TestCase):
         self.assertIn("categories", payload["data_governance"])
         self.assertIn("discovery_checklist", payload)
         self.assertIn("discovery_sections", payload["discovery_checklist"])
+        self.assertIn("proposal_summary", payload)
+        self.assertIn("phase_one_scope", payload["proposal_summary"])
         catalog = {model["id"]: model for model in payload["model_catalog"]}
         self.assertIn("smart-fast", catalog)
         self.assertEqual(catalog["smart-fast"]["route_chain"][0], "smart-fast")
@@ -1912,6 +1941,9 @@ class GatewayPrototypeTest(unittest.TestCase):
         self.assertIn("Discovery checklist", html)
         self.assertIn("discoveryChecklistList", html)
         self.assertIn("/v1/gateway/discovery-checklist?admin_key=", html)
+        self.assertIn("Proposal summary", html)
+        self.assertIn("proposalSummaryList", html)
+        self.assertIn("/v1/gateway/proposal-summary?admin_key=", html)
         self.assertIn("Customer success summary", html)
         self.assertIn("customerSuccessList", html)
         self.assertIn("Customer handoff package", html)

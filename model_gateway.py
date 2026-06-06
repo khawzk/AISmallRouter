@@ -93,6 +93,7 @@ ADMIN_PATHS = {
     "/v1/gateway/support-policy",
     "/v1/gateway/pilot-checklist",
     "/v1/gateway/discovery-checklist",
+    "/v1/gateway/proposal-summary",
     "/v1/gateway/onboarding-plan",
     "/v1/gateway/executive-brief",
     "/v1/gateway/roadmap",
@@ -3922,6 +3923,119 @@ def discovery_checklist(server):
     }
 
 
+def proposal_summary(server):
+    discovery = discovery_checklist(server)
+    readiness = production_readiness(server)
+    launch = launch_plan(server)
+    governance = data_governance_review(server)
+    return {
+        "object": "gateway.proposal_summary",
+        "title": "AISmallRouter Customer Proposal Summary",
+        "audience": "customer sponsor, business owner, solution architect, and technical owner",
+        "mode": "mock" if server.mock_mode else "live",
+        "plain_english": "This is a simple customer-facing scope summary. It explains what the first gateway pilot should include, what it should not promise yet, and what must be decided before production.",
+        "customer_problem": "The customer wants one controlled API for AI model access instead of integrating each provider separately.",
+        "recommended_positioning": [
+            "Start as a private customer-owned Model Gateway, not a public model marketplace.",
+            "Use OpenAI-compatible customer API shape for easier adoption.",
+            "Use Alibaba Cloud Model Studio / Qwen first if that is the available live provider key.",
+            "Keep OpenAI, Claude, Xiaomi, and other providers as planned adapter work after the first pilot is clear.",
+            "Use mock mode first so business and technical teams can understand routing without spending provider credits.",
+        ],
+        "phase_one_scope": [
+            "One customer or internal pilot team.",
+            "One use case and one owner who can decide if the pilot worked.",
+            "One provider path first, with Qwen / DashScope as the practical live option.",
+            "One or two public model aliases such as smart-fast.",
+            "Customer gateway key, allowed models, request limit, token budget, and cost budget.",
+            "OpenAI-compatible /v1/models and /v1/chat/completions.",
+            "Dashboard, route preview, request trace, customer report, and simple invoice preview.",
+            "Data governance review and production readiness review before live production traffic.",
+        ],
+        "not_in_phase_one": [
+            "Public OpenRouter-style marketplace.",
+            "Full production SLA.",
+            "Automatic legal or compliance certification.",
+            "Many providers added at the same time.",
+            "Guaranteed fallback across providers without provider contract tests.",
+            "Final billing engine or finance system integration.",
+        ],
+        "customer_deliverables": [
+            {"name": "Visual dashboard", "purpose": "Explain request routing and gateway controls."},
+            {"name": "OpenAPI contract", "purpose": "Let technical users inspect the API shape."},
+            {"name": "Postman collection", "purpose": "Click through customer and admin demo requests."},
+            {"name": "Customer guide PDF", "purpose": "Explain direction, architecture, and technical difficulties in simple English."},
+            {"name": "Discovery checklist", "purpose": "Confirm use case, provider scope, data rules, reporting, and production expectations."},
+            {"name": "Pilot checklist", "purpose": "Keep the test small and measurable."},
+        ],
+        "decision_points": [
+            {
+                "decision": "Build custom gateway or use managed gateway",
+                "how_to_decide": "Use the decision guide. Choose custom gateway when private customer controls, model aliases, BYOK, audit, custom reports, or special rollout rules matter.",
+                "evidence": "/v1/gateway/decision-guide",
+            },
+            {
+                "decision": "First provider",
+                "how_to_decide": "Start with the provider key that is actually available. For this prototype, that is Alibaba Cloud Model Studio / Qwen.",
+                "evidence": "/v1/gateway/provider-contracts",
+            },
+            {
+                "decision": "Mock or live test",
+                "how_to_decide": "Use mock mode for explanation. Use live mode only when the customer needs real model output and data handling is agreed.",
+                "evidence": "/v1/gateway/data-governance",
+            },
+            {
+                "decision": "Pilot or production",
+                "how_to_decide": "Treat the current project as pilot-ready discussion material. Production needs stronger secrets, database, monitoring, billing, approval workflow, and support ownership.",
+                "evidence": "/v1/gateway/production-readiness",
+            },
+        ],
+        "main_risks": [
+            {
+                "risk": "Customer expects full OpenRouter-like marketplace immediately.",
+                "mitigation": "Position marketplace behavior as a later phase after private gateway controls are proven.",
+            },
+            {
+                "risk": "Provider APIs differ even when they look OpenAI-compatible.",
+                "mitigation": "Use provider contracts and adapter tests before adding providers.",
+            },
+            {
+                "risk": "Prompt logs or request details include sensitive customer data.",
+                "mitigation": "Agree logging, retention, redaction, access, and deletion rules before production.",
+            },
+            {
+                "risk": "Prototype is mistaken for production service.",
+                "mitigation": "Show launch plan, support policy, and readiness gaps before live customer traffic.",
+            },
+        ],
+        "recommended_next_steps": [
+            "Run the discovery checklist with one customer champion.",
+            "Confirm the first use case, first provider, and first public model alias.",
+            "Show the dashboard and run one mock chat request.",
+            "Review data governance and production readiness before any live production promise.",
+            "Use the onboarding plan for a 5 working day technical pilot.",
+        ],
+        "reference_endpoints": [
+            "/v1/gateway/discovery-checklist",
+            "/v1/gateway/demo-bundle",
+            "/v1/gateway/decision-guide",
+            "/v1/gateway/provider-contracts",
+            "/v1/gateway/data-governance",
+            "/v1/gateway/onboarding-plan",
+            "/v1/gateway/pilot-checklist",
+            "/v1/gateway/production-readiness",
+            "/v1/gateway/launch-plan",
+        ],
+        "current_context": {
+            "recommended_first_pilot": discovery.get("recommended_first_pilot"),
+            "readiness_status": readiness.get("overall_status"),
+            "launch_decision": launch.get("decision"),
+            "governance_next_action": governance.get("recommended_next_action"),
+        },
+        "customer_safe_close": "The first useful step is not to build every provider. The first useful step is to prove one controlled model access path that the customer, support team, and technical team can all understand.",
+    }
+
+
 def onboarding_plan(server):
     readiness = production_readiness(server)
     pilot = pilot_checklist(server)
@@ -4967,6 +5081,7 @@ def openapi_spec(server):
         "/v1/gateway/support-policy": "Support policy and SLA stage guide",
         "/v1/gateway/pilot-checklist": "Customer pilot checklist",
         "/v1/gateway/discovery-checklist": "Customer discovery checklist",
+        "/v1/gateway/proposal-summary": "Customer proposal and scope summary",
         "/v1/gateway/onboarding-plan": "Customer onboarding plan",
         "/v1/gateway/executive-brief": "Executive customer brief",
         "/v1/gateway/roadmap": "Prototype to production roadmap",
@@ -5080,6 +5195,7 @@ def postman_collection(server):
         request_item("Support Policy", "GET", "/v1/gateway/support-policy", "admin_api_key"),
         request_item("Pilot Checklist", "GET", "/v1/gateway/pilot-checklist", "admin_api_key"),
         request_item("Discovery Checklist", "GET", "/v1/gateway/discovery-checklist", "admin_api_key"),
+        request_item("Proposal Summary", "GET", "/v1/gateway/proposal-summary", "admin_api_key"),
         request_item("Onboarding Plan", "GET", "/v1/gateway/onboarding-plan", "admin_api_key"),
         request_item("Executive Brief", "GET", "/v1/gateway/executive-brief", "admin_api_key"),
         request_item("Roadmap", "GET", "/v1/gateway/roadmap", "admin_api_key"),
@@ -5305,6 +5421,13 @@ def demo_bundle(server):
                 "auth": "adminBearerAuth",
             },
             {
+                "name": "Proposal summary",
+                "url": f"{base_url}/v1/gateway/proposal-summary",
+                "audience": "customer sponsor, business, solution architect, and technical owner",
+                "purpose": "Summarize recommended scope, exclusions, deliverables, decision points, risks, and next steps.",
+                "auth": "adminBearerAuth",
+            },
+            {
                 "name": "Onboarding plan",
                 "url": f"{base_url}/v1/gateway/onboarding-plan",
                 "audience": "business, support, and customer technical",
@@ -5393,8 +5516,8 @@ def demo_bundle(server):
             {
                 "step": 6,
                 "title": "Agree onboarding plan",
-                "show": "/v1/gateway/discovery-checklist, /v1/gateway/onboarding-plan, and /v1/gateway/pilot-checklist",
-                "talk_track": "Use discovery to confirm the first use case and provider scope, then use onboarding and pilot checklist to keep the work measurable.",
+                "show": "/v1/gateway/discovery-checklist, /v1/gateway/proposal-summary, /v1/gateway/onboarding-plan, and /v1/gateway/pilot-checklist",
+                "talk_track": "Use discovery to confirm the first use case and provider scope, proposal summary to align expectations, then onboarding and pilot checklist to keep the work measurable.",
             },
             {
                 "step": 7,
@@ -5477,6 +5600,10 @@ def demo_bundle(server):
                 "command": f"curl {base_url}/v1/gateway/discovery-checklist -H 'Authorization: Bearer {server.admin_api_key or DEFAULT_ADMIN_API_KEY}'",
             },
             {
+                "name": "Proposal summary",
+                "command": f"curl {base_url}/v1/gateway/proposal-summary -H 'Authorization: Bearer {server.admin_api_key or DEFAULT_ADMIN_API_KEY}'",
+            },
+            {
                 "name": "Onboarding plan",
                 "command": f"curl {base_url}/v1/gateway/onboarding-plan -H 'Authorization: Bearer {server.admin_api_key or DEFAULT_ADMIN_API_KEY}'",
             },
@@ -5527,6 +5654,7 @@ def gateway_status(server):
         "change_management": change_management_plan(server),
         "data_governance": data_governance_review(server),
         "discovery_checklist": discovery_checklist(server),
+        "proposal_summary": proposal_summary(server),
         "request_activity": request_activity(server.db_path, limit=10),
         "audit_events": audit_events(server.db_path, limit=10),
         "usage_by_customer": usage_grouped_by(server.db_path, "customer_id"),
@@ -6260,6 +6388,9 @@ class GatewayHandler(BaseHTTPRequestHandler):
             return
         if path == "/v1/gateway/discovery-checklist":
             make_json_response(self, 200, discovery_checklist(self.server))
+            return
+        if path == "/v1/gateway/proposal-summary":
+            make_json_response(self, 200, proposal_summary(self.server))
             return
         if path == "/v1/gateway/onboarding-plan":
             make_json_response(self, 200, onboarding_plan(self.server))
