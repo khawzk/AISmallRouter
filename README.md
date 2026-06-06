@@ -355,6 +355,26 @@ The dashboard also shows an **Integration command starter** with copy-ready loca
 
 It does not expose provider API keys.
 
+## Customer SDK Starter
+
+A customer can request starter files for the first project integration:
+
+```bash
+curl http://127.0.0.1:8787/v1/gateway/sdk-starter \
+  -H "Authorization: Bearer dev-gateway-key"
+```
+
+This returns:
+
+- `.env.example`
+- Python starter file
+- JavaScript starter file
+- first-run commands
+- common error codes and fixes
+- customer handoff checklist
+
+It uses `YOUR_GATEWAY_API_KEY` and does not expose the real customer key or provider API keys.
+
 ## Admin Access
 
 Admin pages and admin JSON endpoints use a separate admin key.

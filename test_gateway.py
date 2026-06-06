@@ -170,6 +170,7 @@ class GatewayPrototypeTest(unittest.TestCase):
             "/v1/chat/completions",
             "/v1/gateway/me",
             "/v1/gateway/integration-guide",
+            "/v1/gateway/sdk-starter",
             "/v1/gateway/status",
             "/v1/gateway/policy-presets",
             "/v1/gateway/customers",
@@ -216,6 +217,7 @@ class GatewayPrototypeTest(unittest.TestCase):
         admin_names = {item["name"] for item in folders["Admin Control Plane"]["item"]}
         self.assertIn("Chat Completion", customer_names)
         self.assertIn("Customer Integration Guide", customer_names)
+        self.assertIn("Customer SDK Starter", customer_names)
         self.assertIn("Route Preview", admin_names)
         self.assertIn("Production Readiness", admin_names)
         self.assertIn("Provider Contracts", admin_names)
@@ -247,6 +249,7 @@ class GatewayPrototypeTest(unittest.TestCase):
         entry_urls = {item.get("url") or item.get("path") for item in bundle["entry_points"]}
         self.assertIn(f"{self.base_url}/openapi.json", entry_urls)
         self.assertIn(f"{self.base_url}/postman_collection.json", entry_urls)
+        self.assertIn(f"{self.base_url}/v1/gateway/sdk-starter", entry_urls)
         self.assertIn(f"{self.base_url}/v1/gateway/production-readiness", entry_urls)
         self.assertIn(f"{self.base_url}/v1/gateway/launch-plan", entry_urls)
         self.assertIn(f"{self.base_url}/v1/gateway/customer-success", entry_urls)
@@ -538,6 +541,26 @@ class GatewayPrototypeTest(unittest.TestCase):
         self.assertNotIn("dev-gateway-key", json.dumps(guide["code_examples"]))
         self.assertNotIn("DASHSCOPE_API_KEY", json.dumps(guide))
         self.assertGreaterEqual(len(guide["go_live_checklist"]), 5)
+
+        status, starter = request_json(self.base_url, path="/v1/gateway/sdk-starter", api_key="wrong-key")
+        self.assertEqual(status, 401)
+        self.assertEqual(starter["error"]["code"], "invalid_api_key")
+
+        status, starter = request_json(self.base_url, path="/v1/gateway/sdk-starter", api_key="dev-gateway-key")
+        self.assertEqual(status, 200)
+        self.assertEqual(starter["object"], "customer.sdk_starter")
+        self.assertEqual(starter["customer"]["id"], "dev")
+        self.assertIn(".env.example", starter["files"])
+        self.assertIn("gateway_client.py", starter["files"])
+        self.assertIn("gateway-client.mjs", starter["files"])
+        self.assertIn("YOUR_GATEWAY_API_KEY", starter["files"][".env.example"])
+        self.assertIn("common_errors", starter)
+        error_codes = {item["code"] for item in starter["common_errors"]}
+        self.assertIn("invalid_api_key", error_codes)
+        self.assertIn("model_not_allowed", error_codes)
+        self.assertGreaterEqual(len(starter["handoff_checklist"]), 4)
+        self.assertNotIn("dev-gateway-key", json.dumps(starter["files"]))
+        self.assertNotIn("DASHSCOPE_API_KEY", json.dumps(starter))
 
     def test_models_requires_valid_gateway_key(self):
         status, payload = request_json(self.base_url, path="/v1/models", api_key="wrong-key")
@@ -1800,6 +1823,9 @@ class GatewayPrototypeTest(unittest.TestCase):
         self.assertIn("/openapi.json", html)
         self.assertIn("/postman_collection.json", html)
         self.assertIn("Model_Gateway_Customer_Guide.pdf", html)
+        self.assertIn("SDK starter", html)
+        self.assertIn("commandSdkStarter", html)
+        self.assertIn("/v1/gateway/sdk-starter", html)
         self.assertIn("Customer onboarding plan", html)
         self.assertIn("/v1/gateway/onboarding-plan?admin_key=", html)
         self.assertIn("onboardingPlan", html)

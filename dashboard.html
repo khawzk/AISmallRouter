@@ -1362,6 +1362,13 @@
           </article>
           <article class="handoff-card">
             <div>
+              <h3>SDK starter</h3>
+              <p>Customer-key .env template, starter files, first-run commands, and common errors.</p>
+            </div>
+            <span class="chip">requires customer key</span>
+          </article>
+          <article class="handoff-card">
+            <div>
               <h3>Presenter script</h3>
               <p>15 minute talk track for non-technical customer meetings.</p>
             </div>
@@ -1458,6 +1465,10 @@
           <article class="command-card">
             <h3>3. Get integration guide</h3>
             <pre id="commandGuide">Loading command...</pre>
+          </article>
+          <article class="command-card">
+            <h3>4. Get SDK starter</h3>
+            <pre id="commandSdkStarter">Loading command...</pre>
           </article>
         </div>
       </div>
@@ -1912,6 +1923,7 @@
     const commandListModels = document.getElementById("commandListModels");
     const commandChat = document.getElementById("commandChat");
     const commandGuide = document.getElementById("commandGuide");
+    const commandSdkStarter = document.getElementById("commandSdkStarter");
 
     function escapeHtml(value) {
       return String(value == null ? "" : value)
@@ -1939,6 +1951,7 @@
     commandListModels.textContent = `curl ${baseUrl}/v1/models \\\n  -H "Authorization: Bearer ${demoCustomerKey}"`;
     commandChat.textContent = `curl ${baseUrl}/v1/chat/completions \\\n  -H "Authorization: Bearer ${demoCustomerKey}" \\\n  -H "Content-Type: application/json" \\\n  -d '{"model":"smart-fast","messages":[{"role":"user","content":"Explain this gateway in one sentence."}]}'`;
     commandGuide.textContent = `curl ${baseUrl}/v1/gateway/integration-guide \\\n  -H "Authorization: Bearer ${demoCustomerKey}"`;
+    commandSdkStarter.textContent = `curl ${baseUrl}/v1/gateway/sdk-starter \\\n  -H "Authorization: Bearer ${demoCustomerKey}"`;
     alertSummary.textContent = `${alertState.status || "ok"} / ${alertState.summary?.critical || 0} critical / ${alertState.summary?.warning || 0} warning`;
     if ((alertState.alerts || []).length === 0) {
       alertList.innerHTML = '<div class="trace-item">No operational alerts.</div>';

@@ -1216,6 +1216,88 @@ def customer_integration_guide(server, customer):
     }
 
 
+def customer_sdk_starter(server, customer):
+    guide = customer_integration_guide(server, customer)
+    base_url = guide["base_url"]
+    model = guide["models"]["recommended"]
+    api_key_placeholder = "YOUR_GATEWAY_API_KEY"
+    return {
+        "object": "customer.sdk_starter",
+        "mode": "mock" if server.mock_mode else "live",
+        "base_url": base_url,
+        "customer": guide["customer"],
+        "recommended_model": model,
+        "purpose": "Copy these starter files into a customer project to run the first gateway request safely.",
+        "files": {
+            ".env.example": (
+                f"GATEWAY_BASE_URL={base_url}\n"
+                f"GATEWAY_API_KEY={api_key_placeholder}\n"
+                f"GATEWAY_MODEL={model}\n"
+                "GATEWAY_STREAM=false\n"
+            ),
+            "gateway_client.py": (
+                "import os, requests\n\n"
+                "base_url = os.getenv('GATEWAY_BASE_URL')\n"
+                "api_key = os.getenv('GATEWAY_API_KEY')\n"
+                "model = os.getenv('GATEWAY_MODEL', 'smart-fast')\n\n"
+                "response = requests.post(\n"
+                "    f'{base_url}/v1/chat/completions',\n"
+                "    headers={'Authorization': f'Bearer {api_key}'},\n"
+                "    json={\n"
+                "        'model': model,\n"
+                "        'messages': [{'role': 'user', 'content': 'Explain this gateway in one sentence.'}],\n"
+                "        'stream': False,\n"
+                "    },\n"
+                "    timeout=60,\n"
+                ")\n"
+                "response.raise_for_status()\n"
+                "print(response.json()['choices'][0]['message']['content'])\n"
+            ),
+            "gateway-client.mjs": (
+                "const baseUrl = process.env.GATEWAY_BASE_URL;\n"
+                "const apiKey = process.env.GATEWAY_API_KEY;\n"
+                "const model = process.env.GATEWAY_MODEL || 'smart-fast';\n\n"
+                "const response = await fetch(`${baseUrl}/v1/chat/completions`, {\n"
+                "  method: 'POST',\n"
+                "  headers: {\n"
+                "    Authorization: `Bearer ${apiKey}`,\n"
+                "    'Content-Type': 'application/json'\n"
+                "  },\n"
+                "  body: JSON.stringify({\n"
+                "    model,\n"
+                "    messages: [{ role: 'user', content: 'Explain this gateway in one sentence.' }],\n"
+                "    stream: false\n"
+                "  })\n"
+                "});\n\n"
+                "if (!response.ok) throw new Error(await response.text());\n"
+                "const data = await response.json();\n"
+                "console.log(data.choices[0].message.content);\n"
+            ),
+        },
+        "first_run_commands": [
+            "Copy .env.example to .env and set GATEWAY_API_KEY.",
+            "python3 gateway_client.py",
+            "node --env-file=.env gateway-client.mjs",
+            "curl $GATEWAY_BASE_URL/v1/models -H \"Authorization: Bearer $GATEWAY_API_KEY\"",
+        ],
+        "common_errors": [
+            {"code": "missing_auth", "meaning": "Authorization header is missing.", "fix": "Send Authorization: Bearer YOUR_GATEWAY_API_KEY."},
+            {"code": "invalid_api_key", "meaning": "The customer key is wrong or disabled.", "fix": "Ask the gateway owner to confirm or rotate the customer key."},
+            {"code": "model_not_allowed", "meaning": "The customer cannot use that public model.", "fix": "Use an allowed model from /v1/models or ask for access."},
+            {"code": "token_budget_exceeded", "meaning": "The customer token budget is reached.", "fix": "Review /v1/gateway/me and ask the gateway owner to adjust budget."},
+            {"code": "route_failed", "meaning": "No route candidate could serve the request.", "fix": "Ask support to check route preview, provider health, and request detail."},
+        ],
+        "handoff_checklist": [
+            "Customer can list models.",
+            "Customer can run one non-streaming chat request.",
+            "Customer saves gateway.request_id for support.",
+            "Customer knows whether stream=true is supported by their client.",
+            "Customer knows who to contact for model access, budget, or provider questions.",
+        ],
+        "safety_note": "Do not put provider API keys in customer code. The customer only uses the gateway API key.",
+    }
+
+
 def provider_status(server):
     rows = []
     request_by_provider = {
@@ -4405,6 +4487,13 @@ def openapi_spec(server):
                 "responses": {"200": json_response("Customer-specific quickstart, code examples, and go-live checklist.")},
             }
         },
+        "/v1/gateway/sdk-starter": {
+            "get": {
+                "summary": "Customer SDK starter pack",
+                "security": customer_security,
+                "responses": {"200": json_response("Customer-specific env template, starter files, commands, and common errors.")},
+            }
+        },
         "/v1/gateway/status": {
             "get": {
                 "summary": "Admin gateway status summary",
@@ -4644,6 +4733,7 @@ def postman_collection(server):
         request_item("List Models", "GET", "/v1/models", "gateway_api_key"),
         request_item("Customer Self View", "GET", "/v1/gateway/me", "gateway_api_key"),
         request_item("Customer Integration Guide", "GET", "/v1/gateway/integration-guide", "gateway_api_key"),
+        request_item("Customer SDK Starter", "GET", "/v1/gateway/sdk-starter", "gateway_api_key"),
         request_item(
             "Chat Completion",
             "POST",
@@ -4806,6 +4896,13 @@ def demo_bundle(server):
                 "url": f"{base_url}/v1/gateway/integration-guide",
                 "audience": "customer technical",
                 "purpose": "Show customer-specific quickstart steps, code examples, and go-live checklist.",
+                "auth": "customerBearerAuth",
+            },
+            {
+                "name": "Customer SDK starter",
+                "url": f"{base_url}/v1/gateway/sdk-starter",
+                "audience": "customer technical",
+                "purpose": "Show .env template, starter Python and JavaScript files, first-run commands, and common errors.",
                 "auth": "customerBearerAuth",
             },
             {
@@ -4974,6 +5071,10 @@ def demo_bundle(server):
             {
                 "name": "Customer integration guide",
                 "command": f"curl {base_url}/v1/gateway/integration-guide -H 'Authorization: Bearer {DEFAULT_GATEWAY_API_KEY}'",
+            },
+            {
+                "name": "Customer SDK starter",
+                "command": f"curl {base_url}/v1/gateway/sdk-starter -H 'Authorization: Bearer {DEFAULT_GATEWAY_API_KEY}'",
             },
             {
                 "name": "Demo script",
@@ -5758,6 +5859,11 @@ class GatewayHandler(BaseHTTPRequestHandler):
             if not self.authenticate():
                 return
             make_json_response(self, 200, customer_integration_guide(self.server, self.customer))
+            return
+        if path == "/v1/gateway/sdk-starter":
+            if not self.authenticate():
+                return
+            make_json_response(self, 200, customer_sdk_starter(self.server, self.customer))
             return
         if path == "/v1/gateway/status":
             make_json_response(self, 200, gateway_status(self.server))

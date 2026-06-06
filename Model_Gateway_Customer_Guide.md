@@ -204,6 +204,25 @@ It uses placeholders for secrets.
 
 It does not expose provider API keys.
 
+## What The SDK Starter Shows
+
+The prototype also includes `/v1/gateway/sdk-starter`.
+
+A customer calls it with their own gateway key.
+
+It returns:
+
+- `.env.example`
+- Python starter file
+- JavaScript starter file
+- first-run commands
+- common error codes and fixes
+- customer handoff checklist
+
+It uses `YOUR_GATEWAY_API_KEY`.
+
+It does not expose the real customer key or provider API keys.
+
 ## Why This Is Not Just An API Gateway
 
 A normal API Gateway is good for general HTTP control.
