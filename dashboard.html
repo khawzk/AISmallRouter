@@ -422,6 +422,39 @@
       font-size: 12px;
     }
 
+    .handoff-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+    }
+
+    .handoff-card {
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: var(--panel-3);
+      padding: 14px;
+      min-height: 150px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .handoff-card h3 {
+      margin: 0 0 8px;
+      font-size: 15px;
+    }
+
+    .handoff-card p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .handoff-card a {
+      width: fit-content;
+    }
+
     .route-flow {
       display: grid;
       gap: 12px;
@@ -994,6 +1027,7 @@
       .architecture-map,
       .option-grid,
       .readiness-grid,
+      .handoff-grid,
       .demo-board,
       .quickstart {
         grid-template-columns: 1fr;
@@ -1074,6 +1108,7 @@
         <a href="#architecture">Architecture</a>
         <a href="#options">Options</a>
         <a href="#readiness">Readiness</a>
+        <a href="#handoff">Handoff</a>
         <a href="#models">Models</a>
         <a href="#health">Health</a>
         <a href="#reports">Reports</a>
@@ -1189,6 +1224,73 @@
       </div>
       <div class="card-body">
         <div class="readiness-grid" id="readinessList"></div>
+      </div>
+    </section>
+
+    <section class="card" id="handoff" style="margin-bottom: 18px;">
+      <div class="card-head">
+        <h2>Customer handoff package</h2>
+        <span>artifacts for business and technical teams</span>
+      </div>
+      <div class="card-body">
+        <div class="handoff-grid">
+          <article class="handoff-card">
+            <div>
+              <h3>Demo bundle</h3>
+              <p>One manifest with dashboard, docs, demo order, commands, and production notes.</p>
+            </div>
+            <a class="btn" href="/v1/gateway/demo-bundle?admin_key=__ADMIN_API_KEY__">Open bundle</a>
+          </article>
+          <article class="handoff-card">
+            <div>
+              <h3>OpenAPI contract</h3>
+              <p>API contract for customers, SDK generation, and technical review.</p>
+            </div>
+            <a class="btn" href="/openapi.json">Open OpenAPI</a>
+          </article>
+          <article class="handoff-card">
+            <div>
+              <h3>Postman collection</h3>
+              <p>Ready-to-import requests for customer and admin demo flows.</p>
+            </div>
+            <a class="btn" href="/postman_collection.json">Open Postman</a>
+          </article>
+          <article class="handoff-card">
+            <div>
+              <h3>Customer guide PDF</h3>
+              <p>Simple English explanation of the direction, architecture, and hard parts.</p>
+            </div>
+            <span class="chip">Model_Gateway_Customer_Guide.pdf</span>
+          </article>
+          <article class="handoff-card">
+            <div>
+              <h3>Integration guide</h3>
+              <p>Customer-key API with curl, Python, JavaScript, streaming, and go-live checklist.</p>
+            </div>
+            <span class="chip">requires customer key</span>
+          </article>
+          <article class="handoff-card">
+            <div>
+              <h3>Presenter script</h3>
+              <p>15 minute talk track for non-technical customer meetings.</p>
+            </div>
+            <a class="btn" href="/v1/gateway/demo-script?admin_key=__ADMIN_API_KEY__">Open script</a>
+          </article>
+          <article class="handoff-card">
+            <div>
+              <h3>Production readiness</h3>
+              <p>Plain-English view of what is demo-ready and what still needs hardening.</p>
+            </div>
+            <a class="btn" href="/v1/gateway/production-readiness?admin_key=__ADMIN_API_KEY__">Open readiness</a>
+          </article>
+          <article class="handoff-card">
+            <div>
+              <h3>GitHub repo</h3>
+              <p>Source code, docs, tests, and generated customer guide artifacts.</p>
+            </div>
+            <a class="btn" href="https://github.com/khawzk/AISmallRouter">Open GitHub</a>
+          </article>
+        </div>
       </div>
     </section>
 

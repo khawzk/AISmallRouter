@@ -172,6 +172,7 @@ It lists:
 - Postman collection
 - customer guide PDF
 - demo script
+- customer handoff package
 - recommended demo order
 - safe curl examples
 - production notes
@@ -262,6 +263,7 @@ The dashboard shows:
 - Layered architecture map
 - Gateway options comparison
 - Production readiness cards
+- Customer handoff package
 - Operational alerts
 - Access matrix
 - One API for customers

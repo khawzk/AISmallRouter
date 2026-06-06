@@ -319,6 +319,7 @@ It points to:
 - the Postman collection
 - the customer guide PDF
 - the dashboard presenter mode
+- the dashboard customer handoff package
 - a recommended demo order
 - safe curl examples
 - production notes
@@ -1369,6 +1370,7 @@ The dashboard is designed for customer explanation. It shows:
 - A visual architecture map from customer systems to model providers
 - Gateway options comparison for API Gateway, managed AI Gateway, custom Model Gateway, and OpenRouter-like paths
 - Production readiness cards for go-live gaps
+- Customer handoff package for OpenAPI, Postman, PDF, demo bundle, and GitHub
 - Gateway entry control
 - Model routing
 - Provider adapters
