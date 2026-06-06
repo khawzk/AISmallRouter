@@ -611,6 +611,14 @@ def build():
         )
     )
 
+    story.append(Paragraph("Customer Success Summary", styles["H1Custom"]))
+    story.append(
+        Paragraph(
+            "/v1/gateway/customer-success turns customer usage data into account health. It shows healthy, watch, and at-risk customer counts, health status per customer, risk reasons, recommended follow-up action, simple business metrics, meeting questions, and evidence endpoints for support. This helps sales, support, and customer success teams decide who needs attention before the next customer call.",
+            styles["BodyCustom"],
+        )
+    )
+
     story.append(Paragraph("Request Activity", styles["H1Custom"]))
     story.append(
         Paragraph(

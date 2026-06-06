@@ -1051,6 +1051,24 @@ A model gateway is not only a technical router.
 
 It is also a control and reporting layer for customers.
 
+## What Customer Success Summary Shows
+
+The prototype includes `/v1/gateway/customer-success`.
+
+This endpoint turns customer usage data into account health.
+
+It shows:
+
+- healthy, watch, and at-risk customer counts
+- health status per customer
+- risk reasons
+- recommended follow-up action
+- simple business metrics
+- meeting questions
+- evidence endpoints for support
+
+This helps sales, support, and customer success teams decide who needs attention before the next customer call.
+
 ## What Request Activity Shows
 
 The prototype includes `/v1/gateway/request-activity`.

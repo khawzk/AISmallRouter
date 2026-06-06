@@ -1532,6 +1532,16 @@
 
     <section class="card" id="reports" style="margin-bottom: 18px;">
       <div class="card-head">
+        <h2>Customer success summary</h2>
+        <span id="customerSuccessSummary">account health and follow-up priority</span>
+      </div>
+      <div class="card-body">
+        <div class="report-grid" id="customerSuccessList"></div>
+      </div>
+    </section>
+
+    <section class="card" style="margin-bottom: 18px;">
+      <div class="card-head">
         <h2>Customer usage reports</h2>
         <span>requests, tokens, and budget state</span>
       </div>
@@ -1845,6 +1855,8 @@
     const launchSummary = document.getElementById("launchSummary");
     const launchGateList = document.getElementById("launchGateList");
     const accessMatrixList = document.getElementById("accessMatrixList");
+    const customerSuccessSummary = document.getElementById("customerSuccessSummary");
+    const customerSuccessList = document.getElementById("customerSuccessList");
     const customerReportList = document.getElementById("customerReportList");
     const invoicePreviewList = document.getElementById("invoicePreviewList");
     const activityList = document.getElementById("activityList");
@@ -2090,6 +2102,38 @@
       if (!budget.token_budget) return 0;
       const used = ((budget.usage || {}).total_tokens || 0);
       return Math.max(0, Math.min(100, Math.round((used / budget.token_budget) * 100)));
+    }
+
+    const customerSuccess = state.customer_success || {accounts: [], totals: {}};
+    const successTotals = customerSuccess.totals || {};
+    customerSuccessSummary.textContent = `${successTotals.healthy || 0} healthy / ${successTotals.watch || 0} watch / ${successTotals.at_risk || 0} at risk`;
+    if ((customerSuccess.accounts || []).length === 0) {
+      customerSuccessList.innerHTML = '<div class="trace-item">No customer success accounts available.</div>';
+    } else {
+      (customerSuccess.accounts || []).forEach((account) => {
+        const summary = account.business_summary || {};
+        const card = document.createElement("article");
+        card.className = "report-card";
+        const chipClass = account.health_status === "healthy" ? "chip green" : "chip";
+        const reasons = (account.risk_reasons || []).length ? account.risk_reasons.join(" ") : "No active risk reason.";
+        card.innerHTML = `
+          <div class="report-top">
+            <div>
+              <strong>${escapeHtml(account.id || "")}</strong>
+              <span>${escapeHtml(account.plan || "")}</span>
+            </div>
+            <span class="${chipClass}">${escapeHtml(account.health_status || "")}</span>
+          </div>
+          <div class="report-metrics">
+            <span>Requests<br><strong>${summary.requests || 0}</strong></span>
+            <span>Errors<br><strong>${summary.errors || 0}</strong></span>
+            <span>Risk<br><strong>${escapeHtml(account.risk_level || "")}</strong></span>
+          </div>
+          <p style="margin:0 0 8px;color:var(--muted);font-size:12px;">${escapeHtml(reasons)}</p>
+          <p style="margin:0;color:var(--muted);font-size:12px;">${escapeHtml(account.recommended_action || "")}</p>
+        `;
+        customerSuccessList.appendChild(card);
+      });
     }
 
     (state.customer_reports || []).forEach((report) => {

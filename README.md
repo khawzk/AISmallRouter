@@ -204,6 +204,7 @@ The current version also supports:
 - `POST /v1/gateway/model-routes/disable`
 - `POST /v1/gateway/safety-preview`
 - `GET /v1/gateway/customer-reports`
+- `GET /v1/gateway/customer-success`
 - `GET /v1/gateway/invoice-preview`
 - `GET /v1/gateway/request-activity`
 - `GET /v1/gateway/request-detail`
@@ -1279,6 +1280,29 @@ The customer does not only buy model access.
 
 The customer also needs limits, reports, and accountability.
 
+## Customer Success Summary
+
+The gateway has a customer success summary endpoint:
+
+```bash
+curl http://127.0.0.1:8787/v1/gateway/customer-success \
+  -H "Authorization: Bearer dev-admin-key"
+```
+
+It turns customer usage data into account health.
+
+It shows:
+
+- healthy, watch, and at-risk customer counts
+- health status per customer
+- risk reasons
+- recommended follow-up action
+- simple business metrics
+- meeting questions
+- evidence endpoints for support
+
+This helps sales, support, and customer success teams decide who needs attention before the next customer call.
+
 ## Request Activity
 
 The gateway has a request activity endpoint:
@@ -1422,6 +1446,7 @@ The dashboard is designed for customer explanation. It shows:
 - Gateway options comparison for API Gateway, managed AI Gateway, custom Model Gateway, and OpenRouter-like paths
 - Production readiness cards for go-live gaps
 - Production launch gates before real customer traffic
+- Customer success summary for account health and follow-up priority
 - Customer handoff package for OpenAPI, Postman, PDF, demo bundle, and GitHub
 - Customer onboarding plan from Day 0 to Day 5
 - Integration command starter for first curl tests

@@ -82,6 +82,7 @@ ADMIN_PATHS = {
     "/v1/gateway/provider-health",
     "/v1/gateway/provider-contracts",
     "/v1/gateway/customer-reports",
+    "/v1/gateway/customer-success",
     "/v1/gateway/policy-presets",
     "/v1/gateway/demo-bundle",
     "/v1/gateway/production-readiness",
@@ -839,6 +840,99 @@ def customer_reports(server):
             }
         )
     return rows
+
+
+def customer_success_summary(server):
+    reports = customer_reports(server)
+    accounts = []
+    for report in reports:
+        summary = report.get("request_summary", {})
+        budget = report.get("budget", {})
+        usage = budget.get("usage", {})
+        request_count = int(summary.get("requests") or 0)
+        error_rate = float(summary.get("error_rate") or 0)
+        token_budget = budget.get("token_budget")
+        total_tokens = int(usage.get("total_tokens") or 0)
+        token_percent = round((total_tokens / token_budget) * 100, 2) if token_budget else None
+        risk_reasons = []
+        if request_count == 0:
+            risk_reasons.append("No requests yet.")
+        if error_rate >= 0.2:
+            risk_reasons.append("Error rate is high.")
+        if report.get("budget_state") in {"warning", "blocked"}:
+            risk_reasons.append(f"Budget state is {report.get('budget_state')}.")
+        if token_percent is not None and token_percent >= 80:
+            risk_reasons.append("Token budget is close to limit.")
+        if not report.get("allowed_models"):
+            risk_reasons.append("No model access is configured.")
+
+        if report.get("budget_state") == "blocked" or error_rate >= 0.5:
+            health_status = "at_risk"
+            risk_level = "high"
+            recommended_action = "Review budget, recent errors, and support notes before the next customer call."
+        elif risk_reasons:
+            health_status = "watch"
+            risk_level = "medium"
+            recommended_action = "Confirm first use case, budget headroom, and whether support can trace recent requests."
+        else:
+            health_status = "healthy"
+            risk_level = "low"
+            recommended_action = "Continue pilot and collect feedback for the next route or provider decision."
+
+        accounts.append(
+            {
+                "id": report["id"],
+                "name": report.get("name"),
+                "plan": report.get("plan"),
+                "health_status": health_status,
+                "risk_level": risk_level,
+                "risk_reasons": risk_reasons,
+                "recommended_action": recommended_action,
+                "business_summary": {
+                    "requests": request_count,
+                    "errors": int(summary.get("errors") or 0),
+                    "error_rate": error_rate,
+                    "total_tokens": total_tokens,
+                    "estimated_cost": round(float(usage.get("estimated_cost") or 0), 8),
+                    "budget_state": report.get("budget_state"),
+                    "token_budget_used_percent": token_percent,
+                },
+                "meeting_questions": [
+                    "Did the customer complete the first mock request?",
+                    "Can support trace the last request with gateway.request_id?",
+                    "Are the current allowed models and budget enough for the next test?",
+                    "Does the customer need live Qwen now, or is mock mode still enough?",
+                ],
+                "evidence": {
+                    "customer_report": "/v1/gateway/customer-reports",
+                    "request_activity": f"/v1/gateway/request-activity?customer_id={report['id']}",
+                    "invoice_preview": f"/v1/gateway/invoice-preview?customer_id={report['id']}",
+                    "customer_self_view": "/v1/gateway/me",
+                },
+            }
+        )
+
+    totals = {
+        "customers": len(accounts),
+        "healthy": sum(1 for account in accounts if account["health_status"] == "healthy"),
+        "watch": sum(1 for account in accounts if account["health_status"] == "watch"),
+        "at_risk": sum(1 for account in accounts if account["health_status"] == "at_risk"),
+    }
+    return {
+        "object": "gateway.customer_success",
+        "title": "AISmallRouter Customer Success Summary",
+        "mode": "mock" if server.mock_mode else "live",
+        "plain_english": "This summary helps business and support teams see which customers are healthy, which need follow-up, and what evidence to show.",
+        "totals": totals,
+        "accounts": accounts,
+        "next_best_action": (
+            "Follow up with at-risk customers first."
+            if totals["at_risk"]
+            else "Review watch customers before expanding the pilot."
+            if totals["watch"]
+            else "Continue the pilot and collect customer feedback."
+        ),
+    }
 
 
 def access_matrix(server):
@@ -4454,6 +4548,7 @@ def openapi_spec(server):
         "/v1/gateway/request-activity": "Filtered request activity",
         "/v1/gateway/request-detail": "One request detail by request_id",
         "/v1/gateway/customer-usage": "Usage grouped by customer",
+        "/v1/gateway/customer-success": "Customer success account health summary",
         "/v1/gateway/invoice-preview": "Invoice preview JSON or CSV",
         "/v1/gateway/model-usage": "Usage grouped by model",
         "/v1/gateway/request-summary": "Request summary by dimensions",
@@ -4581,6 +4676,7 @@ def postman_collection(server):
         request_item("Model Catalog", "GET", "/v1/gateway/model-catalog", "admin_api_key"),
         request_item("Audit Events", "GET", "/v1/gateway/audit-events", "admin_api_key"),
         request_item("Customer Reports", "GET", "/v1/gateway/customer-reports", "admin_api_key"),
+        request_item("Customer Success", "GET", "/v1/gateway/customer-success", "admin_api_key"),
         request_item("Invoice Preview", "GET", "/v1/gateway/invoice-preview", "admin_api_key"),
         request_item(
             "Route Preview",
@@ -4730,6 +4826,13 @@ def demo_bundle(server):
                 "url": f"{base_url}/v1/gateway/launch-plan",
                 "audience": "business, technical, support, and operations",
                 "purpose": "Show go-live gates, signoffs, rollout stages, blockers, and next action.",
+                "auth": "adminBearerAuth",
+            },
+            {
+                "name": "Customer success summary",
+                "url": f"{base_url}/v1/gateway/customer-success",
+                "audience": "business, support, and customer success",
+                "purpose": "Show customer health, risk reasons, recommended action, and evidence for follow-up.",
                 "auth": "adminBearerAuth",
             },
             {
@@ -4897,6 +5000,10 @@ def demo_bundle(server):
                 "command": f"curl {base_url}/v1/gateway/launch-plan -H 'Authorization: Bearer {server.admin_api_key or DEFAULT_ADMIN_API_KEY}'",
             },
             {
+                "name": "Customer success",
+                "command": f"curl {base_url}/v1/gateway/customer-success -H 'Authorization: Bearer {server.admin_api_key or DEFAULT_ADMIN_API_KEY}'",
+            },
+            {
                 "name": "Provider contracts",
                 "command": f"curl {base_url}/v1/gateway/provider-contracts -H 'Authorization: Bearer {server.admin_api_key or DEFAULT_ADMIN_API_KEY}'",
             },
@@ -4955,6 +5062,7 @@ def gateway_status(server):
         "model_catalog": model_catalog(server),
         "access_matrix": access_matrix(server),
         "customer_reports": customer_reports(server),
+        "customer_success": customer_success_summary(server),
         "invoice_preview": invoice_preview(server),
         "production_readiness": production_readiness(server),
         "launch_plan": launch_plan(server),
@@ -5742,6 +5850,9 @@ class GatewayHandler(BaseHTTPRequestHandler):
             return
         if path == "/v1/gateway/customer-reports":
             make_json_response(self, 200, {"data": customer_reports(self.server)})
+            return
+        if path == "/v1/gateway/customer-success":
+            make_json_response(self, 200, customer_success_summary(self.server))
             return
         if path == "/v1/gateway/request-activity":
             filters = {

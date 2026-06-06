@@ -176,6 +176,7 @@ class GatewayPrototypeTest(unittest.TestCase):
             "/v1/gateway/providers",
             "/v1/gateway/model-routes",
             "/v1/gateway/audit-events",
+            "/v1/gateway/customer-success",
             "/v1/gateway/demo-bundle",
             "/v1/gateway/production-readiness",
             "/v1/gateway/launch-plan",
@@ -220,6 +221,7 @@ class GatewayPrototypeTest(unittest.TestCase):
         self.assertIn("Provider Contracts", admin_names)
         self.assertIn("Incident Playbook", admin_names)
         self.assertIn("Launch Plan", admin_names)
+        self.assertIn("Customer Success", admin_names)
         self.assertIn("Support Policy", admin_names)
         self.assertIn("Pilot Checklist", admin_names)
         self.assertIn("Onboarding Plan", admin_names)
@@ -247,6 +249,7 @@ class GatewayPrototypeTest(unittest.TestCase):
         self.assertIn(f"{self.base_url}/postman_collection.json", entry_urls)
         self.assertIn(f"{self.base_url}/v1/gateway/production-readiness", entry_urls)
         self.assertIn(f"{self.base_url}/v1/gateway/launch-plan", entry_urls)
+        self.assertIn(f"{self.base_url}/v1/gateway/customer-success", entry_urls)
         self.assertIn(f"{self.base_url}/v1/gateway/provider-contracts", entry_urls)
         self.assertIn(f"{self.base_url}/v1/gateway/incident-playbook", entry_urls)
         self.assertIn(f"{self.base_url}/v1/gateway/support-policy", entry_urls)
@@ -882,6 +885,8 @@ class GatewayPrototypeTest(unittest.TestCase):
         self.assertIn("dev", reports)
         self.assertIn("budget_state", reports["dev"])
         self.assertNotIn("provider_api_keys", reports["dev"])
+        self.assertIn("customer_success", payload)
+        self.assertIn("accounts", payload["customer_success"])
         self.assertIn("request_activity", payload)
         self.assertIn("audit_events", payload)
         self.assertIn("audit_event_count", payload["summary"])
@@ -1650,6 +1655,23 @@ class GatewayPrototypeTest(unittest.TestCase):
         self.assertIn("recent_requests", reports["dev"])
         self.assertNotIn("provider_api_keys", reports["dev"])
 
+        status, customer_success = request_json(self.base_url, path="/v1/gateway/customer-success")
+        self.assertEqual(status, 401)
+
+        status, customer_success = request_json(self.base_url, path="/v1/gateway/customer-success", api_key="dev-admin-key")
+        self.assertEqual(status, 200)
+        self.assertEqual(customer_success["object"], "gateway.customer_success")
+        self.assertIn("totals", customer_success)
+        self.assertIn("accounts", customer_success)
+        accounts = {account["id"]: account for account in customer_success["accounts"]}
+        self.assertIn("dev", accounts)
+        self.assertIn(accounts["dev"]["health_status"], {"healthy", "watch", "at_risk"})
+        self.assertIn("recommended_action", accounts["dev"])
+        self.assertIn("meeting_questions", accounts["dev"])
+        self.assertIn("business_summary", accounts["dev"])
+        self.assertIn("request_activity", accounts["dev"]["evidence"])
+        self.assertNotIn("provider_api_keys", json.dumps(customer_success))
+
         status, self_view = request_json(self.base_url, path="/v1/gateway/me")
         self.assertEqual(status, 401)
         self.assertEqual(self_view["error"]["code"], "missing_auth")
@@ -1772,6 +1794,8 @@ class GatewayPrototypeTest(unittest.TestCase):
         self.assertIn("Production launch plan", html)
         self.assertIn("launchGateList", html)
         self.assertIn("/v1/gateway/launch-plan?admin_key=", html)
+        self.assertIn("Customer success summary", html)
+        self.assertIn("customerSuccessList", html)
         self.assertIn("Customer handoff package", html)
         self.assertIn("/openapi.json", html)
         self.assertIn("/postman_collection.json", html)
