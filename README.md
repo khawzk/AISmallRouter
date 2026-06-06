@@ -174,6 +174,7 @@ The current version also supports:
 - `GET /v1/gateway/incident-playbook`
 - `GET /v1/gateway/support-policy`
 - `GET /v1/gateway/pilot-checklist`
+- `GET /v1/gateway/onboarding-plan`
 - `GET /v1/gateway/executive-brief`
 - `GET /v1/gateway/roadmap`
 - `GET /v1/gateway/decision-guide`
@@ -528,6 +529,28 @@ It covers:
 - stop, extend, or productionize decision
 
 It helps keep a customer pilot small, honest, and measurable.
+
+## Onboarding Plan
+
+The gateway has a customer onboarding plan endpoint:
+
+```bash
+curl http://127.0.0.1:8787/v1/gateway/onboarding-plan \
+  -H "Authorization: Bearer dev-admin-key"
+```
+
+It turns the demo into a simple pilot path.
+
+It explains:
+
+- Day 0 customer alignment
+- Day 1 safe access setup
+- Day 2 mock technical test
+- Day 3 route and provider review
+- Day 4 usage, cost, and support review
+- Day 5 pilot decision
+
+Each step has an owner, actions, evidence, and an exit check.
 
 ## Executive Brief
 
@@ -1373,6 +1396,7 @@ The dashboard is designed for customer explanation. It shows:
 - Gateway options comparison for API Gateway, managed AI Gateway, custom Model Gateway, and OpenRouter-like paths
 - Production readiness cards for go-live gaps
 - Customer handoff package for OpenAPI, Postman, PDF, demo bundle, and GitHub
+- Customer onboarding plan from Day 0 to Day 5
 - Integration command starter for first curl tests
 - Gateway entry control
 - Model routing

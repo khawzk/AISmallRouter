@@ -453,6 +453,30 @@ It explains:
 
 It helps keep the pilot small, honest, and measurable.
 
+## What The Onboarding Plan Shows
+
+The prototype includes `/v1/gateway/onboarding-plan`.
+
+This endpoint turns the demo into a simple customer pilot path.
+
+It explains:
+
+- Day 0 customer alignment
+- Day 1 safe access setup
+- Day 2 mock technical test
+- Day 3 route and provider review
+- Day 4 usage, cost, and support review
+- Day 5 pilot decision
+
+Each step has:
+
+- owner
+- actions
+- evidence
+- exit check
+
+It helps a non-technical customer understand what happens after the demo.
+
 ## What The Executive Brief Shows
 
 The prototype includes `/v1/gateway/executive-brief`.
@@ -1205,6 +1229,7 @@ It is a demo of the control layer that full billing would need.
 - Qwen / DashScope only
 - Mock mode
 - Visual dashboard
+- Customer onboarding plan
 - Basic API key and usage limit
 - Basic token and cost budget control
 

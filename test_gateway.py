@@ -182,6 +182,7 @@ class GatewayPrototypeTest(unittest.TestCase):
             "/v1/gateway/incident-playbook",
             "/v1/gateway/support-policy",
             "/v1/gateway/pilot-checklist",
+            "/v1/gateway/onboarding-plan",
             "/v1/gateway/executive-brief",
             "/v1/gateway/roadmap",
             "/v1/gateway/decision-guide",
@@ -219,6 +220,7 @@ class GatewayPrototypeTest(unittest.TestCase):
         self.assertIn("Incident Playbook", admin_names)
         self.assertIn("Support Policy", admin_names)
         self.assertIn("Pilot Checklist", admin_names)
+        self.assertIn("Onboarding Plan", admin_names)
         self.assertIn("Executive Brief", admin_names)
         self.assertIn("Roadmap", admin_names)
         self.assertIn("Decision Guide", admin_names)
@@ -246,6 +248,7 @@ class GatewayPrototypeTest(unittest.TestCase):
         self.assertIn(f"{self.base_url}/v1/gateway/incident-playbook", entry_urls)
         self.assertIn(f"{self.base_url}/v1/gateway/support-policy", entry_urls)
         self.assertIn(f"{self.base_url}/v1/gateway/pilot-checklist", entry_urls)
+        self.assertIn(f"{self.base_url}/v1/gateway/onboarding-plan", entry_urls)
         self.assertIn(f"{self.base_url}/v1/gateway/executive-brief", entry_urls)
         self.assertIn(f"{self.base_url}/v1/gateway/roadmap", entry_urls)
         self.assertIn(f"{self.base_url}/v1/gateway/decision-guide", entry_urls)
@@ -339,6 +342,27 @@ class GatewayPrototypeTest(unittest.TestCase):
         self.assertIn("productionize", checklist["exit_decision"])
         self.assertEqual(checklist["current_context"]["demo_bundle"], "/v1/gateway/demo-bundle")
         self.assertNotIn("DASHSCOPE_API_KEY", json.dumps(checklist))
+
+    def test_onboarding_plan_lists_customer_pilot_path(self):
+        status, payload = request_json(self.base_url, path="/v1/gateway/onboarding-plan", api_key="dev-gateway-key")
+        self.assertEqual(status, 401)
+        self.assertEqual(payload["error"]["code"], "invalid_admin_key")
+
+        status, plan = request_json(self.base_url, path="/v1/gateway/onboarding-plan", api_key="dev-admin-key")
+        self.assertEqual(status, 200)
+        self.assertEqual(plan["object"], "gateway.onboarding_plan")
+        self.assertIn("5 working days", plan["recommended_timeline"])
+        days = {step["day"] for step in plan["steps"]}
+        self.assertEqual(days, {"Day 0", "Day 1", "Day 2", "Day 3", "Day 4", "Day 5"})
+        for step in plan["steps"]:
+            self.assertIn("owner", step)
+            self.assertIn("actions", step)
+            self.assertIn("evidence", step)
+            self.assertIn("exit_check", step)
+        self.assertGreaterEqual(len(plan["roles"]), 4)
+        self.assertTrue(any(item["endpoint"] == "/v1/gateway/demo-bundle" for item in plan["handoff_artifacts"]))
+        self.assertEqual(plan["current_readiness"]["prototype_only"], True)
+        self.assertNotIn("DASHSCOPE_API_KEY", json.dumps(plan))
 
     def test_executive_brief_summarizes_business_story(self):
         status, payload = request_json(self.base_url, path="/v1/gateway/executive-brief", api_key="dev-gateway-key")
@@ -1719,6 +1743,9 @@ class GatewayPrototypeTest(unittest.TestCase):
         self.assertIn("/openapi.json", html)
         self.assertIn("/postman_collection.json", html)
         self.assertIn("Model_Gateway_Customer_Guide.pdf", html)
+        self.assertIn("Customer onboarding plan", html)
+        self.assertIn("/v1/gateway/onboarding-plan?admin_key=", html)
+        self.assertIn("onboardingPlan", html)
         self.assertIn("Integration command starter", html)
         self.assertIn("commandListModels", html)
         self.assertIn("/v1/gateway/integration-guide", html)

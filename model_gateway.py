@@ -88,6 +88,7 @@ ADMIN_PATHS = {
     "/v1/gateway/incident-playbook",
     "/v1/gateway/support-policy",
     "/v1/gateway/pilot-checklist",
+    "/v1/gateway/onboarding-plan",
     "/v1/gateway/executive-brief",
     "/v1/gateway/roadmap",
     "/v1/gateway/decision-guide",
@@ -3253,6 +3254,7 @@ def executive_brief(server):
             "Show /v1/models and /v1/gateway/me to explain customer access.",
             "Show route preview and provider contracts to explain why this is more than an API Gateway.",
             "Show production readiness, support policy, and pilot checklist to set honest expectations.",
+            "Show the onboarding plan to turn the discussion into a small 5 day pilot path.",
             "Give the technical team OpenAPI, Postman, and the integration guide.",
         ],
         "pilot_recommendation": pilot.get("recommended_scope", {}),
@@ -3268,6 +3270,136 @@ def executive_brief(server):
         },
         "customer_next_step": "Run a small technical pilot with mock mode first, then test live Qwen only when the customer needs a real provider result.",
         "internal_next_step": "Name owners for production readiness gaps before promising live customer traffic.",
+    }
+
+
+def onboarding_plan(server):
+    readiness = production_readiness(server)
+    pilot = pilot_checklist(server)
+    return {
+        "object": "gateway.onboarding_plan",
+        "title": "AISmallRouter Customer Onboarding Plan",
+        "audience": "business, customer success, support, and customer technical teams",
+        "mode": "mock" if server.mock_mode else "live",
+        "plain_english": "This plan turns the prototype into a simple customer pilot path. It explains what happens first, who owns it, and what evidence proves the step is done.",
+        "recommended_timeline": "5 working days for a small technical pilot setup, then a separate production hardening decision.",
+        "principles": [
+            "Start in mock mode so the customer can understand routing without spending provider credits.",
+            "Use one customer, one or two public model names, and one clear use case first.",
+            "Show simple evidence at every step: model list, route preview, request trace, usage report, and readiness gaps.",
+            "Do not promise production traffic until secrets, billing, monitoring, support, and approval workflow are ready.",
+        ],
+        "roles": [
+            {"role": "Business owner", "responsibility": "Confirms the customer problem, pilot value, and decision timeline."},
+            {"role": "Technical owner", "responsibility": "Runs the API test, reviews OpenAPI/Postman, and checks route behavior."},
+            {"role": "Support owner", "responsibility": "Confirms request tracing, incident wording, and escalation path."},
+            {"role": "Gateway owner", "responsibility": "Issues keys, configures allowed models, reviews budgets, and explains readiness gaps."},
+        ],
+        "steps": [
+            {
+                "day": "Day 0",
+                "title": "Customer alignment",
+                "goal": "Make sure the customer understands the gateway idea before any integration work.",
+                "owner": "Business owner",
+                "actions": [
+                    "Show the dashboard and executive brief.",
+                    "Explain one customer API, model aliases, provider adapters, usage records, and production gaps.",
+                    "Agree the first use case and the public model name to test.",
+                ],
+                "evidence": ["/", "/v1/gateway/executive-brief", "/v1/gateway/decision-guide"],
+                "exit_check": "Customer agrees the pilot is worth a small technical test.",
+            },
+            {
+                "day": "Day 1",
+                "title": "Safe access setup",
+                "goal": "Prepare a customer key, allowed models, budgets, and integration examples.",
+                "owner": "Gateway owner",
+                "actions": [
+                    "Use key issue preview before saving any customer.",
+                    "Confirm allowed models and default policy.",
+                    "Share the customer integration guide, OpenAPI contract, and Postman collection.",
+                ],
+                "evidence": [
+                    "/v1/gateway/key-issue-preview",
+                    "/v1/gateway/integration-guide",
+                    "/openapi.json",
+                    "/postman_collection.json",
+                ],
+                "exit_check": "Customer has a safe local key package and a first API command.",
+            },
+            {
+                "day": "Day 2",
+                "title": "Mock technical test",
+                "goal": "Prove the customer can call the gateway without live provider spend.",
+                "owner": "Technical owner",
+                "actions": [
+                    "List models with the customer key.",
+                    "Send one mock chat request.",
+                    "Record the gateway.request_id and route trace.",
+                ],
+                "evidence": ["/v1/models", "/v1/chat/completions", "/v1/gateway/request-detail?request_id=..."],
+                "exit_check": "Customer can send a request and support can trace it.",
+            },
+            {
+                "day": "Day 3",
+                "title": "Route and provider review",
+                "goal": "Explain why each provider needs adapter work before adding more models.",
+                "owner": "Gateway owner",
+                "actions": [
+                    "Run route preview for the test model.",
+                    "Review provider contracts for Qwen, OpenAI-compatible, Claude, and Xiaomi-planned providers.",
+                    "Confirm fallback, allowed provider, and capability rules for the pilot.",
+                ],
+                "evidence": ["/v1/gateway/route-preview", "/v1/gateway/provider-contracts", "/v1/gateway/policy-presets"],
+                "exit_check": "Customer understands that provider expansion is adapter and contract work, not only API wiring.",
+            },
+            {
+                "day": "Day 4",
+                "title": "Usage, cost, and support review",
+                "goal": "Make the pilot measurable and supportable.",
+                "owner": "Support owner",
+                "actions": [
+                    "Review customer report, invoice preview, and cost estimate.",
+                    "Review support policy and incident playbook.",
+                    "Confirm what is demo-ready and what is not production-ready.",
+                ],
+                "evidence": [
+                    "/v1/gateway/customer-reports",
+                    "/v1/gateway/invoice-preview",
+                    "/v1/gateway/cost-estimate",
+                    "/v1/gateway/support-policy",
+                    "/v1/gateway/incident-playbook",
+                    "/v1/gateway/production-readiness",
+                ],
+                "exit_check": "Customer has a clear cost, support, and readiness story.",
+            },
+            {
+                "day": "Day 5",
+                "title": "Pilot decision",
+                "goal": "Decide whether to stop, extend the pilot, or plan production hardening.",
+                "owner": "Business owner",
+                "actions": [
+                    "Review pilot checklist success criteria.",
+                    "Name owners for production blockers if the customer wants live traffic.",
+                    "Choose stop, extend pilot, or productionize.",
+                ],
+                "evidence": ["/v1/gateway/pilot-checklist", "/v1/gateway/roadmap", "/v1/gateway/production-readiness"],
+                "exit_check": "Decision is recorded with clear next owners.",
+            },
+        ],
+        "handoff_artifacts": [
+            {"name": "Dashboard", "endpoint": "/", "purpose": "Explain the concept visually."},
+            {"name": "Demo bundle", "endpoint": "/v1/gateway/demo-bundle", "purpose": "Collect the customer handoff links and commands."},
+            {"name": "Integration guide", "endpoint": "/v1/gateway/integration-guide", "purpose": "Give the customer practical API examples."},
+            {"name": "Pilot checklist", "endpoint": "/v1/gateway/pilot-checklist", "purpose": "Keep pilot scope small and measurable."},
+            {"name": "Production readiness", "endpoint": "/v1/gateway/production-readiness", "purpose": "Avoid promising production too early."},
+        ],
+        "success_criteria": pilot.get("success_criteria", []),
+        "current_readiness": {
+            "overall_status": readiness.get("overall_status"),
+            "prototype_only": readiness.get("prototype_only"),
+        },
+        "next_best_action": "Use Day 0 and Day 1 with one customer champion before enabling any live provider testing.",
     }
 
 
@@ -3373,6 +3505,7 @@ def gateway_roadmap(server):
         "reference_endpoints": [
             "/v1/gateway/executive-brief",
             "/v1/gateway/pilot-checklist",
+            "/v1/gateway/onboarding-plan",
             "/v1/gateway/production-readiness",
             "/v1/gateway/provider-contracts",
             "/v1/gateway/support-policy",
@@ -3543,12 +3676,18 @@ def gateway_faq(server):
                 "short_answer": "Use the executive brief to align on value, then run a small technical pilot with mock mode first.",
                 "show": ["/v1/gateway/executive-brief", "/v1/gateway/pilot-checklist"],
             },
+            {
+                "question": "How do we start with a customer?",
+                "short_answer": "Use the onboarding plan: align on Day 0, issue safe access on Day 1, run mock tests on Day 2, review routing and support, then decide whether to stop, extend, or productionize.",
+                "show": ["/v1/gateway/onboarding-plan", "/v1/gateway/pilot-checklist"],
+            },
         ],
         "suggested_demo_order": [
             "/v1/gateway/executive-brief",
             "/v1/gateway/decision-guide",
             "/v1/gateway/provider-contracts",
             "/v1/gateway/pilot-checklist",
+            "/v1/gateway/onboarding-plan",
             "/v1/gateway/production-readiness",
         ],
         "current_readiness": {
@@ -3574,6 +3713,7 @@ def demo_script(server):
             "Use the local demo admin key only for local demos.",
             "Keep provider secrets and real customer keys out of the screen share.",
             "Prepare the executive brief, decision guide, FAQ, pilot checklist, OpenAPI contract, and Postman collection.",
+            "Prepare the onboarding plan if the customer asks what happens after the demo.",
         ],
         "steps": [
             {
@@ -3630,9 +3770,16 @@ def demo_script(server):
             },
             {
                 "minute": "14-15",
-                "title": "Close with a small pilot",
-                "show": f"{base_url}/v1/gateway/pilot-checklist",
+                "title": "Show the onboarding path",
+                "show": f"{base_url}/v1/gateway/onboarding-plan",
                 "talk_track": "The next step should be small: one customer, one or two models, mock mode first, clear success criteria, and no production SLA until the hardening work is done.",
+                "proof_point": "The onboarding plan turns the conversation into a Day 0 to Day 5 pilot path with owners, actions, and evidence.",
+            },
+            {
+                "minute": "15",
+                "title": "Confirm the pilot checklist",
+                "show": f"{base_url}/v1/gateway/pilot-checklist",
+                "talk_track": "The onboarding plan says what happens by day. The pilot checklist says how we know whether the test worked.",
                 "proof_point": "The pilot checklist defines scope, roles, checks, success criteria, and decision options.",
             },
         ],
@@ -3670,6 +3817,7 @@ def demo_script(server):
             f"{base_url}/postman_collection.json",
             "Model_Gateway_Customer_Guide.pdf",
             f"{base_url}/v1/gateway/pilot-checklist",
+            f"{base_url}/v1/gateway/onboarding-plan",
         ],
     }
 
@@ -4157,6 +4305,7 @@ def openapi_spec(server):
         "/v1/gateway/incident-playbook": "Incident response playbook",
         "/v1/gateway/support-policy": "Support policy and SLA stage guide",
         "/v1/gateway/pilot-checklist": "Customer pilot checklist",
+        "/v1/gateway/onboarding-plan": "Customer onboarding plan",
         "/v1/gateway/executive-brief": "Executive customer brief",
         "/v1/gateway/roadmap": "Prototype to production roadmap",
         "/v1/gateway/decision-guide": "AI gateway build or buy decision guide",
@@ -4264,6 +4413,7 @@ def postman_collection(server):
         request_item("Incident Playbook", "GET", "/v1/gateway/incident-playbook", "admin_api_key"),
         request_item("Support Policy", "GET", "/v1/gateway/support-policy", "admin_api_key"),
         request_item("Pilot Checklist", "GET", "/v1/gateway/pilot-checklist", "admin_api_key"),
+        request_item("Onboarding Plan", "GET", "/v1/gateway/onboarding-plan", "admin_api_key"),
         request_item("Executive Brief", "GET", "/v1/gateway/executive-brief", "admin_api_key"),
         request_item("Roadmap", "GET", "/v1/gateway/roadmap", "admin_api_key"),
         request_item("Decision Guide", "GET", "/v1/gateway/decision-guide", "admin_api_key"),
@@ -4445,6 +4595,13 @@ def demo_bundle(server):
                 "auth": "adminBearerAuth",
             },
             {
+                "name": "Onboarding plan",
+                "url": f"{base_url}/v1/gateway/onboarding-plan",
+                "audience": "business, support, and customer technical",
+                "purpose": "Show a simple day-by-day path from first customer meeting to pilot decision.",
+                "auth": "adminBearerAuth",
+            },
+            {
                 "name": "Executive brief",
                 "url": f"{base_url}/v1/gateway/executive-brief",
                 "audience": "business and non-technical",
@@ -4525,6 +4682,12 @@ def demo_bundle(server):
             },
             {
                 "step": 6,
+                "title": "Agree onboarding plan",
+                "show": "/v1/gateway/onboarding-plan and /v1/gateway/pilot-checklist",
+                "talk_track": "Use the onboarding plan to show who does what from Day 0 to Day 5, then use the pilot checklist to keep the scope measurable.",
+            },
+            {
+                "step": 7,
                 "title": "Hand off technical artifacts",
                 "show": "/openapi.json and /postman_collection.json",
                 "talk_track": "The customer technical team can import the contract or Postman collection.",
@@ -4578,6 +4741,10 @@ def demo_bundle(server):
             {
                 "name": "Pilot checklist",
                 "command": f"curl {base_url}/v1/gateway/pilot-checklist -H 'Authorization: Bearer {server.admin_api_key or DEFAULT_ADMIN_API_KEY}'",
+            },
+            {
+                "name": "Onboarding plan",
+                "command": f"curl {base_url}/v1/gateway/onboarding-plan -H 'Authorization: Bearer {server.admin_api_key or DEFAULT_ADMIN_API_KEY}'",
             },
             {
                 "name": "Executive brief",
@@ -5336,6 +5503,9 @@ class GatewayHandler(BaseHTTPRequestHandler):
             return
         if path == "/v1/gateway/pilot-checklist":
             make_json_response(self, 200, pilot_checklist(self.server))
+            return
+        if path == "/v1/gateway/onboarding-plan":
+            make_json_response(self, 200, onboarding_plan(self.server))
             return
         if path == "/v1/gateway/executive-brief":
             make_json_response(self, 200, executive_brief(self.server))

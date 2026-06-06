@@ -455,6 +455,45 @@
       width: fit-content;
     }
 
+    .onboarding-grid {
+      display: grid;
+      grid-template-columns: repeat(6, 1fr);
+      gap: 10px;
+    }
+
+    .onboarding-step {
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: var(--panel-3);
+      min-height: 172px;
+      padding: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .onboarding-step strong {
+      display: inline-flex;
+      width: fit-content;
+      padding: 4px 9px;
+      border-radius: 999px;
+      background: rgba(65, 217, 157, 0.12);
+      border: 1px solid rgba(65, 217, 157, 0.28);
+      color: var(--green);
+      font-size: 12px;
+    }
+
+    .onboarding-step h3 {
+      margin: 0;
+      font-size: 14px;
+    }
+
+    .onboarding-step p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
     .command-grid {
       display: grid;
       grid-template-columns: repeat(3, 1fr);
@@ -1061,6 +1100,7 @@
       .option-grid,
       .readiness-grid,
       .handoff-grid,
+      .onboarding-grid,
       .command-grid,
       .demo-board,
       .quickstart {
@@ -1312,6 +1352,13 @@
           </article>
           <article class="handoff-card">
             <div>
+              <h3>Onboarding plan</h3>
+              <p>Day 0 to Day 5 pilot path with owners, actions, evidence, and exit checks.</p>
+            </div>
+            <a class="btn" href="/v1/gateway/onboarding-plan?admin_key=__ADMIN_API_KEY__">Open plan</a>
+          </article>
+          <article class="handoff-card">
+            <div>
               <h3>Production readiness</h3>
               <p>Plain-English view of what is demo-ready and what still needs hardening.</p>
             </div>
@@ -1323,6 +1370,47 @@
               <p>Source code, docs, tests, and generated customer guide artifacts.</p>
             </div>
             <a class="btn" href="https://github.com/khawzk/AISmallRouter">Open GitHub</a>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section class="card" id="onboardingPlan" style="margin-bottom: 18px;">
+      <div class="card-head">
+        <h2>Customer onboarding plan</h2>
+        <span>simple pilot path from first meeting to decision</span>
+      </div>
+      <div class="card-body">
+        <div class="onboarding-grid">
+          <article class="onboarding-step">
+            <strong>Day 0</strong>
+            <h3>Customer alignment</h3>
+            <p>Show the value, agree the first use case, and confirm that a small pilot is worth testing.</p>
+          </article>
+          <article class="onboarding-step">
+            <strong>Day 1</strong>
+            <h3>Safe access setup</h3>
+            <p>Prepare customer key, allowed models, budgets, OpenAPI, Postman, and integration guide.</p>
+          </article>
+          <article class="onboarding-step">
+            <strong>Day 2</strong>
+            <h3>Mock technical test</h3>
+            <p>List models, send one mock chat request, and capture the gateway request id.</p>
+          </article>
+          <article class="onboarding-step">
+            <strong>Day 3</strong>
+            <h3>Route review</h3>
+            <p>Explain route preview, provider contracts, fallback, allowed providers, and capabilities.</p>
+          </article>
+          <article class="onboarding-step">
+            <strong>Day 4</strong>
+            <h3>Cost and support</h3>
+            <p>Review reports, invoice preview, support policy, incident playbook, and readiness gaps.</p>
+          </article>
+          <article class="onboarding-step">
+            <strong>Day 5</strong>
+            <h3>Pilot decision</h3>
+            <p>Choose stop, extend pilot, or production hardening with named owners for blockers.</p>
           </article>
         </div>
       </div>

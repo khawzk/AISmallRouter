@@ -395,6 +395,14 @@ def build():
         )
     )
 
+    story.append(Paragraph("Onboarding Plan", styles["H1Custom"]))
+    story.append(
+        Paragraph(
+            "/v1/gateway/onboarding-plan turns the demo into a simple customer pilot path. It explains Day 0 customer alignment, Day 1 safe access setup, Day 2 mock technical test, Day 3 route and provider review, Day 4 usage, cost, and support review, and Day 5 pilot decision. Each step has an owner, actions, evidence, and an exit check, so non-technical customers can understand what happens after the demo.",
+            styles["BodyCustom"],
+        )
+    )
+
     story.append(Paragraph("Executive Brief", styles["H1Custom"]))
     story.append(
         Paragraph(
