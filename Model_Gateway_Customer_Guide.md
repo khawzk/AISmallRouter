@@ -1222,6 +1222,32 @@ This is not automatic rollback yet.
 
 It is a simple operating plan for safer demos, pilots, and production discussions.
 
+## What The Data Governance Review Shows
+
+The prototype includes `/v1/gateway/data-governance`.
+
+This endpoint explains what happens to prompt data, logs, customer gateway keys, and provider secrets.
+
+It is written for business, security, customer data, and gateway owners.
+
+It covers:
+
+- prompt and response handling
+- provider secret handling
+- customer gateway key handling
+- logging and retention
+- sensitive data preview
+- customer visibility
+- production gaps
+
+This is not a compliance certification.
+
+It is a simple checklist for customer trust discussions before real production traffic.
+
+The main message is simple:
+
+Before production, the customer and gateway owner must agree how prompts are logged, how long logs are kept, who can see request details, how secrets are rotated, and how customer data can be deleted.
+
 ## Technical Challenges
 
 ### 1. Different Provider Formats
@@ -1316,6 +1342,7 @@ It is a demo of the control layer that full billing would need.
 - Mock mode
 - Visual dashboard
 - Customer onboarding plan
+- Data governance review
 - Basic API key and usage limit
 - Basic token and cost budget control
 

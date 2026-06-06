@@ -262,6 +262,7 @@ def build():
         "Request detail lookup using gateway.request_id returned in chat responses.",
         "Config check endpoint for demo keys and missing production settings.",
         "Production readiness endpoint for plain-English go-live gaps.",
+        "Data governance endpoint for prompt handling, logs, retention, customer keys, and provider secrets.",
         "Structured route decision summary for support explanations.",
         "Local safety preview for obvious sensitive data.",
         "Customer key issue preview for safe onboarding demos.",
@@ -307,6 +308,7 @@ def build():
             ["Customer objections", "Sales and support need consistent answers to common questions.", "FAQ endpoint"],
             ["Demo delivery", "A presenter needs a simple meeting flow, talk track, and likely questions.", "Demo script endpoint"],
             ["Production readiness", "Customers need to understand why demo-ready is not production-ready.", "Plain-English readiness report"],
+            ["Data governance", "Customers need to know what happens to prompts, logs, retention, and secrets.", "Plain-English governance review"],
             ["Access control", "Each customer may be allowed to use different models.", "Access matrix by customer and model"],
             ["Provider health", "Customers need to know whether a provider can serve traffic.", "Readiness view based on config and recent traffic"],
             ["Provider lifecycle", "Teams need to add and stop providers safely.", "Local JSON-backed create, update, and disable actions"],
@@ -666,6 +668,26 @@ def build():
             styles["BodyCustom"],
         )
     )
+
+    story.append(Paragraph("Data Governance Review", styles["H1Custom"]))
+    story.append(
+        Paragraph(
+            "/v1/gateway/data-governance explains what happens to prompt data, response data, logs, customer gateway keys, and provider secrets. It covers prompt handling, provider secret handling, customer key handling, logging and retention, sensitive data preview, customer visibility, and production gaps. It is not a compliance certification. It is a simple checklist for customer trust discussions before real production traffic.",
+            styles["BodyCustom"],
+        )
+    )
+    governance_rows = [
+        ["Question", "Why it matters"],
+        ["Can prompts be logged?", "Support teams need traces, but prompts may contain sensitive customer data."],
+        ["How long are logs kept?", "Customers need retention and deletion rules before production use."],
+        ["Who can see request details?", "Admin access must be limited and auditable."],
+        ["Where are provider keys stored?", "Provider secrets must live in a secret manager, not customer-facing JSON."],
+        ["What sensitive data is blocked or redacted?", "The gateway needs clear customer-specific data handling rules."],
+    ]
+    governance = Table(governance_rows, colWidths=[2.1 * inch, 4.35 * inch])
+    governance.setStyle(table_style())
+    story.append(governance)
+    story.append(Spacer(1, 0.15 * inch))
 
     story.append(Paragraph("Recommended Roadmap", styles["H1Custom"]))
     roadmap = Table(

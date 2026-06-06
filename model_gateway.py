@@ -88,6 +88,7 @@ ADMIN_PATHS = {
     "/v1/gateway/production-readiness",
     "/v1/gateway/launch-plan",
     "/v1/gateway/change-management",
+    "/v1/gateway/data-governance",
     "/v1/gateway/incident-playbook",
     "/v1/gateway/support-policy",
     "/v1/gateway/pilot-checklist",
@@ -3248,6 +3249,111 @@ def change_management_plan(server):
     }
 
 
+def data_governance_review(server):
+    config = gateway_config_check(server)
+    categories = [
+        {
+            "area": "Prompt and response data",
+            "status": "prototype_ready",
+            "plain_english": "The gateway receives prompts, sends them to the selected provider, and returns one normalized response to the customer.",
+            "what_this_prototype_does": [
+                "Uses one OpenAI-compatible request shape for the customer.",
+                "Can run in mock mode without sending prompt text to a paid provider.",
+                "Stores request metadata and preview content for local demo tracing.",
+            ],
+            "production_gap": "Define what prompt and response content may be logged, masked, retained, exported, or deleted.",
+            "owner": "Gateway owner and customer data owner",
+        },
+        {
+            "area": "Provider secrets",
+            "status": "needs_production_hardening" if config.get("issues") else "prototype_ready",
+            "plain_english": "Provider API keys should never be shown to customers or stored inside public model records.",
+            "what_this_prototype_does": [
+                "Stores provider API key environment variable names, not raw provider key values.",
+                "Hides provider secrets from status, route preview, OpenAPI, Postman, dashboard, and demo bundle outputs.",
+                "Supports customer BYOK mapping without exposing the provider key in customer-facing responses.",
+            ],
+            "production_gap": "Move all secrets to a secret manager, add rotation workflow, and restrict who can view or change secret mappings.",
+            "owner": "Security owner and gateway owner",
+        },
+        {
+            "area": "Customer gateway keys",
+            "status": "prototype_ready",
+            "plain_english": "Each customer should have their own gateway key, allowed models, request limits, and budget controls.",
+            "what_this_prototype_does": [
+                "Authenticates customer calls with a gateway API key.",
+                "Shows only masked key material after setup.",
+                "Can rotate or disable a customer key through admin lifecycle endpoints.",
+            ],
+            "production_gap": "Move customer keys from local JSON to a database or key management system with approval, audit, and emergency disable controls.",
+            "owner": "Gateway owner",
+        },
+        {
+            "area": "Logging and retention",
+            "status": "needs_policy",
+            "plain_english": "Logs help support teams debug requests, but logs can also contain sensitive business data.",
+            "what_this_prototype_does": [
+                "Writes request, usage, and audit records to local SQLite for demo tracing.",
+                "Shows request activity and request detail for support explanation.",
+                "Does not implement automatic deletion, retention windows, or export controls yet.",
+            ],
+            "production_gap": "Approve retention period, delete/export process, log masking rules, and access rules before production traffic.",
+            "owner": "Customer data owner and support owner",
+        },
+        {
+            "area": "Sensitive data preview",
+            "status": "prototype_ready",
+            "plain_english": "The gateway can preview obvious sensitive data patterns before a request is sent.",
+            "what_this_prototype_does": [
+                "Provides /v1/gateway/safety-preview for local redaction and blocking explanation.",
+                "Can redact simple email, phone, and API-key-like patterns in demo mode.",
+                "Keeps this as a preview control, not a full compliance engine.",
+            ],
+            "production_gap": "Add customer-specific data policies, stronger PII detection, allow/block rules, and human review workflow.",
+            "owner": "Security owner and customer data owner",
+        },
+        {
+            "area": "Customer visibility",
+            "status": "prototype_ready",
+            "plain_english": "Customers should see their own usage, limits, models, and integration guide, not other customers or provider secrets.",
+            "what_this_prototype_does": [
+                "Provides /v1/gateway/me for customer-specific access and usage.",
+                "Provides customer reports for admin account review.",
+                "Separates customer bearer key endpoints from admin bearer key endpoints.",
+            ],
+            "production_gap": "Add tenant isolation tests, role-based admin permissions, and customer export/download controls.",
+            "owner": "Gateway owner and customer success owner",
+        },
+    ]
+    return {
+        "object": "gateway.data_governance",
+        "title": "AISmallRouter Data Governance Review",
+        "audience": "business owner, security owner, customer data owner, and gateway owner",
+        "mode": "mock" if server.mock_mode else "live",
+        "plain_english": "This review explains what happens to prompt data, logs, customer keys, and provider secrets before a customer trusts the gateway.",
+        "categories": categories,
+        "policy_questions": [
+            "Can prompts and responses be stored for support, or should only metadata be stored?",
+            "What is the retention period for request logs, usage logs, and audit logs?",
+            "Who can view customer usage and request detail?",
+            "What sensitive data should be blocked, redacted, or allowed?",
+            "Can a customer bring their own provider key, and who can rotate it?",
+            "What must be deleted when a customer leaves?",
+        ],
+        "evidence_endpoints": [
+            "/v1/gateway/safety-preview",
+            "/v1/gateway/me",
+            "/v1/gateway/request-activity",
+            "/v1/gateway/request-detail",
+            "/v1/gateway/audit-events",
+            "/v1/gateway/config-check",
+            "/v1/gateway/production-readiness",
+        ],
+        "recommended_next_action": "Agree a simple logging and retention policy before any real customer production traffic.",
+        "prototype_note": "This is a governance explanation, not a compliance certification. Production still needs legal review, secret manager, access control, retention automation, and deletion workflow.",
+    }
+
+
 def incident_playbook(server):
     alerts = gateway_alerts(server)
     alert_codes = {alert.get("code") for alert in alerts.get("alerts", [])}
@@ -4729,6 +4835,7 @@ def openapi_spec(server):
         "/v1/gateway/production-readiness": "Production readiness report",
         "/v1/gateway/launch-plan": "Production launch plan",
         "/v1/gateway/change-management": "Change management and rollback plan",
+        "/v1/gateway/data-governance": "Data governance and privacy review",
         "/v1/gateway/incident-playbook": "Incident response playbook",
         "/v1/gateway/support-policy": "Support policy and SLA stage guide",
         "/v1/gateway/pilot-checklist": "Customer pilot checklist",
@@ -4840,6 +4947,7 @@ def postman_collection(server):
         request_item("Production Readiness", "GET", "/v1/gateway/production-readiness", "admin_api_key"),
         request_item("Launch Plan", "GET", "/v1/gateway/launch-plan", "admin_api_key"),
         request_item("Change Management", "GET", "/v1/gateway/change-management", "admin_api_key"),
+        request_item("Data Governance", "GET", "/v1/gateway/data-governance", "admin_api_key"),
         request_item("Incident Playbook", "GET", "/v1/gateway/incident-playbook", "admin_api_key"),
         request_item("Support Policy", "GET", "/v1/gateway/support-policy", "admin_api_key"),
         request_item("Pilot Checklist", "GET", "/v1/gateway/pilot-checklist", "admin_api_key"),
@@ -5019,6 +5127,13 @@ def demo_bundle(server):
                 "auth": "adminBearerAuth",
             },
             {
+                "name": "Data governance review",
+                "url": f"{base_url}/v1/gateway/data-governance",
+                "audience": "business, security, customer data, and gateway owners",
+                "purpose": "Explain prompt handling, logs, retention, customer keys, provider secrets, and production gaps.",
+                "auth": "adminBearerAuth",
+            },
+            {
                 "name": "Customer success summary",
                 "url": f"{base_url}/v1/gateway/customer-success",
                 "audience": "business, support, and customer success",
@@ -5136,8 +5251,8 @@ def demo_bundle(server):
             {
                 "step": 5,
                 "title": "Show control plane",
-                "show": "/v1/gateway/status, /v1/gateway/production-readiness, and /v1/gateway/launch-plan",
-                "talk_track": "Admin views show provider health, customer usage, alerts, readiness, launch gates, audit events, and invoice preview.",
+                "show": "/v1/gateway/status, /v1/gateway/production-readiness, /v1/gateway/launch-plan, and /v1/gateway/data-governance",
+                "talk_track": "Admin views show provider health, customer usage, alerts, readiness, launch gates, data governance, audit events, and invoice preview.",
             },
             {
                 "step": 6,
@@ -5198,6 +5313,10 @@ def demo_bundle(server):
                 "command": f"curl {base_url}/v1/gateway/change-management -H 'Authorization: Bearer {server.admin_api_key or DEFAULT_ADMIN_API_KEY}'",
             },
             {
+                "name": "Data governance",
+                "command": f"curl {base_url}/v1/gateway/data-governance -H 'Authorization: Bearer {server.admin_api_key or DEFAULT_ADMIN_API_KEY}'",
+            },
+            {
                 "name": "Customer success",
                 "command": f"curl {base_url}/v1/gateway/customer-success -H 'Authorization: Bearer {server.admin_api_key or DEFAULT_ADMIN_API_KEY}'",
             },
@@ -5243,6 +5362,7 @@ def demo_bundle(server):
             "Move customer, provider, and route config from local JSON to a database.",
             "Store provider secrets in a secret manager.",
             "Add approval workflow, audit retention, billing rules, and deployment controls.",
+            "Approve prompt logging, log retention, data deletion, and sensitive data handling rules.",
         ],
     }
 
@@ -5265,6 +5385,7 @@ def gateway_status(server):
         "production_readiness": production_readiness(server),
         "launch_plan": launch_plan(server),
         "change_management": change_management_plan(server),
+        "data_governance": data_governance_review(server),
         "request_activity": request_activity(server.db_path, limit=10),
         "audit_events": audit_events(server.db_path, limit=10),
         "usage_by_customer": usage_grouped_by(server.db_path, "customer_id"),
@@ -5983,6 +6104,9 @@ class GatewayHandler(BaseHTTPRequestHandler):
             return
         if path == "/v1/gateway/change-management":
             make_json_response(self, 200, change_management_plan(self.server))
+            return
+        if path == "/v1/gateway/data-governance":
+            make_json_response(self, 200, data_governance_review(self.server))
             return
         if path == "/v1/gateway/incident-playbook":
             make_json_response(self, 200, incident_playbook(self.server))

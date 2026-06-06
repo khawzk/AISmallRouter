@@ -177,6 +177,7 @@ The current version also supports:
 - `GET /v1/gateway/onboarding-plan`
 - `GET /v1/gateway/launch-plan`
 - `GET /v1/gateway/change-management`
+- `GET /v1/gateway/data-governance`
 - `GET /v1/gateway/executive-brief`
 - `GET /v1/gateway/roadmap`
 - `GET /v1/gateway/decision-guide`
@@ -482,6 +483,33 @@ This is not automatic rollback yet.
 It is a simple operating plan for safer demos, pilots, and production discussions.
 
 For production, change the key with `GATEWAY_ADMIN_API_KEY`.
+
+## Data Governance Review
+
+The gateway has a data governance endpoint:
+
+```bash
+curl http://127.0.0.1:8787/v1/gateway/data-governance \
+  -H "Authorization: Bearer dev-admin-key"
+```
+
+This endpoint explains what happens to prompt data, logs, customer gateway keys, and provider secrets before a customer trusts the gateway.
+
+It covers:
+
+- prompt and response handling
+- provider secret handling
+- customer gateway key handling
+- logging and retention
+- sensitive data preview
+- customer visibility
+- production gaps
+
+This is not a compliance certification.
+
+It is a simple review checklist for customer, security, and business discussions before real production traffic.
+
+For production, the customer and gateway owner still need a clear policy for log retention, deletion, access control, secret rotation, and sensitive data handling.
 
 ## Customer Self View
 
@@ -1689,6 +1717,7 @@ The tests check:
 - Model catalog routing output
 - Route preview dry-run output
 - Cost estimate output
+- Data governance review output
 - Customer usage report output
 - Request activity filtering
 - Request detail lookup

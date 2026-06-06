@@ -182,6 +182,7 @@ class GatewayPrototypeTest(unittest.TestCase):
             "/v1/gateway/production-readiness",
             "/v1/gateway/launch-plan",
             "/v1/gateway/change-management",
+            "/v1/gateway/data-governance",
             "/v1/gateway/provider-contracts",
             "/v1/gateway/incident-playbook",
             "/v1/gateway/support-policy",
@@ -225,6 +226,7 @@ class GatewayPrototypeTest(unittest.TestCase):
         self.assertIn("Incident Playbook", admin_names)
         self.assertIn("Launch Plan", admin_names)
         self.assertIn("Change Management", admin_names)
+        self.assertIn("Data Governance", admin_names)
         self.assertIn("Customer Success", admin_names)
         self.assertIn("Support Policy", admin_names)
         self.assertIn("Pilot Checklist", admin_names)
@@ -255,6 +257,7 @@ class GatewayPrototypeTest(unittest.TestCase):
         self.assertIn(f"{self.base_url}/v1/gateway/production-readiness", entry_urls)
         self.assertIn(f"{self.base_url}/v1/gateway/launch-plan", entry_urls)
         self.assertIn(f"{self.base_url}/v1/gateway/change-management", entry_urls)
+        self.assertIn(f"{self.base_url}/v1/gateway/data-governance", entry_urls)
         self.assertIn(f"{self.base_url}/v1/gateway/customer-success", entry_urls)
         self.assertIn(f"{self.base_url}/v1/gateway/provider-contracts", entry_urls)
         self.assertIn(f"{self.base_url}/v1/gateway/incident-playbook", entry_urls)
@@ -546,6 +549,30 @@ class GatewayPrototypeTest(unittest.TestCase):
         self.assertIn(plan["current_launch_decision"], {"go", "conditional_go", "no_go"})
         self.assertIn("approval workflow", plan["prototype_note"])
         self.assertNotIn("DASHSCOPE_API_KEY", json.dumps(plan))
+
+    def test_data_governance_explains_privacy_and_retention_gaps(self):
+        status, payload = request_json(self.base_url, path="/v1/gateway/data-governance", api_key="dev-gateway-key")
+        self.assertEqual(status, 401)
+        self.assertEqual(payload["error"]["code"], "invalid_admin_key")
+
+        status, review = request_json(self.base_url, path="/v1/gateway/data-governance", api_key="dev-admin-key")
+        self.assertEqual(status, 200)
+        self.assertEqual(review["object"], "gateway.data_governance")
+        areas = {item["area"] for item in review["categories"]}
+        self.assertIn("Prompt and response data", areas)
+        self.assertIn("Provider secrets", areas)
+        self.assertIn("Logging and retention", areas)
+        for item in review["categories"]:
+            self.assertIn("plain_english", item)
+            self.assertIn("what_this_prototype_does", item)
+            self.assertIn("production_gap", item)
+            self.assertIn("owner", item)
+        self.assertIn("/v1/gateway/safety-preview", review["evidence_endpoints"])
+        self.assertIn("/v1/gateway/request-detail", review["evidence_endpoints"])
+        self.assertIn("retention", " ".join(review["policy_questions"]).lower())
+        self.assertIn("not a compliance certification", review["prototype_note"])
+        self.assertNotIn("DASHSCOPE_API_KEY", json.dumps(review))
+        self.assertNotIn("sk-", json.dumps(review))
 
     def test_customer_integration_guide_lists_safe_code_examples(self):
         status, payload = request_json(self.base_url, path="/v1/gateway/integration-guide", api_key="wrong-key")
@@ -947,6 +974,8 @@ class GatewayPrototypeTest(unittest.TestCase):
         self.assertIn("gates", payload["launch_plan"])
         self.assertIn("change_management", payload)
         self.assertIn("change_types", payload["change_management"])
+        self.assertIn("data_governance", payload)
+        self.assertIn("categories", payload["data_governance"])
         catalog = {model["id"]: model for model in payload["model_catalog"]}
         self.assertIn("smart-fast", catalog)
         self.assertEqual(catalog["smart-fast"]["route_chain"][0], "smart-fast")
@@ -1847,6 +1876,9 @@ class GatewayPrototypeTest(unittest.TestCase):
         self.assertIn("Change management", html)
         self.assertIn("changeManagementList", html)
         self.assertIn("/v1/gateway/change-management?admin_key=", html)
+        self.assertIn("Data governance", html)
+        self.assertIn("dataGovernanceList", html)
+        self.assertIn("/v1/gateway/data-governance?admin_key=", html)
         self.assertIn("Customer success summary", html)
         self.assertIn("customerSuccessList", html)
         self.assertIn("Customer handoff package", html)

@@ -1328,6 +1328,16 @@
       </div>
     </section>
 
+    <section class="card" id="dataGovernance" style="margin-bottom: 18px;">
+      <div class="card-head">
+        <h2>Data governance</h2>
+        <span>prompt handling, logs, retention, customer keys, and provider secrets</span>
+      </div>
+      <div class="card-body">
+        <div class="launch-grid" id="dataGovernanceList"></div>
+      </div>
+    </section>
+
     <section class="card" id="handoff" style="margin-bottom: 18px;">
       <div class="card-head">
         <h2>Customer handoff package</h2>
@@ -1411,6 +1421,13 @@
               <p>Approval checklist, rollback paths, and evidence endpoints for config changes.</p>
             </div>
             <a class="btn" href="/v1/gateway/change-management?admin_key=__ADMIN_API_KEY__">Open changes</a>
+          </article>
+          <article class="handoff-card">
+            <div>
+              <h3>Data governance</h3>
+              <p>Simple review of prompt handling, logs, retention, customer keys, and provider secrets.</p>
+            </div>
+            <a class="btn" href="/v1/gateway/data-governance?admin_key=__ADMIN_API_KEY__">Open review</a>
           </article>
           <article class="handoff-card">
             <div>
@@ -1883,6 +1900,7 @@
     const launchSummary = document.getElementById("launchSummary");
     const launchGateList = document.getElementById("launchGateList");
     const changeManagementList = document.getElementById("changeManagementList");
+    const dataGovernanceList = document.getElementById("dataGovernanceList");
     const accessMatrixList = document.getElementById("accessMatrixList");
     const customerSuccessSummary = document.getElementById("customerSuccessSummary");
     const customerSuccessList = document.getElementById("customerSuccessList");
@@ -2147,6 +2165,29 @@
           </div>
         `;
         changeManagementList.appendChild(card);
+      });
+    }
+
+    const dataGovernance = state.data_governance || {categories: []};
+    if ((dataGovernance.categories || []).length === 0) {
+      dataGovernanceList.innerHTML = '<div class="trace-item">No data governance review available.</div>';
+    } else {
+      (dataGovernance.categories || []).forEach((item) => {
+        const card = document.createElement("article");
+        card.className = "readiness-card " + (item.status === "prototype_ready" ? "ready" : "needs_work");
+        const chipClass = item.status === "prototype_ready" ? "chip green" : "chip";
+        card.innerHTML = `
+          <div class="readiness-title">
+            <strong>${escapeHtml(item.area || "")}</strong>
+            <span class="${chipClass}">${escapeHtml((item.status || "").replaceAll("_", " "))}</span>
+          </div>
+          <p>${escapeHtml(item.plain_english || "")}</p>
+          <div class="option-list">
+            <span>${escapeHtml((item.what_this_prototype_does || [])[0] || "")}</span>
+            <span>${escapeHtml(item.production_gap || "")}</span>
+          </div>
+        `;
+        dataGovernanceList.appendChild(card);
       });
     }
 
