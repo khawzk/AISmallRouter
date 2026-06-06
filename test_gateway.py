@@ -178,6 +178,7 @@ class GatewayPrototypeTest(unittest.TestCase):
             "/v1/gateway/audit-events",
             "/v1/gateway/demo-bundle",
             "/v1/gateway/production-readiness",
+            "/v1/gateway/launch-plan",
             "/v1/gateway/provider-contracts",
             "/v1/gateway/incident-playbook",
             "/v1/gateway/support-policy",
@@ -218,6 +219,7 @@ class GatewayPrototypeTest(unittest.TestCase):
         self.assertIn("Production Readiness", admin_names)
         self.assertIn("Provider Contracts", admin_names)
         self.assertIn("Incident Playbook", admin_names)
+        self.assertIn("Launch Plan", admin_names)
         self.assertIn("Support Policy", admin_names)
         self.assertIn("Pilot Checklist", admin_names)
         self.assertIn("Onboarding Plan", admin_names)
@@ -244,6 +246,7 @@ class GatewayPrototypeTest(unittest.TestCase):
         self.assertIn(f"{self.base_url}/openapi.json", entry_urls)
         self.assertIn(f"{self.base_url}/postman_collection.json", entry_urls)
         self.assertIn(f"{self.base_url}/v1/gateway/production-readiness", entry_urls)
+        self.assertIn(f"{self.base_url}/v1/gateway/launch-plan", entry_urls)
         self.assertIn(f"{self.base_url}/v1/gateway/provider-contracts", entry_urls)
         self.assertIn(f"{self.base_url}/v1/gateway/incident-playbook", entry_urls)
         self.assertIn(f"{self.base_url}/v1/gateway/support-policy", entry_urls)
@@ -487,6 +490,31 @@ class GatewayPrototypeTest(unittest.TestCase):
             self.assertIn("plain_english", category)
             self.assertIn("next_step", category)
         self.assertNotIn("DASHSCOPE_API_KEY", json.dumps(readiness))
+
+    def test_launch_plan_lists_go_live_gates(self):
+        status, payload = request_json(self.base_url, path="/v1/gateway/launch-plan", api_key="dev-gateway-key")
+        self.assertEqual(status, 401)
+        self.assertEqual(payload["error"]["code"], "invalid_admin_key")
+
+        status, plan = request_json(self.base_url, path="/v1/gateway/launch-plan", api_key="dev-admin-key")
+        self.assertEqual(status, 200)
+        self.assertEqual(plan["object"], "gateway.launch_plan")
+        self.assertIn(plan["decision"], {"go", "conditional_go", "no_go"})
+        gate_ids = {gate["id"] for gate in plan["gates"]}
+        self.assertIn("security", gate_ids)
+        self.assertIn("provider", gate_ids)
+        self.assertIn("billing", gate_ids)
+        self.assertIn("handoff", gate_ids)
+        for gate in plan["gates"]:
+            self.assertIn(gate["status"], {"ready", "needs_work", "blocked"})
+            self.assertIn("owner", gate)
+            self.assertIn("required_evidence", gate)
+            self.assertIn("approval_question", gate)
+            self.assertIn("next_step", gate)
+        self.assertGreaterEqual(len(plan["required_signoffs"]), 4)
+        self.assertGreaterEqual(len(plan["rollout_stages"]), 4)
+        self.assertIn("/v1/gateway/production-readiness", plan["reference_endpoints"])
+        self.assertNotIn("DASHSCOPE_API_KEY", json.dumps(plan))
 
     def test_customer_integration_guide_lists_safe_code_examples(self):
         status, payload = request_json(self.base_url, path="/v1/gateway/integration-guide", api_key="wrong-key")
@@ -862,6 +890,8 @@ class GatewayPrototypeTest(unittest.TestCase):
         self.assertIn("production_readiness", payload)
         self.assertIn("categories", payload["production_readiness"])
         self.assertGreaterEqual(len(payload["production_readiness"]["categories"]), 5)
+        self.assertIn("launch_plan", payload)
+        self.assertIn("gates", payload["launch_plan"])
         catalog = {model["id"]: model for model in payload["model_catalog"]}
         self.assertIn("smart-fast", catalog)
         self.assertEqual(catalog["smart-fast"]["route_chain"][0], "smart-fast")
@@ -1739,6 +1769,9 @@ class GatewayPrototypeTest(unittest.TestCase):
         self.assertIn("/v1/gateway/decision-guide?admin_key=", html)
         self.assertIn("Production readiness", html)
         self.assertIn("readinessList", html)
+        self.assertIn("Production launch plan", html)
+        self.assertIn("launchGateList", html)
+        self.assertIn("/v1/gateway/launch-plan?admin_key=", html)
         self.assertIn("Customer handoff package", html)
         self.assertIn("/openapi.json", html)
         self.assertIn("/postman_collection.json", html)

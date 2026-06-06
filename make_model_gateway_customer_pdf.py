@@ -643,6 +643,14 @@ def build():
         )
     )
 
+    story.append(Paragraph("Production Launch Plan", styles["H1Custom"]))
+    story.append(
+        Paragraph(
+            "/v1/gateway/launch-plan converts readiness gaps into go-live gates. It explains security and secrets, provider live readiness, customer access and budgets, routing and fallback, support and observability, billing and commercial rules, and customer handoff. Each gate has an owner, required evidence, current evidence, approval question, status, and next step. It also shows required signoffs and rollout stages from internal live test to broader rollout.",
+            styles["BodyCustom"],
+        )
+    )
+
     story.append(Paragraph("Recommended Roadmap", styles["H1Custom"]))
     roadmap = Table(
         [

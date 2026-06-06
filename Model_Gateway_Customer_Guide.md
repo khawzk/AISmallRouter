@@ -1136,6 +1136,35 @@ This is not a full security audit.
 
 It helps a customer understand why a prototype is not the same as a production platform.
 
+## What The Launch Plan Shows
+
+The prototype includes `/v1/gateway/launch-plan`.
+
+This endpoint converts readiness gaps into go-live gates.
+
+It explains:
+
+- security and secrets gate
+- provider live readiness gate
+- customer access and budget gate
+- routing and fallback gate
+- support and observability gate
+- billing and commercial rules gate
+- customer handoff gate
+
+Each gate has:
+
+- owner
+- required evidence
+- current evidence
+- approval question
+- status
+- next step
+
+It also shows required signoffs and rollout stages.
+
+This helps a customer understand what must be approved before production traffic.
+
 ## Technical Challenges
 
 ### 1. Different Provider Formats

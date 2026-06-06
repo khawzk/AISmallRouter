@@ -85,6 +85,7 @@ ADMIN_PATHS = {
     "/v1/gateway/policy-presets",
     "/v1/gateway/demo-bundle",
     "/v1/gateway/production-readiness",
+    "/v1/gateway/launch-plan",
     "/v1/gateway/incident-playbook",
     "/v1/gateway/support-policy",
     "/v1/gateway/pilot-checklist",
@@ -2832,6 +2833,161 @@ def production_readiness(server):
     }
 
 
+def launch_plan(server):
+    readiness = production_readiness(server)
+    category_by_area = {category["area"]: category for category in readiness.get("categories", [])}
+
+    def gate(gate_id, name, owner, readiness_area, required_evidence, approval_question):
+        category = category_by_area.get(readiness_area, {})
+        status = category.get("status", "needs_work")
+        return {
+            "id": gate_id,
+            "name": name,
+            "owner": owner,
+            "status": status,
+            "readiness_area": readiness_area,
+            "plain_english": category.get("plain_english", "This gate needs review before production."),
+            "required_evidence": required_evidence,
+            "current_evidence": category.get("evidence", {}),
+            "approval_question": approval_question,
+            "next_step": category.get("next_step", "Name an owner and collect evidence before approval."),
+        }
+
+    gates = [
+        gate(
+            "security",
+            "Security and secrets",
+            "Gateway owner",
+            "Security",
+            [
+                "Admin key is rotated away from the local demo value.",
+                "Customer keys are stored outside local JSON.",
+                "Provider secrets are stored in environment variables or a secret manager.",
+            ],
+            "Are customer and provider secrets safe enough for real traffic?",
+        ),
+        gate(
+            "provider",
+            "Provider live readiness",
+            "Technical owner",
+            "Provider Readiness",
+            [
+                "At least one provider has a live key or approved BYOK path.",
+                "Live chat, stream, error, timeout, and usage behavior are tested.",
+                "Provider fallback behavior is documented.",
+            ],
+            "Can the selected provider handle the first customer production use case?",
+        ),
+        gate(
+            "customer_controls",
+            "Customer access and budgets",
+            "Customer success owner",
+            "Customer Controls",
+            [
+                "Customer allowed models are approved.",
+                "Request limits, token budget, and cost budget are set.",
+                "Customer-facing integration guide is reviewed.",
+            ],
+            "Can this customer use the gateway without unexpected access or spend?",
+        ),
+        gate(
+            "routing",
+            "Routing and fallback",
+            "Gateway owner",
+            "Routing And Fallback",
+            [
+                "Public model names map to approved upstream models.",
+                "Fallback models are approved or explicitly disabled.",
+                "Route preview matches the customer policy.",
+            ],
+            "Is the model route predictable and explainable enough for support?",
+        ),
+        gate(
+            "observability",
+            "Support and observability",
+            "Support owner",
+            "Observability",
+            [
+                "Request activity and request detail can trace a customer issue.",
+                "Audit events show admin changes.",
+                "Incident playbook and support policy are reviewed.",
+            ],
+            "Can support investigate a failed or disputed request?",
+        ),
+        gate(
+            "billing",
+            "Billing and commercial rules",
+            "Business owner",
+            "Billing",
+            [
+                "Pricing, credits, refunds, and invoice timing are agreed.",
+                "Invoice preview is treated as estimate until finance approval.",
+                "Budget enforcement behavior is approved.",
+            ],
+            "Can the business explain cost before the customer sends production traffic?",
+        ),
+        gate(
+            "handoff",
+            "Customer handoff",
+            "Customer success owner",
+            "Documentation And Handoff",
+            [
+                "Dashboard, OpenAPI, Postman, guide PDF, and integration guide are ready.",
+                "Customer onboarding plan is shared.",
+                "Pilot checklist exit decision is recorded.",
+            ],
+            "Does the customer have the material needed to start safely?",
+        ),
+    ]
+    blockers = [
+        {
+            "gate": item["id"],
+            "name": item["name"],
+            "status": item["status"],
+            "next_step": item["next_step"],
+        }
+        for item in gates
+        if item["status"] in {"blocked", "needs_work"}
+    ]
+    decision = "no_go" if any(item["status"] == "blocked" for item in gates) else "conditional_go" if blockers else "go"
+    return {
+        "object": "gateway.launch_plan",
+        "title": "AISmallRouter Production Launch Plan",
+        "audience": "business, technical, support, and operations owners",
+        "mode": "mock" if server.mock_mode else "live",
+        "plain_english": "This launch plan converts readiness gaps into go-live gates. It shows what must be approved before a customer uses the gateway for production traffic.",
+        "decision": decision,
+        "decision_meaning": {
+            "go": "All local launch gates look ready.",
+            "conditional_go": "There are no hard blockers, but named owners must close remaining work before broad production traffic.",
+            "no_go": "At least one gate is blocked. Do not promise production traffic yet.",
+        }[decision],
+        "gates": gates,
+        "blockers": blockers,
+        "required_signoffs": [
+            {"owner": "Business owner", "signs_off": "Customer value, pricing, and commercial risk."},
+            {"owner": "Technical owner", "signs_off": "Provider behavior, route correctness, and live test evidence."},
+            {"owner": "Support owner", "signs_off": "Incident handling, traceability, and customer wording."},
+            {"owner": "Gateway owner", "signs_off": "Secrets, configuration, rollout, and rollback control."},
+        ],
+        "rollout_stages": [
+            {"stage": "Internal live test", "traffic": "internal only", "exit_check": "One live Qwen request succeeds and is traceable."},
+            {"stage": "Single customer pilot", "traffic": "one named customer, low limits", "exit_check": "Usage, cost, support, and fallback story are clear."},
+            {"stage": "Limited production", "traffic": "small approved group", "exit_check": "No unresolved P1/P2 issues and billing rules are approved."},
+            {"stage": "Broader rollout", "traffic": "more customers", "exit_check": "Operations, billing, and provider contracts are production-owned."},
+        ],
+        "reference_endpoints": [
+            "/v1/gateway/production-readiness",
+            "/v1/gateway/provider-contracts",
+            "/v1/gateway/customer-reports",
+            "/v1/gateway/invoice-preview",
+            "/v1/gateway/incident-playbook",
+            "/v1/gateway/onboarding-plan",
+        ],
+        "next_best_action": blockers[0]["next_step"] if blockers else "Record signoffs and start with an internal live test.",
+    }
+
+
 def incident_playbook(server):
     alerts = gateway_alerts(server)
     alert_codes = {alert.get("code") for alert in alerts.get("alerts", [])}
@@ -3507,6 +3663,7 @@ def gateway_roadmap(server):
             "/v1/gateway/pilot-checklist",
             "/v1/gateway/onboarding-plan",
             "/v1/gateway/production-readiness",
+            "/v1/gateway/launch-plan",
             "/v1/gateway/provider-contracts",
             "/v1/gateway/support-policy",
         ],
@@ -4302,6 +4459,7 @@ def openapi_spec(server):
         "/v1/gateway/request-summary": "Request summary by dimensions",
         "/v1/gateway/demo-bundle": "Customer demo bundle manifest",
         "/v1/gateway/production-readiness": "Production readiness report",
+        "/v1/gateway/launch-plan": "Production launch plan",
         "/v1/gateway/incident-playbook": "Incident response playbook",
         "/v1/gateway/support-policy": "Support policy and SLA stage guide",
         "/v1/gateway/pilot-checklist": "Customer pilot checklist",
@@ -4410,6 +4568,7 @@ def postman_collection(server):
         request_item("Provider Health", "GET", "/v1/gateway/provider-health", "admin_api_key"),
         request_item("Provider Contracts", "GET", "/v1/gateway/provider-contracts", "admin_api_key"),
         request_item("Production Readiness", "GET", "/v1/gateway/production-readiness", "admin_api_key"),
+        request_item("Launch Plan", "GET", "/v1/gateway/launch-plan", "admin_api_key"),
         request_item("Incident Playbook", "GET", "/v1/gateway/incident-playbook", "admin_api_key"),
         request_item("Support Policy", "GET", "/v1/gateway/support-policy", "admin_api_key"),
         request_item("Pilot Checklist", "GET", "/v1/gateway/pilot-checklist", "admin_api_key"),
@@ -4567,6 +4726,13 @@ def demo_bundle(server):
                 "auth": "adminBearerAuth",
             },
             {
+                "name": "Production launch plan",
+                "url": f"{base_url}/v1/gateway/launch-plan",
+                "audience": "business, technical, support, and operations",
+                "purpose": "Show go-live gates, signoffs, rollout stages, blockers, and next action.",
+                "auth": "adminBearerAuth",
+            },
+            {
                 "name": "Provider contract matrix",
                 "url": f"{base_url}/v1/gateway/provider-contracts",
                 "audience": "business and technical",
@@ -4677,8 +4843,8 @@ def demo_bundle(server):
             {
                 "step": 5,
                 "title": "Show control plane",
-                "show": "/v1/gateway/status and /v1/gateway/production-readiness",
-                "talk_track": "Admin views show provider health, customer usage, alerts, readiness, audit events, and invoice preview.",
+                "show": "/v1/gateway/status, /v1/gateway/production-readiness, and /v1/gateway/launch-plan",
+                "talk_track": "Admin views show provider health, customer usage, alerts, readiness, launch gates, audit events, and invoice preview.",
             },
             {
                 "step": 6,
@@ -4725,6 +4891,10 @@ def demo_bundle(server):
             {
                 "name": "Production readiness",
                 "command": f"curl {base_url}/v1/gateway/production-readiness -H 'Authorization: Bearer {server.admin_api_key or DEFAULT_ADMIN_API_KEY}'",
+            },
+            {
+                "name": "Launch plan",
+                "command": f"curl {base_url}/v1/gateway/launch-plan -H 'Authorization: Bearer {server.admin_api_key or DEFAULT_ADMIN_API_KEY}'",
             },
             {
                 "name": "Provider contracts",
@@ -4787,6 +4957,7 @@ def gateway_status(server):
         "customer_reports": customer_reports(server),
         "invoice_preview": invoice_preview(server),
         "production_readiness": production_readiness(server),
+        "launch_plan": launch_plan(server),
         "request_activity": request_activity(server.db_path, limit=10),
         "audit_events": audit_events(server.db_path, limit=10),
         "usage_by_customer": usage_grouped_by(server.db_path, "customer_id"),
@@ -5494,6 +5665,9 @@ class GatewayHandler(BaseHTTPRequestHandler):
             return
         if path == "/v1/gateway/production-readiness":
             make_json_response(self, 200, production_readiness(self.server))
+            return
+        if path == "/v1/gateway/launch-plan":
+            make_json_response(self, 200, launch_plan(self.server))
             return
         if path == "/v1/gateway/incident-playbook":
             make_json_response(self, 200, incident_playbook(self.server))

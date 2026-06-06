@@ -175,6 +175,7 @@ The current version also supports:
 - `GET /v1/gateway/support-policy`
 - `GET /v1/gateway/pilot-checklist`
 - `GET /v1/gateway/onboarding-plan`
+- `GET /v1/gateway/launch-plan`
 - `GET /v1/gateway/executive-brief`
 - `GET /v1/gateway/roadmap`
 - `GET /v1/gateway/decision-guide`
@@ -407,6 +408,31 @@ It is not a full security audit.
 It is a management-friendly view for explaining what still needs work before production traffic.
 
 The dashboard also shows this as **Production readiness** cards.
+
+## Production Launch Plan
+
+The gateway has a launch plan endpoint:
+
+```bash
+curl http://127.0.0.1:8787/v1/gateway/launch-plan \
+  -H "Authorization: Bearer dev-admin-key"
+```
+
+It converts readiness gaps into go-live gates.
+
+It explains:
+
+- security and secrets gate
+- provider live readiness gate
+- customer access and budget gate
+- routing and fallback gate
+- support and observability gate
+- billing and commercial rules gate
+- customer handoff gate
+
+Each gate has an owner, required evidence, current evidence, approval question, status, and next step.
+
+It also shows required signoffs and rollout stages from internal live test to broader rollout.
 
 For production, change the key with `GATEWAY_ADMIN_API_KEY`.
 
@@ -1395,6 +1421,7 @@ The dashboard is designed for customer explanation. It shows:
 - A visual architecture map from customer systems to model providers
 - Gateway options comparison for API Gateway, managed AI Gateway, custom Model Gateway, and OpenRouter-like paths
 - Production readiness cards for go-live gaps
+- Production launch gates before real customer traffic
 - Customer handoff package for OpenAPI, Postman, PDF, demo bundle, and GitHub
 - Customer onboarding plan from Day 0 to Day 5
 - Integration command starter for first curl tests

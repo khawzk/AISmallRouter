@@ -422,6 +422,12 @@
       font-size: 12px;
     }
 
+    .launch-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+    }
+
     .handoff-grid {
       display: grid;
       grid-template-columns: repeat(4, 1fr);
@@ -1099,6 +1105,7 @@
       .architecture-map,
       .option-grid,
       .readiness-grid,
+      .launch-grid,
       .handoff-grid,
       .onboarding-grid,
       .command-grid,
@@ -1301,6 +1308,16 @@
       </div>
     </section>
 
+    <section class="card" id="launchPlan" style="margin-bottom: 18px;">
+      <div class="card-head">
+        <h2>Production launch plan</h2>
+        <span id="launchSummary">go-live gates before real customer traffic</span>
+      </div>
+      <div class="card-body">
+        <div class="launch-grid" id="launchGateList"></div>
+      </div>
+    </section>
+
     <section class="card" id="handoff" style="margin-bottom: 18px;">
       <div class="card-head">
         <h2>Customer handoff package</h2>
@@ -1363,6 +1380,13 @@
               <p>Plain-English view of what is demo-ready and what still needs hardening.</p>
             </div>
             <a class="btn" href="/v1/gateway/production-readiness?admin_key=__ADMIN_API_KEY__">Open readiness</a>
+          </article>
+          <article class="handoff-card">
+            <div>
+              <h3>Launch plan</h3>
+              <p>Go-live gates, signoffs, rollout stages, blockers, and next action.</p>
+            </div>
+            <a class="btn" href="/v1/gateway/launch-plan?admin_key=__ADMIN_API_KEY__">Open launch</a>
           </article>
           <article class="handoff-card">
             <div>
@@ -1818,6 +1842,8 @@
     const gatewayOptionsList = document.getElementById("gatewayOptionsList");
     const readinessSummary = document.getElementById("readinessSummary");
     const readinessList = document.getElementById("readinessList");
+    const launchSummary = document.getElementById("launchSummary");
+    const launchGateList = document.getElementById("launchGateList");
     const accessMatrixList = document.getElementById("accessMatrixList");
     const customerReportList = document.getElementById("customerReportList");
     const invoicePreviewList = document.getElementById("invoicePreviewList");
@@ -2032,6 +2058,30 @@
           </div>
         `;
         readinessList.appendChild(card);
+      });
+    }
+
+    const launchPlan = state.launch_plan || {gates: []};
+    launchSummary.textContent = `${launchPlan.decision || "unknown"} / ${(launchPlan.blockers || []).length} blockers`;
+    if ((launchPlan.gates || []).length === 0) {
+      launchGateList.innerHTML = '<div class="trace-item">No launch gates available.</div>';
+    } else {
+      (launchPlan.gates || []).slice(0, 8).forEach((gate) => {
+        const card = document.createElement("article");
+        card.className = "readiness-card " + (gate.status || "");
+        const chipClass = gate.status === "ready" ? "chip green" : "chip";
+        card.innerHTML = `
+          <div class="readiness-title">
+            <strong>${escapeHtml(gate.name || "")}</strong>
+            <span class="${chipClass}">${escapeHtml(gate.status || "")}</span>
+          </div>
+          <p>${escapeHtml(gate.owner || "")}</p>
+          <div class="option-list">
+            <span>${escapeHtml(gate.approval_question || "")}</span>
+            <span>${escapeHtml(gate.next_step || "")}</span>
+          </div>
+        `;
+        launchGateList.appendChild(card);
       });
     }
 
