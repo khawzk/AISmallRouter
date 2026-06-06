@@ -1338,6 +1338,16 @@
       </div>
     </section>
 
+    <section class="card" id="securityReview" style="margin-bottom: 18px;">
+      <div class="card-head">
+        <h2>Security review</h2>
+        <span>customer security questions, current controls, threat model, and go-live gates</span>
+      </div>
+      <div class="card-body">
+        <div class="launch-grid" id="securityReviewList"></div>
+      </div>
+    </section>
+
     <section class="card" id="discoveryChecklist" style="margin-bottom: 18px;">
       <div class="card-head">
         <h2>Discovery checklist</h2>
@@ -1530,6 +1540,13 @@
               <p>Simple review of prompt handling, logs, retention, customer keys, and provider secrets.</p>
             </div>
             <a class="btn" href="/v1/gateway/data-governance?admin_key=__ADMIN_API_KEY__">Open review</a>
+          </article>
+          <article class="handoff-card">
+            <div>
+              <h3>Security review</h3>
+              <p>Threat model, current controls, customer security questions, and go-live security gates.</p>
+            </div>
+            <a class="btn" href="/v1/gateway/security-review?admin_key=__ADMIN_API_KEY__">Open security</a>
           </article>
           <article class="handoff-card">
             <div>
@@ -2003,6 +2020,7 @@
     const launchGateList = document.getElementById("launchGateList");
     const changeManagementList = document.getElementById("changeManagementList");
     const dataGovernanceList = document.getElementById("dataGovernanceList");
+    const securityReviewList = document.getElementById("securityReviewList");
     const discoveryChecklistList = document.getElementById("discoveryChecklistList");
     const proposalSummaryList = document.getElementById("proposalSummaryList");
     const deploymentReadinessList = document.getElementById("deploymentReadinessList");
@@ -2298,6 +2316,43 @@
         dataGovernanceList.appendChild(card);
       });
     }
+
+    const securityReview = state.security_review || {threats: [], go_live_security_gates: []};
+    const securityCards = [
+      {
+        title: "Current posture",
+        chip: securityReview.security_posture?.current_stage || "prototype",
+        body: securityReview.security_posture?.customer_safe_message || "",
+        items: securityReview.security_posture?.strongest_current_controls || [],
+      },
+      {
+        title: "Main risks",
+        chip: "threats",
+        body: securityReview.plain_english || "",
+        items: (securityReview.threats || []).map((item) => item.risk || ""),
+      },
+      {
+        title: "Go-live gates",
+        chip: "security gates",
+        body: securityReview.next_best_action || "",
+        items: securityReview.go_live_security_gates || [],
+      },
+    ];
+    securityCards.forEach((item) => {
+      const card = document.createElement("article");
+      card.className = "readiness-card " + (item.title === "Current posture" ? "ready" : "needs_work");
+      card.innerHTML = `
+        <div class="readiness-title">
+          <strong>${escapeHtml(item.title)}</strong>
+          <span class="${item.title === "Current posture" ? "chip green" : "chip"}">${escapeHtml(item.chip)}</span>
+        </div>
+        <p>${escapeHtml(item.body)}</p>
+        <div class="option-list">
+          ${(item.items || []).slice(0, 5).map((value) => `<span>${escapeHtml(value)}</span>`).join("")}
+        </div>
+      `;
+      securityReviewList.appendChild(card);
+    });
 
     const discoveryChecklist = state.discovery_checklist || {discovery_sections: []};
     if ((discoveryChecklist.discovery_sections || []).length === 0) {

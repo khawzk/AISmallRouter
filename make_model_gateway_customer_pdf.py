@@ -269,6 +269,7 @@ def build():
         "Config check endpoint for demo keys and missing production settings.",
         "Production readiness endpoint for plain-English go-live gaps.",
         "Data governance endpoint for prompt handling, logs, retention, customer keys, and provider secrets.",
+        "Security review endpoint for threat model, current controls, production controls, and go-live security gates.",
         "Structured route decision summary for support explanations.",
         "Local safety preview for obvious sensitive data.",
         "Customer key issue preview for safe onboarding demos.",
@@ -321,6 +322,7 @@ def build():
             ["Deployment readiness", "Customer technical teams need to know what must be configured before running it.", "Environment, preflight, health checks, rollback, and deployment options"],
             ["Production backlog", "Teams need to convert gaps into fundable engineering tasks.", "P0, P1, and P2 hardening backlog"],
             ["Data governance", "Customers need to know what happens to prompts, logs, retention, and secrets.", "Plain-English governance review"],
+            ["Security review", "Customers will ask what can go wrong and what controls exist.", "Threat model, current controls, and go-live gates"],
             ["Access control", "Each customer may be allowed to use different models.", "Access matrix by customer and model"],
             ["Provider health", "Customers need to know whether a provider can serve traffic.", "Readiness view based on config and recent traffic"],
             ["Provider lifecycle", "Teams need to add and stop providers safely.", "Local JSON-backed create, update, and disable actions"],
@@ -765,6 +767,26 @@ def build():
     governance = Table(governance_rows, colWidths=[2.1 * inch, 4.35 * inch])
     governance.setStyle(table_style())
     story.append(governance)
+    story.append(Spacer(1, 0.15 * inch))
+
+    story.append(Paragraph("Security Review", styles["H1Custom"]))
+    story.append(
+        Paragraph(
+            "/v1/gateway/security-review explains the main security questions a customer will ask before trusting one gateway with many AI providers. It covers customer gateway key risk, provider secret risk, sensitive prompt data in logs, wrong customer or model access, unsafe admin changes, current prototype controls, production controls still needed, and go-live security gates. It is a simple threat model for customer conversations, not a penetration test, SOC 2 report, legal compliance review, or production approval.",
+            styles["BodyCustom"],
+        )
+    )
+    security_rows = [
+        ["Risk", "Current prototype control", "Production control needed"],
+        ["Customer key leak", "Allowed models, request limits, budgets, rotate and disable actions.", "Real key store, expiry, approvals, emergency disable, and alerts."],
+        ["Provider secret exposure", "Provider records use environment variable names and responses avoid raw secrets.", "Secret manager, rotation schedule, restricted operators, and secret audit."],
+        ["Sensitive prompt data in logs", "Safety preview can show obvious sensitive patterns.", "Retention rules, masking, deletion workflow, and customer-specific policy."],
+        ["Wrong model access", "Customer allowed_models and access matrix.", "Tenant isolation tests, export controls, and stronger policy review."],
+        ["Unsafe admin change", "Lifecycle endpoints create audit events and change plan explains rollback.", "Approval workflow, staged rollout, config history, and automated rollback."],
+    ]
+    security = Table(security_rows, colWidths=[1.45 * inch, 2.5 * inch, 2.5 * inch])
+    security.setStyle(table_style())
+    story.append(security)
     story.append(Spacer(1, 0.15 * inch))
 
     story.append(Paragraph("Customer Discovery Checklist", styles["H1Custom"]))

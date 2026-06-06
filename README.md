@@ -184,6 +184,7 @@ The current version also supports:
 - `GET /v1/gateway/launch-plan`
 - `GET /v1/gateway/change-management`
 - `GET /v1/gateway/data-governance`
+- `GET /v1/gateway/security-review`
 - `GET /v1/gateway/executive-brief`
 - `GET /v1/gateway/roadmap`
 - `GET /v1/gateway/decision-guide`
@@ -594,6 +595,36 @@ This is not a compliance certification.
 It is a simple review checklist for customer, security, and business discussions before real production traffic.
 
 For production, the customer and gateway owner still need a clear policy for log retention, deletion, access control, secret rotation, and sensitive data handling.
+
+## Security Review
+
+The gateway has a security review endpoint:
+
+```bash
+curl http://127.0.0.1:8787/v1/gateway/security-review \
+  -H "Authorization: Bearer dev-admin-key"
+```
+
+This endpoint explains the main security questions a customer will ask before trusting one gateway with many AI providers.
+
+It covers:
+
+- customer gateway key risk
+- provider secret risk
+- sensitive prompt data in logs
+- wrong customer or model access
+- unsafe admin changes
+- current prototype controls
+- production controls still needed
+- go-live security gates
+
+This is not a penetration test, SOC 2 report, legal compliance review, or production approval.
+
+It is a simple threat model for customer conversations.
+
+The safest message is:
+
+The prototype is good for local explanation and mock demos. Before production, the team still needs real key storage, secret manager, role-based admin access, log retention policy, tenant isolation tests, and security review.
 
 ## Customer Self View
 

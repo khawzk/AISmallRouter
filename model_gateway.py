@@ -92,6 +92,7 @@ ADMIN_PATHS = {
     "/v1/gateway/launch-plan",
     "/v1/gateway/change-management",
     "/v1/gateway/data-governance",
+    "/v1/gateway/security-review",
     "/v1/gateway/incident-playbook",
     "/v1/gateway/support-policy",
     "/v1/gateway/pilot-checklist",
@@ -3360,6 +3361,117 @@ def data_governance_review(server):
     }
 
 
+def security_review(server):
+    config = gateway_config_check(server)
+    governance = data_governance_review(server)
+    readiness = production_readiness(server)
+    return {
+        "object": "gateway.security_review",
+        "title": "AISmallRouter Security Review",
+        "audience": "business owner, customer security reviewer, gateway owner, and support owner",
+        "mode": "mock" if server.mock_mode else "live",
+        "plain_english": "This review explains the main security questions a customer will ask before trusting one gateway with many AI providers.",
+        "security_posture": {
+            "current_stage": "prototype",
+            "customer_safe_message": "The prototype is safe for local explanation and mock demos. It is not yet a production security certification.",
+            "strongest_current_controls": [
+                "Customer requests use gateway API keys instead of provider API keys.",
+                "Admin endpoints require a separate admin key.",
+                "Provider secret values are not returned in customer, dashboard, OpenAPI, Postman, or demo bundle responses.",
+                "Mock mode can explain routing without sending prompts to a paid provider.",
+                "Request, usage, and audit records help explain what happened during a demo.",
+            ],
+            "main_production_gaps": [
+                "Replace local JSON keys with a real key store or identity provider.",
+                "Move provider secrets to a managed secret manager with rotation and access review.",
+                "Add role-based admin permissions instead of one shared admin key.",
+                "Define log retention, redaction, deletion, and export policy.",
+                "Add tenant isolation tests and security review before live customer traffic.",
+            ],
+        },
+        "threats": [
+            {
+                "risk": "Customer key leak",
+                "what_could_happen": "Someone with a customer gateway key could call allowed models under that customer.",
+                "current_control": "Keys are scoped to allowed models, request limits, token budgets, cost budgets, and can be rotated or disabled.",
+                "production_control_needed": "Store keys in a real key management system, add expiry, owner approval, emergency disable, and anomaly alerts.",
+                "evidence": ["/v1/gateway/me", "/v1/gateway/customers/rotate-key", "/v1/gateway/customers/disable"],
+            },
+            {
+                "risk": "Provider secret exposure",
+                "what_could_happen": "A provider API key could let someone spend credits or access provider resources directly.",
+                "current_control": "Provider records use API key environment variable names and responses avoid raw provider secrets.",
+                "production_control_needed": "Use a managed secret store, rotation schedule, restricted operators, and secret access audit.",
+                "evidence": ["/v1/gateway/config-check", "/v1/gateway/provider-health", "/v1/gateway/data-governance"],
+            },
+            {
+                "risk": "Sensitive prompt data in logs",
+                "what_could_happen": "Support logs could capture customer business data or personal data.",
+                "current_control": "Safety preview can show obvious email, phone, and API-key-like patterns before sending a request.",
+                "production_control_needed": "Agree retention rules, log masking, deletion workflow, and customer-specific data policy.",
+                "evidence": ["/v1/gateway/safety-preview", "/v1/gateway/request-activity", "/v1/gateway/data-governance"],
+            },
+            {
+                "risk": "Wrong customer or model access",
+                "what_could_happen": "A customer could see or use a model they should not access.",
+                "current_control": "Customer config has allowed_models, and /v1/models only returns models available to that customer.",
+                "production_control_needed": "Add tenant isolation tests, customer export controls, and stronger policy review before changes.",
+                "evidence": ["/v1/models", "/v1/gateway/access-matrix", "/v1/gateway/route-preview"],
+            },
+            {
+                "risk": "Unsafe admin change",
+                "what_could_happen": "A route, provider, or key change could break customer traffic or send traffic to an unapproved provider.",
+                "current_control": "Lifecycle endpoints write audit events and change management describes before/after checks.",
+                "production_control_needed": "Add approval workflow, staged rollout, config version history, and automated rollback.",
+                "evidence": ["/v1/gateway/change-management", "/v1/gateway/audit-events", "/v1/gateway/model-catalog"],
+            },
+        ],
+        "customer_security_questions": [
+            {
+                "question": "Will our users ever receive provider API keys?",
+                "short_answer": "No. Customers use gateway keys. Provider keys stay behind the gateway.",
+            },
+            {
+                "question": "Can we test without sending prompts to a real model provider?",
+                "short_answer": "Yes. Mock mode explains routing and returns simulated responses without provider spend.",
+            },
+            {
+                "question": "Can each customer have different model access?",
+                "short_answer": "Yes. The prototype supports per-customer allowed models, request limits, and budgets.",
+            },
+            {
+                "question": "Is this production-certified today?",
+                "short_answer": "No. It is a prototype. Use the production backlog and launch plan before any production promise.",
+            },
+        ],
+        "go_live_security_gates": [
+            "Replace demo gateway and admin keys.",
+            "Store provider secrets in a managed secret manager.",
+            "Define customer log retention, masking, export, and deletion rules.",
+            "Add role-based admin access and audit review.",
+            "Run tenant isolation, fallback, budget, and provider contract tests.",
+            "Agree support escalation and incident wording with the customer.",
+        ],
+        "evidence_endpoints": [
+            "/v1/gateway/config-check",
+            "/v1/gateway/data-governance",
+            "/v1/gateway/production-readiness",
+            "/v1/gateway/production-backlog",
+            "/v1/gateway/change-management",
+            "/v1/gateway/incident-playbook",
+            "/v1/gateway/access-matrix",
+            "/v1/gateway/audit-events",
+        ],
+        "current_context": {
+            "config_issue_count": len(config.get("issues", [])),
+            "data_governance_categories": len(governance.get("categories", [])),
+            "readiness_status": readiness.get("overall_status"),
+        },
+        "next_best_action": "Use this security review before a customer pilot, then convert open risks into production backlog items.",
+        "prototype_note": "This is a security explanation for planning and customer discussion. It is not a penetration test, SOC 2 report, legal compliance review, or production approval.",
+    }
+
+
 def incident_playbook(server):
     alerts = gateway_alerts(server)
     alert_codes = {alert.get("code") for alert in alerts.get("alerts", [])}
@@ -5594,6 +5706,7 @@ def openapi_spec(server):
         "/v1/gateway/launch-plan": "Production launch plan",
         "/v1/gateway/change-management": "Change management and rollback plan",
         "/v1/gateway/data-governance": "Data governance and privacy review",
+        "/v1/gateway/security-review": "Security review and threat model",
         "/v1/gateway/incident-playbook": "Incident response playbook",
         "/v1/gateway/support-policy": "Support policy and SLA stage guide",
         "/v1/gateway/pilot-checklist": "Customer pilot checklist",
@@ -5712,6 +5825,7 @@ def postman_collection(server):
         request_item("Launch Plan", "GET", "/v1/gateway/launch-plan", "admin_api_key"),
         request_item("Change Management", "GET", "/v1/gateway/change-management", "admin_api_key"),
         request_item("Data Governance", "GET", "/v1/gateway/data-governance", "admin_api_key"),
+        request_item("Security Review", "GET", "/v1/gateway/security-review", "admin_api_key"),
         request_item("Incident Playbook", "GET", "/v1/gateway/incident-playbook", "admin_api_key"),
         request_item("Support Policy", "GET", "/v1/gateway/support-policy", "admin_api_key"),
         request_item("Pilot Checklist", "GET", "/v1/gateway/pilot-checklist", "admin_api_key"),
@@ -5919,6 +6033,13 @@ def demo_bundle(server):
                 "url": f"{base_url}/v1/gateway/data-governance",
                 "audience": "business, security, customer data, and gateway owners",
                 "purpose": "Explain prompt handling, logs, retention, customer keys, provider secrets, and production gaps.",
+                "auth": "adminBearerAuth",
+            },
+            {
+                "name": "Security review",
+                "url": f"{base_url}/v1/gateway/security-review",
+                "audience": "business, customer security, gateway, and support owners",
+                "purpose": "Explain key risks, current controls, production controls, customer security questions, and go-live gates.",
                 "auth": "adminBearerAuth",
             },
             {
@@ -6138,6 +6259,10 @@ def demo_bundle(server):
                 "command": f"curl {base_url}/v1/gateway/data-governance -H 'Authorization: Bearer {server.admin_api_key or DEFAULT_ADMIN_API_KEY}'",
             },
             {
+                "name": "Security review",
+                "command": f"curl {base_url}/v1/gateway/security-review -H 'Authorization: Bearer {server.admin_api_key or DEFAULT_ADMIN_API_KEY}'",
+            },
+            {
                 "name": "Customer success",
                 "command": f"curl {base_url}/v1/gateway/customer-success -H 'Authorization: Bearer {server.admin_api_key or DEFAULT_ADMIN_API_KEY}'",
             },
@@ -6223,6 +6348,7 @@ def gateway_status(server):
         "launch_plan": launch_plan(server),
         "change_management": change_management_plan(server),
         "data_governance": data_governance_review(server),
+        "security_review": security_review(server),
         "discovery_checklist": discovery_checklist(server),
         "proposal_summary": proposal_summary(server),
         "request_activity": request_activity(server.db_path, limit=10),
@@ -6955,6 +7081,9 @@ class GatewayHandler(BaseHTTPRequestHandler):
             return
         if path == "/v1/gateway/data-governance":
             make_json_response(self, 200, data_governance_review(self.server))
+            return
+        if path == "/v1/gateway/security-review":
+            make_json_response(self, 200, security_review(self.server))
             return
         if path == "/v1/gateway/incident-playbook":
             make_json_response(self, 200, incident_playbook(self.server))

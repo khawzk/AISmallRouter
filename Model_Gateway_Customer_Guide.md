@@ -378,6 +378,7 @@ They help explain the control layer:
 - Request summary by customer, model, provider, and error code
 - Config check for demo keys and missing production settings
 - Production readiness report
+- Security review and go-live security gates
 
 In the prototype, these endpoints use a separate demo admin key.
 
@@ -1338,6 +1339,33 @@ It is a simple checklist for customer trust discussions before real production t
 The main message is simple:
 
 Before production, the customer and gateway owner must agree how prompts are logged, how long logs are kept, who can see request details, how secrets are rotated, and how customer data can be deleted.
+
+## What The Security Review Shows
+
+The prototype includes `/v1/gateway/security-review`.
+
+This endpoint explains the main security questions a customer will ask before trusting one gateway with many AI providers.
+
+It is written for business, customer security, gateway, and support owners.
+
+It covers:
+
+- customer gateway key risk
+- provider secret risk
+- sensitive prompt data in logs
+- wrong customer or model access
+- unsafe admin changes
+- current prototype controls
+- production controls still needed
+- go-live security gates
+
+This is not a penetration test, SOC 2 report, legal compliance review, or production approval.
+
+It is a simple threat model for customer conversations.
+
+The main message is simple:
+
+The prototype is good for local explanation and mock demos. Before production, the team still needs real key storage, secret manager, role-based admin access, log retention policy, tenant isolation tests, and security review.
 
 ## What The Discovery Checklist Shows
 
