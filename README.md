@@ -168,6 +168,7 @@ The current version also supports:
 - `GET /openapi.json`
 - `GET /postman_collection.json`
 - `GET /v1/gateway/demo-bundle`
+- `GET /v1/gateway/handoff-checklist`
 - `GET /v1/gateway/status`
 - `GET /v1/gateway/audit-events`
 - `GET /v1/gateway/alerts`
@@ -335,6 +336,23 @@ It points to:
 - production notes
 
 This helps a non-technical customer understand the story first, then gives their technical team the right artifacts.
+
+The gateway also exposes a handoff checklist:
+
+```bash
+curl http://127.0.0.1:8787/v1/gateway/handoff-checklist \
+  -H "Authorization: Bearer dev-admin-key"
+```
+
+It explains:
+
+- what can be shared with the customer
+- what should stay internal or admin-only
+- which role owns each artifact
+- what to check before the customer meeting
+- what to do after the customer meeting
+
+This keeps the handoff practical and prevents accidentally sending provider secrets or admin-only links.
 
 ## Customer Integration Guide
 

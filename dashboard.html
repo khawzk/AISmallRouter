@@ -1388,6 +1388,16 @@
       </div>
     </section>
 
+    <section class="card" id="handoffChecklist" style="margin-bottom: 18px;">
+      <div class="card-head">
+        <h2>Handoff checklist</h2>
+        <span>what to share, what stays internal, and what to check before sending links</span>
+      </div>
+      <div class="card-body">
+        <div class="launch-grid" id="handoffChecklistList"></div>
+      </div>
+    </section>
+
     <section class="card" id="handoff" style="margin-bottom: 18px;">
       <div class="card-head">
         <h2>Customer handoff package</h2>
@@ -1401,6 +1411,13 @@
               <p>One manifest with dashboard, docs, demo order, commands, and production notes.</p>
             </div>
             <a class="btn" href="/v1/gateway/demo-bundle?admin_key=__ADMIN_API_KEY__">Open bundle</a>
+          </article>
+          <article class="handoff-card">
+            <div>
+              <h3>Handoff checklist</h3>
+              <p>Shareable links, admin-only links, meeting checks, and follow-up actions.</p>
+            </div>
+            <a class="btn" href="/v1/gateway/handoff-checklist?admin_key=__ADMIN_API_KEY__">Open handoff</a>
           </article>
           <article class="handoff-card">
             <div>
@@ -1990,6 +2007,7 @@
     const proposalSummaryList = document.getElementById("proposalSummaryList");
     const deploymentReadinessList = document.getElementById("deploymentReadinessList");
     const productionBacklogList = document.getElementById("productionBacklogList");
+    const handoffChecklistList = document.getElementById("handoffChecklistList");
     const accessMatrixList = document.getElementById("accessMatrixList");
     const customerSuccessSummary = document.getElementById("customerSuccessSummary");
     const customerSuccessList = document.getElementById("customerSuccessList");
@@ -2428,6 +2446,44 @@
         pilotScorecardList.appendChild(card);
       });
     }
+
+    const handoffChecklist = state.handoff_checklist || {handoff_groups: []};
+    const shareableGroups = (handoffChecklist.handoff_groups || []).filter((group) => group.share_with_customer);
+    const internalGroups = (handoffChecklist.handoff_groups || []).filter((group) => !group.share_with_customer);
+    [
+      {
+        title: "Customer-shareable",
+        chip: "share",
+        body: "Links and documents that can be shown to the customer.",
+        items: shareableGroups.flatMap((group) => (group.items || []).map((item) => item.name)),
+      },
+      {
+        title: "Internal or admin-only",
+        chip: "admin",
+        body: "Materials for gateway, support, security, and readiness owners.",
+        items: internalGroups.flatMap((group) => (group.items || []).map((item) => item.name)),
+      },
+      {
+        title: "Before meeting",
+        chip: "check",
+        body: handoffChecklist.next_best_action || "",
+        items: handoffChecklist.before_customer_meeting || [],
+      },
+    ].forEach((item) => {
+      const card = document.createElement("article");
+      card.className = "readiness-card " + (item.chip === "share" ? "ready" : "needs_work");
+      card.innerHTML = `
+        <div class="readiness-title">
+          <strong>${escapeHtml(item.title)}</strong>
+          <span class="${item.chip === "share" ? "chip green" : "chip"}">${escapeHtml(item.chip)}</span>
+        </div>
+        <p>${escapeHtml(item.body)}</p>
+        <div class="option-list">
+          ${(item.items || []).slice(0, 5).map((value) => `<span>${escapeHtml(value)}</span>`).join("")}
+        </div>
+      `;
+      handoffChecklistList.appendChild(card);
+    });
 
     function tokenPercent(report) {
       const budget = report.budget || {};

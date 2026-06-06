@@ -233,6 +233,7 @@ def build():
         "OpenAPI contract at /openapi.json for customer technical handoff.",
         "Postman collection at /postman_collection.json for click-through demos.",
         "Demo bundle manifest at /v1/gateway/demo-bundle for customer presentation flow.",
+        "Handoff checklist endpoint for customer-shareable links, admin-only material, meeting checks, and follow-up actions.",
         "Customer integration guide at /v1/gateway/integration-guide with safe code examples.",
         "OpenAI-compatible /v1/chat/completions endpoint.",
         "Customer API key authentication with Bearer token.",
@@ -299,6 +300,7 @@ def build():
             ["API handoff", "Customer technical teams need a clear API contract.", "OpenAPI contract endpoint"],
             ["Demo handoff", "Customer technical teams may want to click through requests.", "Postman collection endpoint"],
             ["Demo flow", "Business and technical users need to know what to look at first.", "Demo bundle manifest endpoint"],
+            ["Customer handoff", "Teams need to know what can be shared and what stays admin-only.", "Handoff checklist endpoint"],
             ["Customer integration", "A customer technical team needs safe examples for their own key and models.", "Customer integration guide endpoint"],
             ["Streaming", "Chat UIs and agents often need incremental tokens.", "Mock streaming included; live provider differences still need work"],
             ["Tool calling", "OpenAI, Claude, and Qwen may differ in tool format.", "Mock tool_calls plus basic normalization"],
@@ -362,10 +364,30 @@ def build():
     story.append(Paragraph("API Contract", styles["H1Custom"]))
     story.append(
         Paragraph(
-            "/openapi.json exposes an OpenAPI contract for the prototype. It describes the customer API, admin control-plane API, bearer key security schemes, and the main endpoint groups. /postman_collection.json exposes a ready-to-import Postman collection with base_url, gateway_api_key, and admin_api_key variables. /v1/gateway/demo-bundle lists the dashboard, customer self view, OpenAPI contract, Postman collection, PDF guide, recommended demo order, safe curl examples, and production notes. The dashboard also has a Customer handoff package section that links the main artifacts in one place and an Integration command starter with local curl commands. /v1/gateway/integration-guide lets a customer use their own key to see allowed models, a recommended first model, curl, Python, JavaScript, streaming examples, and a go-live checklist without exposing provider secrets. /v1/gateway/sdk-starter adds a .env template, starter Python and JavaScript files, first-run commands, common error fixes, and a handoff checklist. These help a business team understand the story first and help a customer technical team import or click through the prototype quickly.",
+            "/openapi.json exposes an OpenAPI contract for the prototype. It describes the customer API, admin control-plane API, bearer key security schemes, and the main endpoint groups. /postman_collection.json exposes a ready-to-import Postman collection with base_url, gateway_api_key, and admin_api_key variables. /v1/gateway/demo-bundle lists the dashboard, customer self view, OpenAPI contract, Postman collection, PDF guide, recommended demo order, safe curl examples, and production notes. /v1/gateway/handoff-checklist explains what can be shared with customers, what should stay admin-only, meeting checks, follow-up actions, and the rule that provider API keys stay private. The dashboard also has a Customer handoff package section that links the main artifacts in one place and an Integration command starter with local curl commands. /v1/gateway/integration-guide lets a customer use their own key to see allowed models, a recommended first model, curl, Python, JavaScript, streaming examples, and a go-live checklist without exposing provider secrets. /v1/gateway/sdk-starter adds a .env template, starter Python and JavaScript files, first-run commands, common error fixes, and a handoff checklist. These help a business team understand the story first and help a customer technical team import or click through the prototype quickly.",
             styles["BodyCustom"],
         )
     )
+
+    story.append(Paragraph("Handoff Checklist", styles["H1Custom"]))
+    story.append(
+        Paragraph(
+            "/v1/gateway/handoff-checklist is an admin-only customer meeting checklist. It separates customer-shareable material from internal readiness material. It covers the business overview, customer technical handoff, pilot decision package, internal readiness package, meeting checks, and follow-up actions.",
+            styles["BodyCustom"],
+        )
+    )
+    handoff_table = Table(
+        [
+            ["Group", "What It Means"],
+            ["Business overview", "Links for non-technical customer explanation."],
+            ["Customer technical handoff", "API contract, Postman, integration guide, and SDK starter."],
+            ["Pilot decision package", "Pilot checklist, scorecard, customer reports, and success summary."],
+            ["Internal readiness package", "Production readiness, deployment readiness, backlog, change plan, and data governance."],
+        ],
+        colWidths=[2.0 * inch, 4.5 * inch],
+    )
+    handoff_table.setStyle(table_style())
+    story.append(handoff_table)
 
     story.append(Paragraph("Admin Summary Endpoints", styles["H1Custom"]))
     story.append(

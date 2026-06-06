@@ -181,6 +181,29 @@ This helps a business team understand the story first.
 
 Then the technical team can use the API contract and Postman collection.
 
+## What The Handoff Checklist Shows
+
+The prototype also includes `/v1/gateway/handoff-checklist`.
+
+This is an admin-only checklist for customer meetings.
+
+It explains:
+
+- what can be shared with the customer
+- what should stay internal or admin-only
+- which materials support the business story
+- which materials support the technical handoff
+- what to check before the customer meeting
+- what to do after the customer meeting
+
+The main rule is simple:
+
+- customers use gateway API keys
+- provider API keys stay private
+- admin-only links stay internal unless the team approves sharing them
+
+This helps a non-technical team present the project safely and clearly.
+
 The prototype also includes `/v1/gateway/integration-guide`.
 
 This is a customer-facing integration guide.

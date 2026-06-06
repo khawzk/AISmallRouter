@@ -85,6 +85,7 @@ ADMIN_PATHS = {
     "/v1/gateway/customer-success",
     "/v1/gateway/policy-presets",
     "/v1/gateway/demo-bundle",
+    "/v1/gateway/handoff-checklist",
     "/v1/gateway/production-readiness",
     "/v1/gateway/deployment-readiness",
     "/v1/gateway/production-backlog",
@@ -3864,6 +3865,85 @@ def pilot_scorecard(server):
     }
 
 
+def handoff_checklist(server):
+    base_url = f"http://{server.server_address[0]}:{server.server_address[1]}"
+    return {
+        "object": "gateway.handoff_checklist",
+        "title": "AISmallRouter Customer Handoff Checklist",
+        "audience": "business owner, customer technical owner, support owner, and gateway owner",
+        "mode": "mock" if server.mock_mode else "live",
+        "plain_english": "This checklist shows what to share with a customer, who should read it, and what should stay internal or admin-only.",
+        "handoff_groups": [
+            {
+                "group": "Business overview",
+                "owner": "Business owner",
+                "share_with_customer": True,
+                "items": [
+                    {"name": "Visual dashboard", "url": f"{base_url}/", "purpose": "Explain the gateway concept visually."},
+                    {"name": "Customer guide PDF", "path": "Model_Gateway_Customer_Guide.pdf", "purpose": "Simple English explanation of direction, architecture, and hard parts."},
+                    {"name": "Proposal summary", "url": f"{base_url}/v1/gateway/proposal-summary", "purpose": "Explain phase one scope, exclusions, risks, and next steps."},
+                    {"name": "Discovery checklist", "url": f"{base_url}/v1/gateway/discovery-checklist", "purpose": "Confirm scope before promising an OpenRouter-like platform."},
+                ],
+            },
+            {
+                "group": "Customer technical handoff",
+                "owner": "Customer technical owner",
+                "share_with_customer": True,
+                "items": [
+                    {"name": "OpenAPI contract", "url": f"{base_url}/openapi.json", "purpose": "Inspect or generate client code from the API shape."},
+                    {"name": "Postman collection", "url": f"{base_url}/postman_collection.json", "purpose": "Click through demo requests."},
+                    {"name": "Customer integration guide", "url": f"{base_url}/v1/gateway/integration-guide", "purpose": "Customer-key examples for curl, Python, JavaScript, and streaming."},
+                    {"name": "Customer SDK starter", "url": f"{base_url}/v1/gateway/sdk-starter", "purpose": "Starter files, .env template, first-run commands, and common errors."},
+                ],
+            },
+            {
+                "group": "Pilot decision package",
+                "owner": "Customer success owner",
+                "share_with_customer": True,
+                "items": [
+                    {"name": "Pilot checklist", "url": f"{base_url}/v1/gateway/pilot-checklist", "purpose": "Prepare before, during, and after a pilot."},
+                    {"name": "Pilot scorecard", "url": f"{base_url}/v1/gateway/pilot-scorecard", "purpose": "Decide discovery, extended pilot, or production hardening."},
+                    {"name": "Customer success summary", "url": f"{base_url}/v1/gateway/customer-success", "purpose": "Review customer health and follow-up actions."},
+                    {"name": "Customer reports", "url": f"{base_url}/v1/gateway/customer-reports", "purpose": "Show usage, errors, tokens, budget, and recent requests."},
+                ],
+            },
+            {
+                "group": "Internal readiness package",
+                "owner": "Gateway owner",
+                "share_with_customer": False,
+                "items": [
+                    {"name": "Production readiness", "url": f"{base_url}/v1/gateway/production-readiness", "purpose": "Explain demo-ready versus production-ready gaps."},
+                    {"name": "Deployment readiness", "url": f"{base_url}/v1/gateway/deployment-readiness", "purpose": "Review environment, preflight, operations, rollback, and deployment options."},
+                    {"name": "Production backlog", "url": f"{base_url}/v1/gateway/production-backlog", "purpose": "Prioritize P0, P1, and P2 hardening work."},
+                    {"name": "Change management", "url": f"{base_url}/v1/gateway/change-management", "purpose": "Review approval and rollback for config changes."},
+                    {"name": "Data governance", "url": f"{base_url}/v1/gateway/data-governance", "purpose": "Review prompt handling, logs, retention, customer keys, and provider secrets."},
+                ],
+            },
+        ],
+        "handoff_rules": [
+            "Do not send provider API keys to the customer.",
+            "Use customer gateway keys only for customer-facing requests.",
+            "Admin endpoints are for internal demo, support, and readiness review unless explicitly approved.",
+            "Use mock mode first when explaining the flow.",
+            "Move to live Qwen only after data handling and provider key strategy are understood.",
+        ],
+        "before_customer_meeting": [
+            "Open the dashboard and confirm it loads.",
+            "Run /v1/models with the customer key.",
+            "Run one mock chat request and save gateway.request_id.",
+            "Open the proposal summary and pilot scorecard.",
+            "Confirm which links are customer-shareable and which are admin-only.",
+        ],
+        "after_customer_meeting": [
+            "Record whether the customer wants discovery, extended pilot, or production hardening.",
+            "Update the proposal summary scope if the first use case changed.",
+            "Review pilot scorecard weak criteria.",
+            "Use production backlog only if the customer wants production commitment.",
+        ],
+        "next_best_action": "Use this checklist as the meeting handoff page before sending technical artifacts to a customer.",
+    }
+
+
 def executive_brief(server):
     readiness = production_readiness(server)
     support = support_policy(server)
@@ -5507,6 +5587,7 @@ def openapi_spec(server):
         "/v1/gateway/model-usage": "Usage grouped by model",
         "/v1/gateway/request-summary": "Request summary by dimensions",
         "/v1/gateway/demo-bundle": "Customer demo bundle manifest",
+        "/v1/gateway/handoff-checklist": "Customer handoff checklist",
         "/v1/gateway/production-readiness": "Production readiness report",
         "/v1/gateway/deployment-readiness": "Deployment readiness guide",
         "/v1/gateway/production-backlog": "Production hardening backlog",
@@ -5621,6 +5702,7 @@ def postman_collection(server):
     ]
     admin_items = [
         request_item("Gateway Status", "GET", "/v1/gateway/status", "admin_api_key"),
+        request_item("Handoff Checklist", "GET", "/v1/gateway/handoff-checklist", "admin_api_key"),
         request_item("Policy Presets", "GET", "/v1/gateway/policy-presets", "admin_api_key"),
         request_item("Provider Health", "GET", "/v1/gateway/provider-health", "admin_api_key"),
         request_item("Provider Contracts", "GET", "/v1/gateway/provider-contracts", "admin_api_key"),
@@ -5783,6 +5865,13 @@ def demo_bundle(server):
                 "audience": "customer technical",
                 "purpose": "Show .env template, starter Python and JavaScript files, first-run commands, and common errors.",
                 "auth": "customerBearerAuth",
+            },
+            {
+                "name": "Handoff checklist",
+                "url": f"{base_url}/v1/gateway/handoff-checklist",
+                "audience": "business, customer technical, support, and gateway owners",
+                "purpose": "Show what to share with customers, what is admin-only, meeting checks, and follow-up actions.",
+                "auth": "adminBearerAuth",
             },
             {
                 "name": "OpenAPI contract",
@@ -6021,6 +6110,10 @@ def demo_bundle(server):
                 "command": f"curl {base_url}/v1/gateway/status -H 'Authorization: Bearer {server.admin_api_key or DEFAULT_ADMIN_API_KEY}'",
             },
             {
+                "name": "Handoff checklist",
+                "command": f"curl {base_url}/v1/gateway/handoff-checklist -H 'Authorization: Bearer {server.admin_api_key or DEFAULT_ADMIN_API_KEY}'",
+            },
+            {
                 "name": "Production readiness",
                 "command": f"curl {base_url}/v1/gateway/production-readiness -H 'Authorization: Bearer {server.admin_api_key or DEFAULT_ADMIN_API_KEY}'",
             },
@@ -6115,6 +6208,7 @@ def gateway_status(server):
         "summary": db_summary(server.db_path),
         "alerts": gateway_alerts(server),
         "config_check": gateway_config_check(server),
+        "handoff_checklist": handoff_checklist(server),
         "provider_summary": provider_status(server),
         "provider_health": provider_health(server),
         "model_catalog": model_catalog(server),
@@ -6840,6 +6934,9 @@ class GatewayHandler(BaseHTTPRequestHandler):
             return
         if path == "/v1/gateway/config-check":
             make_json_response(self, 200, gateway_config_check(self.server))
+            return
+        if path == "/v1/gateway/handoff-checklist":
+            make_json_response(self, 200, handoff_checklist(self.server))
             return
         if path == "/v1/gateway/production-readiness":
             make_json_response(self, 200, production_readiness(self.server))

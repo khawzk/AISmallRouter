@@ -179,6 +179,7 @@ class GatewayPrototypeTest(unittest.TestCase):
             "/v1/gateway/audit-events",
             "/v1/gateway/customer-success",
             "/v1/gateway/demo-bundle",
+            "/v1/gateway/handoff-checklist",
             "/v1/gateway/production-readiness",
             "/v1/gateway/deployment-readiness",
             "/v1/gateway/production-backlog",
@@ -246,6 +247,7 @@ class GatewayPrototypeTest(unittest.TestCase):
         self.assertIn("Decision Guide", admin_names)
         self.assertIn("FAQ", admin_names)
         self.assertIn("Demo Script", admin_names)
+        self.assertIn("Handoff Checklist", admin_names)
         self.assertIn("Create Customer", admin_names)
         chat = next(item for item in folders["Customer API"]["item"] if item["name"] == "Chat Completion")
         self.assertEqual(chat["request"]["auth"]["bearer"][0]["value"], "{{gateway_api_key}}")
@@ -264,6 +266,7 @@ class GatewayPrototypeTest(unittest.TestCase):
         self.assertIn(f"{self.base_url}/openapi.json", entry_urls)
         self.assertIn(f"{self.base_url}/postman_collection.json", entry_urls)
         self.assertIn(f"{self.base_url}/v1/gateway/sdk-starter", entry_urls)
+        self.assertIn(f"{self.base_url}/v1/gateway/handoff-checklist", entry_urls)
         self.assertIn(f"{self.base_url}/v1/gateway/production-readiness", entry_urls)
         self.assertIn(f"{self.base_url}/v1/gateway/deployment-readiness", entry_urls)
         self.assertIn(f"{self.base_url}/v1/gateway/production-backlog", entry_urls)
@@ -289,6 +292,31 @@ class GatewayPrototypeTest(unittest.TestCase):
         self.assertGreaterEqual(len(bundle["quick_commands"]), 4)
         self.assertIn("Replace demo keys before production.", bundle["production_notes"])
         self.assertNotIn("DASHSCOPE_API_KEY", json.dumps(bundle))
+
+    def test_handoff_checklist_groups_shareable_and_admin_materials(self):
+        status, payload = request_json(self.base_url, path="/v1/gateway/handoff-checklist", api_key="dev-gateway-key")
+        self.assertEqual(status, 401)
+        self.assertEqual(payload["error"]["code"], "invalid_admin_key")
+
+        status, checklist = request_json(self.base_url, path="/v1/gateway/handoff-checklist", api_key="dev-admin-key")
+        self.assertEqual(status, 200)
+        self.assertEqual(checklist["object"], "gateway.handoff_checklist")
+        group_names = {group["group"] for group in checklist["handoff_groups"]}
+        self.assertIn("Business overview", group_names)
+        self.assertIn("Customer technical handoff", group_names)
+        self.assertIn("Pilot decision package", group_names)
+        self.assertIn("Internal readiness package", group_names)
+        self.assertTrue(any(group["share_with_customer"] for group in checklist["handoff_groups"]))
+        self.assertTrue(any(not group["share_with_customer"] for group in checklist["handoff_groups"]))
+        technical_group = next(group for group in checklist["handoff_groups"] if group["group"] == "Customer technical handoff")
+        internal_group = next(group for group in checklist["handoff_groups"] if group["group"] == "Internal readiness package")
+        self.assertTrue(any(item["name"] == "OpenAPI contract" for item in technical_group["items"]))
+        self.assertTrue(any(item["name"] == "Data governance" for item in internal_group["items"]))
+        self.assertTrue(any("provider API keys" in rule for rule in checklist["handoff_rules"]))
+        self.assertGreaterEqual(len(checklist["before_customer_meeting"]), 3)
+        self.assertGreaterEqual(len(checklist["after_customer_meeting"]), 3)
+        self.assertNotIn("sk-", json.dumps(checklist))
+        self.assertNotIn("provider_api_keys", json.dumps(checklist))
 
     def test_provider_contracts_explain_adapter_differences(self):
         status, payload = request_json(self.base_url, path="/v1/gateway/provider-contracts", api_key="dev-gateway-key")
@@ -1132,6 +1160,8 @@ class GatewayPrototypeTest(unittest.TestCase):
         self.assertIn("work_items", payload["production_backlog"])
         self.assertIn("pilot_scorecard", payload)
         self.assertIn("scorecards", payload["pilot_scorecard"])
+        self.assertIn("handoff_checklist", payload)
+        self.assertIn("handoff_groups", payload["handoff_checklist"])
         self.assertIn("launch_plan", payload)
         self.assertIn("gates", payload["launch_plan"])
         self.assertIn("change_management", payload)
@@ -2060,6 +2090,9 @@ class GatewayPrototypeTest(unittest.TestCase):
         self.assertIn("Pilot scorecard", html)
         self.assertIn("pilotScorecardList", html)
         self.assertIn("/v1/gateway/pilot-scorecard?admin_key=", html)
+        self.assertIn("Handoff checklist", html)
+        self.assertIn("handoffChecklistList", html)
+        self.assertIn("/v1/gateway/handoff-checklist?admin_key=", html)
         self.assertIn("Customer success summary", html)
         self.assertIn("customerSuccessList", html)
         self.assertIn("Customer handoff package", html)
