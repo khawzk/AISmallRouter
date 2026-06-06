@@ -455,6 +455,39 @@
       width: fit-content;
     }
 
+    .command-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+    }
+
+    .command-card {
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: var(--panel-3);
+      overflow: hidden;
+    }
+
+    .command-card h3 {
+      margin: 0;
+      padding: 13px 14px;
+      border-bottom: 1px solid var(--line);
+      font-size: 14px;
+    }
+
+    .command-card pre {
+      margin: 0;
+      min-height: 132px;
+      overflow: auto;
+      padding: 14px;
+      background: #0b0d10;
+      color: #d8dee9;
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-size: 12px;
+      line-height: 1.55;
+      white-space: pre-wrap;
+    }
+
     .route-flow {
       display: grid;
       gap: 12px;
@@ -1028,6 +1061,7 @@
       .option-grid,
       .readiness-grid,
       .handoff-grid,
+      .command-grid,
       .demo-board,
       .quickstart {
         grid-template-columns: 1fr;
@@ -1289,6 +1323,29 @@
               <p>Source code, docs, tests, and generated customer guide artifacts.</p>
             </div>
             <a class="btn" href="https://github.com/khawzk/AISmallRouter">Open GitHub</a>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section class="card" id="integrationCommands" style="margin-bottom: 18px;">
+      <div class="card-head">
+        <h2>Integration command starter</h2>
+        <span>copy-ready local commands for the first technical test</span>
+      </div>
+      <div class="card-body">
+        <div class="command-grid">
+          <article class="command-card">
+            <h3>1. List models</h3>
+            <pre id="commandListModels">Loading command...</pre>
+          </article>
+          <article class="command-card">
+            <h3>2. Send chat request</h3>
+            <pre id="commandChat">Loading command...</pre>
+          </article>
+          <article class="command-card">
+            <h3>3. Get integration guide</h3>
+            <pre id="commandGuide">Loading command...</pre>
           </article>
         </div>
       </div>
@@ -1726,6 +1783,9 @@
     const demoScriptPackage = document.getElementById("demoScriptPackage");
     const demoScriptSteps = document.getElementById("demoScriptSteps");
     const demoScriptQuestions = document.getElementById("demoScriptQuestions");
+    const commandListModels = document.getElementById("commandListModels");
+    const commandChat = document.getElementById("commandChat");
+    const commandGuide = document.getElementById("commandGuide");
 
     function escapeHtml(value) {
       return String(value == null ? "" : value)
@@ -1748,6 +1808,11 @@
     const limitWindow = firstCustomer.limit_window_seconds || state.limit_window_seconds;
     limitText.textContent = `${requestLimit} requests / ${limitWindow}s`;
     const alertState = state.alerts || {summary: {}, alerts: []};
+    const baseUrl = window.location.origin;
+    const demoCustomerKey = "dev-gateway-key";
+    commandListModels.textContent = `curl ${baseUrl}/v1/models \\\n  -H "Authorization: Bearer ${demoCustomerKey}"`;
+    commandChat.textContent = `curl ${baseUrl}/v1/chat/completions \\\n  -H "Authorization: Bearer ${demoCustomerKey}" \\\n  -H "Content-Type: application/json" \\\n  -d '{"model":"smart-fast","messages":[{"role":"user","content":"Explain this gateway in one sentence."}]}'`;
+    commandGuide.textContent = `curl ${baseUrl}/v1/gateway/integration-guide \\\n  -H "Authorization: Bearer ${demoCustomerKey}"`;
     alertSummary.textContent = `${alertState.status || "ok"} / ${alertState.summary?.critical || 0} critical / ${alertState.summary?.warning || 0} warning`;
     if ((alertState.alerts || []).length === 0) {
       alertList.innerHTML = '<div class="trace-item">No operational alerts.</div>';

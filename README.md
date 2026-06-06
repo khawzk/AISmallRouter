@@ -348,6 +348,8 @@ This returns:
 
 It uses placeholders like `YOUR_GATEWAY_API_KEY`.
 
+The dashboard also shows an **Integration command starter** with copy-ready local curl commands.
+
 It does not expose provider API keys.
 
 ## Admin Access
@@ -1371,6 +1373,7 @@ The dashboard is designed for customer explanation. It shows:
 - Gateway options comparison for API Gateway, managed AI Gateway, custom Model Gateway, and OpenRouter-like paths
 - Production readiness cards for go-live gaps
 - Customer handoff package for OpenAPI, Postman, PDF, demo bundle, and GitHub
+- Integration command starter for first curl tests
 - Gateway entry control
 - Model routing
 - Provider adapters

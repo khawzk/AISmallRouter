@@ -198,6 +198,8 @@ It returns:
 - go-live checklist
 - support questions
 
+The dashboard also shows an Integration command starter with local curl commands.
+
 It uses placeholders for secrets.
 
 It does not expose provider API keys.
@@ -264,6 +266,7 @@ The dashboard shows:
 - Gateway options comparison
 - Production readiness cards
 - Customer handoff package
+- Integration command starter
 - Operational alerts
 - Access matrix
 - One API for customers
