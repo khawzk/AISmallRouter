@@ -94,6 +94,7 @@ ADMIN_PATHS = {
     "/v1/gateway/incident-playbook",
     "/v1/gateway/support-policy",
     "/v1/gateway/pilot-checklist",
+    "/v1/gateway/pilot-scorecard",
     "/v1/gateway/discovery-checklist",
     "/v1/gateway/proposal-summary",
     "/v1/gateway/onboarding-plan",
@@ -3745,6 +3746,124 @@ def pilot_checklist(server):
     }
 
 
+def pilot_scorecard(server):
+    reports = customer_reports(server)
+    success = customer_success_summary(server)
+    readiness = production_readiness(server)
+    scorecards = []
+    for report in reports:
+        summary = report.get("request_summary", {})
+        budget = report.get("budget", {})
+        usage = budget.get("usage", {})
+        request_count = int(summary.get("requests") or 0)
+        error_rate = float(summary.get("error_rate") or 0)
+        total_tokens = int(usage.get("total_tokens") or 0)
+        has_allowed_models = bool(report.get("allowed_models"))
+        has_traceable_request = bool(report.get("recent_requests"))
+        budget_state = report.get("budget_state")
+
+        criteria = [
+            {
+                "name": "First request completed",
+                "status": "passed" if request_count > 0 else "not_started",
+                "score": 20 if request_count > 0 else 0,
+                "evidence": "/v1/gateway/customer-reports",
+            },
+            {
+                "name": "Request tracing available",
+                "status": "passed" if has_traceable_request else "not_started",
+                "score": 15 if has_traceable_request else 0,
+                "evidence": "/v1/gateway/request-detail?request_id=...",
+            },
+            {
+                "name": "Error rate acceptable",
+                "status": "passed" if request_count > 0 and error_rate < 0.2 else "needs_work" if request_count > 0 else "not_started",
+                "score": 20 if request_count > 0 and error_rate < 0.2 else 8 if request_count > 0 else 0,
+                "evidence": "/v1/gateway/request-activity",
+            },
+            {
+                "name": "Budget still usable",
+                "status": "passed" if budget_state in {"ok", "unlimited"} else "needs_work",
+                "score": 15 if budget_state in {"ok", "unlimited"} else 5,
+                "evidence": "/v1/gateway/customer-reports",
+            },
+            {
+                "name": "Model access configured",
+                "status": "passed" if has_allowed_models else "blocked",
+                "score": 15 if has_allowed_models else 0,
+                "evidence": "/v1/gateway/access-matrix",
+            },
+            {
+                "name": "Production gaps acknowledged",
+                "status": "passed" if readiness.get("prototype_only") else "needs_work",
+                "score": 15 if readiness.get("prototype_only") else 5,
+                "evidence": "/v1/gateway/production-readiness",
+            },
+        ]
+        total_score = sum(item["score"] for item in criteria)
+        if total_score >= 80 and request_count > 0 and error_rate < 0.2:
+            decision = "plan_production_hardening"
+            next_action = "Use production backlog and launch plan to decide what must be funded before production."
+        elif total_score >= 50:
+            decision = "extend_pilot"
+            next_action = "Run more mock or live Qwen tests and review unresolved criteria."
+        else:
+            decision = "keep_in_discovery"
+            next_action = "Confirm use case, model access, and first request before expanding the pilot."
+        scorecards.append(
+            {
+                "customer_id": report.get("id"),
+                "customer_name": report.get("name"),
+                "score": total_score,
+                "decision": decision,
+                "next_action": next_action,
+                "metrics": {
+                    "requests": request_count,
+                    "errors": int(summary.get("errors") or 0),
+                    "error_rate": error_rate,
+                    "total_tokens": total_tokens,
+                    "budget_state": budget_state,
+                },
+                "criteria": criteria,
+            }
+        )
+
+    decisions = {}
+    for card in scorecards:
+        decisions[card["decision"]] = decisions.get(card["decision"], 0) + 1
+    return {
+        "object": "gateway.pilot_scorecard",
+        "title": "AISmallRouter Pilot Scorecard",
+        "audience": "business owner, customer success, support owner, and customer technical owner",
+        "mode": "mock" if server.mock_mode else "live",
+        "plain_english": "This scorecard helps decide whether a customer pilot should stay in discovery, continue testing, or move toward production hardening.",
+        "scoring": {
+            "max_score": 100,
+            "decision_rules": [
+                "80 or higher with successful requests: plan production hardening.",
+                "50 to 79: extend the pilot and close weak criteria.",
+                "Below 50: keep the customer in discovery before expanding scope.",
+            ],
+        },
+        "summary": {
+            "customers": len(scorecards),
+            "average_score": round(sum(card["score"] for card in scorecards) / len(scorecards), 2) if scorecards else 0,
+            "decisions": decisions,
+            "customer_success_totals": success.get("totals", {}),
+        },
+        "scorecards": scorecards,
+        "reference_endpoints": [
+            "/v1/gateway/pilot-checklist",
+            "/v1/gateway/customer-reports",
+            "/v1/gateway/customer-success",
+            "/v1/gateway/request-activity",
+            "/v1/gateway/production-readiness",
+            "/v1/gateway/production-backlog",
+        ],
+        "next_best_action": "Review the lowest-scoring criteria with the customer before changing scope or promising production.",
+    }
+
+
 def executive_brief(server):
     readiness = production_readiness(server)
     support = support_policy(server)
@@ -5397,6 +5516,7 @@ def openapi_spec(server):
         "/v1/gateway/incident-playbook": "Incident response playbook",
         "/v1/gateway/support-policy": "Support policy and SLA stage guide",
         "/v1/gateway/pilot-checklist": "Customer pilot checklist",
+        "/v1/gateway/pilot-scorecard": "Customer pilot scorecard",
         "/v1/gateway/discovery-checklist": "Customer discovery checklist",
         "/v1/gateway/proposal-summary": "Customer proposal and scope summary",
         "/v1/gateway/onboarding-plan": "Customer onboarding plan",
@@ -5513,6 +5633,7 @@ def postman_collection(server):
         request_item("Incident Playbook", "GET", "/v1/gateway/incident-playbook", "admin_api_key"),
         request_item("Support Policy", "GET", "/v1/gateway/support-policy", "admin_api_key"),
         request_item("Pilot Checklist", "GET", "/v1/gateway/pilot-checklist", "admin_api_key"),
+        request_item("Pilot Scorecard", "GET", "/v1/gateway/pilot-scorecard", "admin_api_key"),
         request_item("Discovery Checklist", "GET", "/v1/gateway/discovery-checklist", "admin_api_key"),
         request_item("Proposal Summary", "GET", "/v1/gateway/proposal-summary", "admin_api_key"),
         request_item("Onboarding Plan", "GET", "/v1/gateway/onboarding-plan", "admin_api_key"),
@@ -5747,6 +5868,13 @@ def demo_bundle(server):
                 "auth": "adminBearerAuth",
             },
             {
+                "name": "Pilot scorecard",
+                "url": f"{base_url}/v1/gateway/pilot-scorecard",
+                "audience": "business, customer success, support, and customer technical",
+                "purpose": "Score pilot progress and recommend discovery, extended pilot, or production hardening.",
+                "auth": "adminBearerAuth",
+            },
+            {
                 "name": "Discovery checklist",
                 "url": f"{base_url}/v1/gateway/discovery-checklist",
                 "audience": "sales, solution architect, business, and customer technical",
@@ -5937,6 +6065,10 @@ def demo_bundle(server):
                 "command": f"curl {base_url}/v1/gateway/pilot-checklist -H 'Authorization: Bearer {server.admin_api_key or DEFAULT_ADMIN_API_KEY}'",
             },
             {
+                "name": "Pilot scorecard",
+                "command": f"curl {base_url}/v1/gateway/pilot-scorecard -H 'Authorization: Bearer {server.admin_api_key or DEFAULT_ADMIN_API_KEY}'",
+            },
+            {
                 "name": "Discovery checklist",
                 "command": f"curl {base_url}/v1/gateway/discovery-checklist -H 'Authorization: Bearer {server.admin_api_key or DEFAULT_ADMIN_API_KEY}'",
             },
@@ -5989,6 +6121,7 @@ def gateway_status(server):
         "access_matrix": access_matrix(server),
         "customer_reports": customer_reports(server),
         "customer_success": customer_success_summary(server),
+        "pilot_scorecard": pilot_scorecard(server),
         "invoice_preview": invoice_preview(server),
         "production_readiness": production_readiness(server),
         "deployment_readiness": deployment_readiness(server),
@@ -6734,6 +6867,9 @@ class GatewayHandler(BaseHTTPRequestHandler):
             return
         if path == "/v1/gateway/pilot-checklist":
             make_json_response(self, 200, pilot_checklist(self.server))
+            return
+        if path == "/v1/gateway/pilot-scorecard":
+            make_json_response(self, 200, pilot_scorecard(self.server))
             return
         if path == "/v1/gateway/discovery-checklist":
             make_json_response(self, 200, discovery_checklist(self.server))

@@ -174,6 +174,7 @@ The current version also supports:
 - `GET /v1/gateway/incident-playbook`
 - `GET /v1/gateway/support-policy`
 - `GET /v1/gateway/pilot-checklist`
+- `GET /v1/gateway/pilot-scorecard`
 - `GET /v1/gateway/discovery-checklist`
 - `GET /v1/gateway/proposal-summary`
 - `GET /v1/gateway/onboarding-plan`
@@ -695,6 +696,28 @@ It covers:
 - stop, extend, or productionize decision
 
 It helps keep a customer pilot small, honest, and measurable.
+
+## Pilot Scorecard
+
+The gateway has a pilot scorecard endpoint:
+
+```bash
+curl http://127.0.0.1:8787/v1/gateway/pilot-scorecard \
+  -H "Authorization: Bearer dev-admin-key"
+```
+
+It helps decide whether a customer pilot should stay in discovery, continue testing, or move toward production hardening.
+
+It scores:
+
+- first request completed
+- request tracing available
+- error rate acceptable
+- budget still usable
+- model access configured
+- production gaps acknowledged
+
+The result includes a score, decision, weak criteria, metrics, and next action for each customer.
 
 ## Discovery Checklist
 

@@ -1378,6 +1378,16 @@
       </div>
     </section>
 
+    <section class="card" id="pilotScorecard" style="margin-bottom: 18px;">
+      <div class="card-head">
+        <h2>Pilot scorecard</h2>
+        <span>score pilot progress and decide discovery, extended pilot, or hardening</span>
+      </div>
+      <div class="card-body">
+        <div class="report-grid" id="pilotScorecardList"></div>
+      </div>
+    </section>
+
     <section class="card" id="handoff" style="margin-bottom: 18px;">
       <div class="card-head">
         <h2>Customer handoff package</h2>
@@ -1440,6 +1450,13 @@
               <p>Day 0 to Day 5 pilot path with owners, actions, evidence, and exit checks.</p>
             </div>
             <a class="btn" href="/v1/gateway/onboarding-plan?admin_key=__ADMIN_API_KEY__">Open plan</a>
+          </article>
+          <article class="handoff-card">
+            <div>
+              <h3>Pilot scorecard</h3>
+              <p>Customer score, criteria, decision, and next action after a pilot test.</p>
+            </div>
+            <a class="btn" href="/v1/gateway/pilot-scorecard?admin_key=__ADMIN_API_KEY__">Open scorecard</a>
           </article>
           <article class="handoff-card">
             <div>
@@ -1976,6 +1993,7 @@
     const accessMatrixList = document.getElementById("accessMatrixList");
     const customerSuccessSummary = document.getElementById("customerSuccessSummary");
     const customerSuccessList = document.getElementById("customerSuccessList");
+    const pilotScorecardList = document.getElementById("pilotScorecardList");
     const customerReportList = document.getElementById("customerReportList");
     const invoicePreviewList = document.getElementById("invoicePreviewList");
     const activityList = document.getElementById("activityList");
@@ -2379,6 +2397,37 @@
       `;
       productionBacklogList.appendChild(card);
     });
+
+    const pilotScorecard = state.pilot_scorecard || {scorecards: []};
+    if ((pilotScorecard.scorecards || []).length === 0) {
+      pilotScorecardList.innerHTML = '<div class="trace-item">No pilot scorecards available.</div>';
+    } else {
+      (pilotScorecard.scorecards || []).forEach((scorecard) => {
+        const metrics = scorecard.metrics || {};
+        const card = document.createElement("article");
+        card.className = "report-card";
+        const chipClass = scorecard.score >= 80 ? "chip green" : "chip";
+        const weakCriteria = (scorecard.criteria || []).filter((item) => item.status !== "passed").slice(0, 2);
+        const weakText = weakCriteria.length ? weakCriteria.map((item) => item.name).join(", ") : "All core criteria passed.";
+        card.innerHTML = `
+          <div class="report-top">
+            <div>
+              <strong>${escapeHtml(scorecard.customer_id || "")}</strong>
+              <span>${escapeHtml(scorecard.decision || "")}</span>
+            </div>
+            <span class="${chipClass}">${scorecard.score}/100</span>
+          </div>
+          <div class="report-metrics">
+            <span>Requests<br><strong>${metrics.requests || 0}</strong></span>
+            <span>Errors<br><strong>${metrics.errors || 0}</strong></span>
+            <span>Budget<br><strong>${escapeHtml(metrics.budget_state || "")}</strong></span>
+          </div>
+          <p style="margin:0 0 8px;color:var(--muted);font-size:12px;">${escapeHtml(weakText)}</p>
+          <p style="margin:0;color:var(--muted);font-size:12px;">${escapeHtml(scorecard.next_action || "")}</p>
+        `;
+        pilotScorecardList.appendChild(card);
+      });
+    }
 
     function tokenPercent(report) {
       const budget = report.budget || {};

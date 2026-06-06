@@ -472,6 +472,23 @@ It explains:
 
 It helps keep the pilot small, honest, and measurable.
 
+## What The Pilot Scorecard Shows
+
+The prototype includes `/v1/gateway/pilot-scorecard`.
+
+This endpoint helps decide whether a customer pilot should stay in discovery, continue testing, or move toward production hardening.
+
+It scores:
+
+- first request completed
+- request tracing available
+- error rate acceptable
+- budget still usable
+- model access configured
+- production gaps acknowledged
+
+The result includes a score, decision, weak criteria, metrics, and next action for each customer.
+
 ## What The Onboarding Plan Shows
 
 The prototype includes `/v1/gateway/onboarding-plan`.

@@ -244,6 +244,7 @@ def build():
         "Incident playbook endpoint with support scenarios and customer-safe wording.",
         "Support policy endpoint for prototype, pilot, and production support stages.",
         "Pilot checklist endpoint for before, during, and after a customer trial.",
+        "Pilot scorecard endpoint for deciding discovery, extended pilot, or production hardening.",
         "Discovery checklist endpoint for customer goals, provider scope, governance, reporting, and production expectations.",
         "Proposal summary endpoint for customer-facing pilot scope, exclusions, risks, and next steps.",
         "Deployment readiness endpoint for environment, preflight checks, operations, rollback, and deployment options.",
@@ -306,6 +307,7 @@ def build():
             ["Incident response", "Support teams need a shared script when requests fail.", "Playbook with signals, steps, and customer wording"],
             ["Support policy", "Customers need to know what support is promised at each stage.", "Prototype, pilot, and production support guide"],
             ["Pilot planning", "A customer trial needs scope, roles, success criteria, and exit decision.", "Pilot checklist endpoint"],
+            ["Pilot scoring", "Teams need to know whether the pilot worked.", "Scorecard with score, decision, weak criteria, and next action"],
             ["Customer discovery", "Broad gateway ideas need clear scope before implementation.", "Discovery checklist with questions, evidence, and red flags"],
             ["Proposal summary", "Customers need a simple scope note after discovery.", "Customer-facing pilot scope, exclusions, risks, and next steps"],
             ["Executive communication", "Non-technical stakeholders need a short business summary.", "Executive brief endpoint"],
@@ -625,6 +627,14 @@ def build():
     story.append(
         Paragraph(
             "/v1/gateway/customer-success turns customer usage data into account health. It shows healthy, watch, and at-risk customer counts, health status per customer, risk reasons, recommended follow-up action, simple business metrics, meeting questions, and evidence endpoints for support. This helps sales, support, and customer success teams decide who needs attention before the next customer call.",
+            styles["BodyCustom"],
+        )
+    )
+
+    story.append(Paragraph("Pilot Scorecard", styles["H1Custom"]))
+    story.append(
+        Paragraph(
+            "/v1/gateway/pilot-scorecard helps decide whether a customer pilot should stay in discovery, continue testing, or move toward production hardening. It scores first request completion, request tracing, error rate, budget state, model access, and production gap acknowledgement. Each customer gets a score, decision, metrics, weak criteria, and next action.",
             styles["BodyCustom"],
         )
     )

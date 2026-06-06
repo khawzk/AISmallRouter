@@ -189,6 +189,7 @@ class GatewayPrototypeTest(unittest.TestCase):
             "/v1/gateway/incident-playbook",
             "/v1/gateway/support-policy",
             "/v1/gateway/pilot-checklist",
+            "/v1/gateway/pilot-scorecard",
             "/v1/gateway/discovery-checklist",
             "/v1/gateway/proposal-summary",
             "/v1/gateway/onboarding-plan",
@@ -236,6 +237,7 @@ class GatewayPrototypeTest(unittest.TestCase):
         self.assertIn("Customer Success", admin_names)
         self.assertIn("Support Policy", admin_names)
         self.assertIn("Pilot Checklist", admin_names)
+        self.assertIn("Pilot Scorecard", admin_names)
         self.assertIn("Discovery Checklist", admin_names)
         self.assertIn("Proposal Summary", admin_names)
         self.assertIn("Onboarding Plan", admin_names)
@@ -273,6 +275,7 @@ class GatewayPrototypeTest(unittest.TestCase):
         self.assertIn(f"{self.base_url}/v1/gateway/incident-playbook", entry_urls)
         self.assertIn(f"{self.base_url}/v1/gateway/support-policy", entry_urls)
         self.assertIn(f"{self.base_url}/v1/gateway/pilot-checklist", entry_urls)
+        self.assertIn(f"{self.base_url}/v1/gateway/pilot-scorecard", entry_urls)
         self.assertIn(f"{self.base_url}/v1/gateway/discovery-checklist", entry_urls)
         self.assertIn(f"{self.base_url}/v1/gateway/proposal-summary", entry_urls)
         self.assertIn(f"{self.base_url}/v1/gateway/onboarding-plan", entry_urls)
@@ -571,6 +574,41 @@ class GatewayPrototypeTest(unittest.TestCase):
         self.assertIn("readiness_status", backlog["current_context"])
         self.assertIn("funded", backlog["next_best_action"])
         self.assertNotIn("sk-", json.dumps(backlog))
+
+    def test_pilot_scorecard_scores_customer_pilot_progress(self):
+        status, payload = request_json(self.base_url, path="/v1/gateway/pilot-scorecard", api_key="dev-gateway-key")
+        self.assertEqual(status, 401)
+        self.assertEqual(payload["error"]["code"], "invalid_admin_key")
+
+        request_json(
+            self.base_url,
+            method="POST",
+            path="/v1/chat/completions",
+            api_key="dev-gateway-key",
+            payload={
+                "model": "smart-fast",
+                "messages": [{"role": "user", "content": "Create pilot scorecard evidence."}],
+                "stream": False,
+            },
+        )
+        status, scorecard = request_json(self.base_url, path="/v1/gateway/pilot-scorecard", api_key="dev-admin-key")
+        self.assertEqual(status, 200)
+        self.assertEqual(scorecard["object"], "gateway.pilot_scorecard")
+        self.assertEqual(scorecard["scoring"]["max_score"], 100)
+        self.assertIn("average_score", scorecard["summary"])
+        cards = {item["customer_id"]: item for item in scorecard["scorecards"]}
+        self.assertIn("dev", cards)
+        dev = cards["dev"]
+        self.assertIn(dev["decision"], {"keep_in_discovery", "extend_pilot", "plan_production_hardening"})
+        criteria = {item["name"]: item for item in dev["criteria"]}
+        self.assertIn("First request completed", criteria)
+        self.assertIn("Request tracing available", criteria)
+        self.assertIn("Production gaps acknowledged", criteria)
+        self.assertGreaterEqual(dev["score"], 0)
+        self.assertLessEqual(dev["score"], 100)
+        self.assertIn("/v1/gateway/production-backlog", scorecard["reference_endpoints"])
+        self.assertNotIn("provider_api_keys", json.dumps(scorecard))
+        self.assertNotIn("sk-", json.dumps(scorecard))
 
     def test_launch_plan_lists_go_live_gates(self):
         status, payload = request_json(self.base_url, path="/v1/gateway/launch-plan", api_key="dev-gateway-key")
@@ -1092,6 +1130,8 @@ class GatewayPrototypeTest(unittest.TestCase):
         self.assertIn("deployment_stages", payload["deployment_readiness"])
         self.assertIn("production_backlog", payload)
         self.assertIn("work_items", payload["production_backlog"])
+        self.assertIn("pilot_scorecard", payload)
+        self.assertIn("scorecards", payload["pilot_scorecard"])
         self.assertIn("launch_plan", payload)
         self.assertIn("gates", payload["launch_plan"])
         self.assertIn("change_management", payload)
@@ -2017,6 +2057,9 @@ class GatewayPrototypeTest(unittest.TestCase):
         self.assertIn("Production backlog", html)
         self.assertIn("productionBacklogList", html)
         self.assertIn("/v1/gateway/production-backlog?admin_key=", html)
+        self.assertIn("Pilot scorecard", html)
+        self.assertIn("pilotScorecardList", html)
+        self.assertIn("/v1/gateway/pilot-scorecard?admin_key=", html)
         self.assertIn("Customer success summary", html)
         self.assertIn("customerSuccessList", html)
         self.assertIn("Customer handoff package", html)
