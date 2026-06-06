@@ -249,6 +249,7 @@ def build():
         "Discovery checklist endpoint for customer goals, provider scope, governance, reporting, and production expectations.",
         "Proposal summary endpoint for customer-facing pilot scope, exclusions, risks, and next steps.",
         "Deployment readiness endpoint for environment, preflight checks, operations, rollback, and deployment options.",
+        "Migration plan endpoint for phased customer cutover, checklist, rollback, and evidence.",
         "Production backlog endpoint for prioritized P0, P1, and P2 hardening tasks.",
         "Executive brief endpoint for non-technical customer stakeholders.",
         "Roadmap endpoint for prototype, pilot, production hardening, and multi-provider expansion.",
@@ -321,6 +322,7 @@ def build():
             ["Demo delivery", "A presenter needs a simple meeting flow, talk track, and likely questions.", "Demo script endpoint"],
             ["Production readiness", "Customers need to understand why demo-ready is not production-ready.", "Plain-English readiness report"],
             ["Deployment readiness", "Customer technical teams need to know what must be configured before running it.", "Environment, preflight, health checks, rollback, and deployment options"],
+            ["Customer migration", "Customers need a low-risk path from direct provider calls to the gateway.", "Phased cutover plan and rollback checklist"],
             ["Production backlog", "Teams need to convert gaps into fundable engineering tasks.", "P0, P1, and P2 hardening backlog"],
             ["Data governance", "Customers need to know what happens to prompts, logs, retention, and secrets.", "Plain-English governance review"],
             ["Security review", "Customers will ask what can go wrong and what controls exist.", "Threat model, current controls, and go-live gates"],
@@ -715,6 +717,27 @@ def build():
     deployment = Table(deployment_rows, colWidths=[2.1 * inch, 4.35 * inch])
     deployment.setStyle(table_style())
     story.append(deployment)
+    story.append(Spacer(1, 0.15 * inch))
+
+    story.append(Paragraph("Customer Migration Plan", styles["H1Custom"]))
+    story.append(
+        Paragraph(
+            "/v1/gateway/migration-plan explains how a customer can move from direct model provider calls to one gateway API without switching everything at once. It covers current-state discovery, shadow gateway setup, mock and evaluation testing, limited live pilot, gradual cutover, production decision, cutover checklist, rollback plan, and evidence endpoints. It is a cutover plan for customer conversations, not a one-click migration tool.",
+            styles["BodyCustom"],
+        )
+    )
+    migration_rows = [
+        ["Phase", "Purpose"],
+        ["Current-state discovery", "Understand current provider calls, prompts, models, owners, and data rules."],
+        ["Shadow gateway setup", "Create public model names and customer key without changing production traffic."],
+        ["Mock and evaluation test", "Show routing, fallback, cost estimate, safety, and model evaluation evidence."],
+        ["Limited live pilot", "Send small approved traffic through the gateway while old provider path remains available."],
+        ["Gradual cutover", "Increase traffic only after error, latency, budget, and support checks pass."],
+        ["Production decision", "Choose stop, extend pilot, or fund production hardening."],
+    ]
+    migration = Table(migration_rows, colWidths=[2.1 * inch, 4.35 * inch])
+    migration.setStyle(table_style())
+    story.append(migration)
     story.append(Spacer(1, 0.15 * inch))
 
     story.append(Paragraph("Production Hardening Backlog", styles["H1Custom"]))

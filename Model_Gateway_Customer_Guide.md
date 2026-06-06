@@ -380,6 +380,7 @@ They help explain the control layer:
 - Production readiness report
 - Security review and go-live security gates
 - Model evaluation plan and quality scorecards
+- Customer migration plan and rollback checklist
 
 In the prototype, these endpoints use a separate demo admin key.
 
@@ -1236,6 +1237,32 @@ It covers:
 This is not a one-command production deploy.
 
 It is a plain-English guide for the customer technical team to understand what must be configured, secured, monitored, and approved before real traffic.
+
+## What The Customer Migration Plan Shows
+
+The prototype includes `/v1/gateway/migration-plan`.
+
+This endpoint explains how a customer can move from direct model provider calls to one gateway API without switching everything at once.
+
+It covers:
+
+- current-state discovery
+- shadow gateway setup
+- mock and evaluation testing
+- limited live pilot
+- gradual cutover
+- production decision
+- cutover checklist
+- rollback plan
+- evidence endpoints
+
+This is not a one-click migration tool.
+
+It is a simple cutover plan for customer conversations.
+
+The main message is simple:
+
+Start with one customer, one workflow, one or two public model names, mock mode first, then controlled live traffic. Keep the old provider path available until rollback is tested.
 
 ## What The Production Backlog Shows
 

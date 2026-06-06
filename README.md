@@ -180,6 +180,7 @@ The current version also supports:
 - `GET /v1/gateway/proposal-summary`
 - `GET /v1/gateway/onboarding-plan`
 - `GET /v1/gateway/deployment-readiness`
+- `GET /v1/gateway/migration-plan`
 - `GET /v1/gateway/production-backlog`
 - `GET /v1/gateway/launch-plan`
 - `GET /v1/gateway/change-management`
@@ -483,6 +484,37 @@ It covers:
 This is not a one-command production deploy.
 
 It is a plain-English guide for the customer technical team to understand what must be configured, secured, monitored, and approved before real traffic.
+
+## Customer Migration Plan
+
+The gateway has a migration plan endpoint:
+
+```bash
+curl http://127.0.0.1:8787/v1/gateway/migration-plan \
+  -H "Authorization: Bearer dev-admin-key"
+```
+
+It explains how a customer can move from direct model provider calls to one gateway API without switching everything at once.
+
+It covers:
+
+- current-state discovery
+- shadow gateway setup
+- mock and evaluation testing
+- limited live pilot
+- gradual cutover
+- production decision
+- cutover checklist
+- rollback plan
+- evidence endpoints
+
+This is not a one-click migration tool.
+
+It is a simple cutover plan for customer conversations.
+
+The safest message is:
+
+Start with one customer, one workflow, one or two public model names, mock mode first, then controlled live traffic. Keep the old provider path available until rollback is tested.
 
 ## Production Hardening Backlog
 

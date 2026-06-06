@@ -1388,6 +1388,16 @@
       </div>
     </section>
 
+    <section class="card" id="migrationPlan" style="margin-bottom: 18px;">
+      <div class="card-head">
+        <h2>Migration plan</h2>
+        <span>phased customer cutover, rollback path, and evidence before live traffic</span>
+      </div>
+      <div class="card-body">
+        <div class="launch-grid" id="migrationPlanList"></div>
+      </div>
+    </section>
+
     <section class="card" id="productionBacklog" style="margin-bottom: 18px;">
       <div class="card-head">
         <h2>Production backlog</h2>
@@ -1564,6 +1574,13 @@
               <p>Model quality, reliability, latency, cost, safety, and fallback checks before live routing.</p>
             </div>
             <a class="btn" href="/v1/gateway/evaluation-plan?admin_key=__ADMIN_API_KEY__">Open eval</a>
+          </article>
+          <article class="handoff-card">
+            <div>
+              <h3>Migration plan</h3>
+              <p>Phased customer cutover from direct provider calls to the gateway with rollback.</p>
+            </div>
+            <a class="btn" href="/v1/gateway/migration-plan?admin_key=__ADMIN_API_KEY__">Open migration</a>
           </article>
           <article class="handoff-card">
             <div>
@@ -2042,6 +2059,7 @@
     const discoveryChecklistList = document.getElementById("discoveryChecklistList");
     const proposalSummaryList = document.getElementById("proposalSummaryList");
     const deploymentReadinessList = document.getElementById("deploymentReadinessList");
+    const migrationPlanList = document.getElementById("migrationPlanList");
     const productionBacklogList = document.getElementById("productionBacklogList");
     const handoffChecklistList = document.getElementById("handoffChecklistList");
     const accessMatrixList = document.getElementById("accessMatrixList");
@@ -2503,6 +2521,43 @@
         </div>
       `;
       deploymentReadinessList.appendChild(card);
+    });
+
+    const migrationPlan = state.migration_plan || {phases: [], cutover_checklist: [], rollback_plan: []};
+    const migrationCards = [
+      {
+        title: "Migration phases",
+        chip: migrationPlan.migration_strategy?.recommended_style || "phased",
+        body: migrationPlan.plain_english || "",
+        items: (migrationPlan.phases || []).map((phase) => `${phase.phase}: ${phase.goal}`),
+      },
+      {
+        title: "Cutover checklist",
+        chip: "before live",
+        body: migrationPlan.customer_message || "",
+        items: migrationPlan.cutover_checklist || [],
+      },
+      {
+        title: "Rollback plan",
+        chip: "rollback",
+        body: migrationPlan.next_best_action || "",
+        items: migrationPlan.rollback_plan || [],
+      },
+    ];
+    migrationCards.forEach((item) => {
+      const card = document.createElement("article");
+      card.className = "readiness-card " + (item.title === "Rollback plan" ? "needs_work" : "ready");
+      card.innerHTML = `
+        <div class="readiness-title">
+          <strong>${escapeHtml(item.title)}</strong>
+          <span class="${item.title === "Migration phases" ? "chip green" : "chip"}">${escapeHtml(item.chip)}</span>
+        </div>
+        <p>${escapeHtml(item.body)}</p>
+        <div class="option-list">
+          ${(item.items || []).slice(0, 5).map((value) => `<span>${escapeHtml(value)}</span>`).join("")}
+        </div>
+      `;
+      migrationPlanList.appendChild(card);
     });
 
     const productionBacklog = state.production_backlog || {work_items: []};

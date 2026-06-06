@@ -88,6 +88,7 @@ ADMIN_PATHS = {
     "/v1/gateway/handoff-checklist",
     "/v1/gateway/production-readiness",
     "/v1/gateway/deployment-readiness",
+    "/v1/gateway/migration-plan",
     "/v1/gateway/production-backlog",
     "/v1/gateway/launch-plan",
     "/v1/gateway/change-management",
@@ -4616,6 +4617,138 @@ def deployment_readiness(server):
     }
 
 
+def migration_plan(server):
+    readiness = production_readiness(server)
+    deployment = deployment_readiness(server)
+    evaluation = evaluation_plan(server)
+    return {
+        "object": "gateway.migration_plan",
+        "title": "AISmallRouter Customer Migration Plan",
+        "audience": "business owner, customer technical owner, platform owner, support owner, and gateway owner",
+        "mode": "mock" if server.mock_mode else "live",
+        "plain_english": "This plan explains how a customer can move from direct model provider calls to one gateway API without switching everything at once.",
+        "migration_strategy": {
+            "recommended_style": "phased_cutover",
+            "why": "Start with one customer, one workflow, one or two public model names, mock mode first, then controlled live traffic.",
+            "do_not_do": [
+                "Do not move all traffic on day one.",
+                "Do not remove the old provider path before rollback is tested.",
+                "Do not promise production SLA until launch gates are approved.",
+            ],
+        },
+        "phases": [
+            {
+                "phase": "0. Current-state discovery",
+                "owner": "Customer technical owner",
+                "goal": "Understand current direct provider calls, models, prompts, latency needs, cost concerns, and data rules.",
+                "actions": [
+                    "List current provider endpoints and model names.",
+                    "Collect 5 to 10 representative prompts.",
+                    "Confirm who owns provider keys and billing.",
+                    "Confirm whether prompts may be logged during testing.",
+                ],
+                "exit_check": "First workflow and candidate models are agreed.",
+            },
+            {
+                "phase": "1. Shadow gateway setup",
+                "owner": "Gateway owner",
+                "goal": "Create equivalent public model names and customer key without changing customer production traffic.",
+                "actions": [
+                    "Create or confirm customer gateway key.",
+                    "Map public model names to upstream provider models.",
+                    "Run /v1/models and /v1/gateway/route-preview.",
+                    "Keep mock mode for explanation unless live provider key is approved.",
+                ],
+                "exit_check": "Customer can call the gateway in test without affecting existing traffic.",
+            },
+            {
+                "phase": "2. Mock and evaluation test",
+                "owner": "Customer technical owner",
+                "goal": "Show routing, fallback, usage, cost estimate, and model evaluation before live cutover.",
+                "actions": [
+                    "Run sample evaluation prompts through the gateway.",
+                    "Review evaluation plan and model scorecards.",
+                    "Check safety preview and data governance.",
+                    "Save request_id values for support review.",
+                ],
+                "exit_check": "Customer accepts the route behavior and evidence needed for live test.",
+            },
+            {
+                "phase": "3. Limited live pilot",
+                "owner": "Gateway owner and support owner",
+                "goal": "Send a small controlled amount of real traffic through the gateway.",
+                "actions": [
+                    "Enable live provider key only for the approved provider.",
+                    "Start with one workflow and low request volume.",
+                    "Monitor request activity, budget, latency, and provider health.",
+                    "Keep the old direct provider path available.",
+                ],
+                "exit_check": "Live pilot has acceptable quality, latency, cost, and support evidence.",
+            },
+            {
+                "phase": "4. Gradual cutover",
+                "owner": "Customer platform owner",
+                "goal": "Move traffic in small steps while keeping rollback simple.",
+                "actions": [
+                    "Move internal test traffic first.",
+                    "Move a small customer cohort or low-risk workflow.",
+                    "Increase traffic only after error, latency, budget, and support checks pass.",
+                    "Use route preview before every model or provider change.",
+                ],
+                "exit_check": "Traffic can be increased without new support or cost surprises.",
+            },
+            {
+                "phase": "5. Production decision",
+                "owner": "Business owner",
+                "goal": "Decide whether to stop, extend pilot, or fund production hardening.",
+                "actions": [
+                    "Review pilot scorecard.",
+                    "Review production readiness and migration evidence.",
+                    "Name owners for open security, billing, monitoring, and support gaps.",
+                    "Agree whether the old provider path remains as emergency rollback.",
+                ],
+                "exit_check": "Production decision is explicit and funded if needed.",
+            },
+        ],
+        "cutover_checklist": [
+            "Customer gateway key works.",
+            "Allowed models are correct.",
+            "Route preview shows the intended provider and fallback path.",
+            "Evaluation plan has been reviewed for the first workflow.",
+            "Cost estimate and budget limits are understood.",
+            "Safety preview and data governance questions are answered.",
+            "Support owner knows how to use request_id and request detail.",
+            "Rollback path to direct provider or previous route is tested.",
+        ],
+        "rollback_plan": [
+            "Keep the old direct provider integration available during pilot.",
+            "If gateway auth fails, rotate or reissue customer gateway key and move traffic back to old provider path.",
+            "If provider route fails, disable the new route or switch to approved fallback model.",
+            "If cost or latency is unexpected, pause live traffic and return to mock or old provider path.",
+            "If sensitive data policy is unclear, stop live testing until data governance is approved.",
+        ],
+        "customer_message": "We do not need to migrate everything at once. We can start with one workflow, prove routing and reporting, keep rollback available, then decide whether production hardening is worth funding.",
+        "evidence_endpoints": [
+            "/v1/gateway/discovery-checklist",
+            "/v1/gateway/evaluation-plan",
+            "/v1/gateway/route-preview",
+            "/v1/gateway/request-activity",
+            "/v1/gateway/request-detail",
+            "/v1/gateway/customer-reports",
+            "/v1/gateway/production-readiness",
+            "/v1/gateway/launch-plan",
+            "/v1/gateway/change-management",
+        ],
+        "current_context": {
+            "readiness_status": readiness.get("overall_status"),
+            "deployment_stage_count": len(deployment.get("deployment_stages", [])),
+            "model_scorecard_count": len(evaluation.get("model_scorecards", [])),
+        },
+        "next_best_action": "Use this migration plan after discovery and before any live customer traffic cutover.",
+        "prototype_note": "This is a migration plan for demos and pilots. Production migration still needs customer-specific architecture, runbooks, monitoring, approval workflow, and rollback testing.",
+    }
+
+
 def production_backlog(server):
     readiness = production_readiness(server)
     deployment = deployment_readiness(server)
@@ -5813,6 +5946,7 @@ def openapi_spec(server):
         "/v1/gateway/handoff-checklist": "Customer handoff checklist",
         "/v1/gateway/production-readiness": "Production readiness report",
         "/v1/gateway/deployment-readiness": "Deployment readiness guide",
+        "/v1/gateway/migration-plan": "Customer migration and cutover plan",
         "/v1/gateway/production-backlog": "Production hardening backlog",
         "/v1/gateway/launch-plan": "Production launch plan",
         "/v1/gateway/change-management": "Change management and rollback plan",
@@ -5933,6 +6067,7 @@ def postman_collection(server):
         request_item("Evaluation Plan", "GET", "/v1/gateway/evaluation-plan", "admin_api_key"),
         request_item("Production Readiness", "GET", "/v1/gateway/production-readiness", "admin_api_key"),
         request_item("Deployment Readiness", "GET", "/v1/gateway/deployment-readiness", "admin_api_key"),
+        request_item("Migration Plan", "GET", "/v1/gateway/migration-plan", "admin_api_key"),
         request_item("Production Backlog", "GET", "/v1/gateway/production-backlog", "admin_api_key"),
         request_item("Launch Plan", "GET", "/v1/gateway/launch-plan", "admin_api_key"),
         request_item("Change Management", "GET", "/v1/gateway/change-management", "admin_api_key"),
@@ -6117,6 +6252,13 @@ def demo_bundle(server):
                 "url": f"{base_url}/v1/gateway/deployment-readiness",
                 "audience": "customer technical, platform, security, and gateway owners",
                 "purpose": "Show deployment stages, environment requirements, preflight checks, operational checks, rollback, and deployment options.",
+                "auth": "adminBearerAuth",
+            },
+            {
+                "name": "Migration plan",
+                "url": f"{base_url}/v1/gateway/migration-plan",
+                "audience": "business, customer technical, platform, support, and gateway owners",
+                "purpose": "Show phased customer migration, cutover checklist, rollback path, and evidence endpoints.",
                 "auth": "adminBearerAuth",
             },
             {
@@ -6362,6 +6504,10 @@ def demo_bundle(server):
                 "command": f"curl {base_url}/v1/gateway/deployment-readiness -H 'Authorization: Bearer {server.admin_api_key or DEFAULT_ADMIN_API_KEY}'",
             },
             {
+                "name": "Migration plan",
+                "command": f"curl {base_url}/v1/gateway/migration-plan -H 'Authorization: Bearer {server.admin_api_key or DEFAULT_ADMIN_API_KEY}'",
+            },
+            {
                 "name": "Production backlog",
                 "command": f"curl {base_url}/v1/gateway/production-backlog -H 'Authorization: Bearer {server.admin_api_key or DEFAULT_ADMIN_API_KEY}'",
             },
@@ -6468,6 +6614,7 @@ def gateway_status(server):
         "invoice_preview": invoice_preview(server),
         "production_readiness": production_readiness(server),
         "deployment_readiness": deployment_readiness(server),
+        "migration_plan": migration_plan(server),
         "production_backlog": production_backlog(server),
         "launch_plan": launch_plan(server),
         "change_management": change_management_plan(server),
@@ -7193,6 +7340,9 @@ class GatewayHandler(BaseHTTPRequestHandler):
             return
         if path == "/v1/gateway/deployment-readiness":
             make_json_response(self, 200, deployment_readiness(self.server))
+            return
+        if path == "/v1/gateway/migration-plan":
+            make_json_response(self, 200, migration_plan(self.server))
             return
         if path == "/v1/gateway/production-backlog":
             make_json_response(self, 200, production_backlog(self.server))

@@ -182,6 +182,7 @@ class GatewayPrototypeTest(unittest.TestCase):
             "/v1/gateway/handoff-checklist",
             "/v1/gateway/production-readiness",
             "/v1/gateway/deployment-readiness",
+            "/v1/gateway/migration-plan",
             "/v1/gateway/production-backlog",
             "/v1/gateway/launch-plan",
             "/v1/gateway/change-management",
@@ -231,6 +232,7 @@ class GatewayPrototypeTest(unittest.TestCase):
         self.assertIn("Route Preview", admin_names)
         self.assertIn("Production Readiness", admin_names)
         self.assertIn("Deployment Readiness", admin_names)
+        self.assertIn("Migration Plan", admin_names)
         self.assertIn("Production Backlog", admin_names)
         self.assertIn("Provider Contracts", admin_names)
         self.assertIn("Evaluation Plan", admin_names)
@@ -273,6 +275,7 @@ class GatewayPrototypeTest(unittest.TestCase):
         self.assertIn(f"{self.base_url}/v1/gateway/handoff-checklist", entry_urls)
         self.assertIn(f"{self.base_url}/v1/gateway/production-readiness", entry_urls)
         self.assertIn(f"{self.base_url}/v1/gateway/deployment-readiness", entry_urls)
+        self.assertIn(f"{self.base_url}/v1/gateway/migration-plan", entry_urls)
         self.assertIn(f"{self.base_url}/v1/gateway/production-backlog", entry_urls)
         self.assertIn(f"{self.base_url}/v1/gateway/launch-plan", entry_urls)
         self.assertIn(f"{self.base_url}/v1/gateway/change-management", entry_urls)
@@ -612,6 +615,36 @@ class GatewayPrototypeTest(unittest.TestCase):
         self.assertIn("/v1/gateway/config-check", guide["reference_endpoints"])
         self.assertIn("local demo", guide["plain_english"])
         self.assertNotIn("sk-", json.dumps(guide))
+
+    def test_migration_plan_guides_customer_cutover_and_rollback(self):
+        status, payload = request_json(self.base_url, path="/v1/gateway/migration-plan", api_key="dev-gateway-key")
+        self.assertEqual(status, 401)
+        self.assertEqual(payload["error"]["code"], "invalid_admin_key")
+
+        status, plan = request_json(self.base_url, path="/v1/gateway/migration-plan", api_key="dev-admin-key")
+        self.assertEqual(status, 200)
+        self.assertEqual(plan["object"], "gateway.migration_plan")
+        self.assertEqual(plan["migration_strategy"]["recommended_style"], "phased_cutover")
+        phases = {phase["phase"] for phase in plan["phases"]}
+        self.assertIn("0. Current-state discovery", phases)
+        self.assertIn("1. Shadow gateway setup", phases)
+        self.assertIn("2. Mock and evaluation test", phases)
+        self.assertIn("3. Limited live pilot", phases)
+        self.assertIn("4. Gradual cutover", phases)
+        self.assertIn("5. Production decision", phases)
+        for phase in plan["phases"]:
+            self.assertIn("owner", phase)
+            self.assertIn("actions", phase)
+            self.assertIn("exit_check", phase)
+        self.assertTrue(any("Rollback path" in item for item in plan["cutover_checklist"]))
+        self.assertTrue(any("old direct provider" in item for item in plan["rollback_plan"]))
+        self.assertIn("/v1/gateway/evaluation-plan", plan["evidence_endpoints"])
+        self.assertIn("/v1/gateway/change-management", plan["evidence_endpoints"])
+        self.assertIn("not need to migrate everything at once", plan["customer_message"])
+        self.assertIn("rollback testing", plan["prototype_note"])
+        self.assertNotIn("DASHSCOPE_API_KEY", json.dumps(plan))
+        self.assertNotIn("sk-", json.dumps(plan))
+        self.assertNotIn("provider_api_keys", json.dumps(plan))
 
     def test_production_backlog_prioritizes_hardening_work(self):
         status, payload = request_json(self.base_url, path="/v1/gateway/production-backlog", api_key="dev-gateway-key")
@@ -1221,6 +1254,8 @@ class GatewayPrototypeTest(unittest.TestCase):
         self.assertGreaterEqual(len(payload["production_readiness"]["categories"]), 5)
         self.assertIn("deployment_readiness", payload)
         self.assertIn("deployment_stages", payload["deployment_readiness"])
+        self.assertIn("migration_plan", payload)
+        self.assertIn("phases", payload["migration_plan"])
         self.assertIn("production_backlog", payload)
         self.assertIn("work_items", payload["production_backlog"])
         self.assertIn("pilot_scorecard", payload)
@@ -2159,6 +2194,9 @@ class GatewayPrototypeTest(unittest.TestCase):
         self.assertIn("Deployment readiness", html)
         self.assertIn("deploymentReadinessList", html)
         self.assertIn("/v1/gateway/deployment-readiness?admin_key=", html)
+        self.assertIn("Migration plan", html)
+        self.assertIn("migrationPlanList", html)
+        self.assertIn("/v1/gateway/migration-plan?admin_key=", html)
         self.assertIn("Production backlog", html)
         self.assertIn("productionBacklogList", html)
         self.assertIn("/v1/gateway/production-backlog?admin_key=", html)
