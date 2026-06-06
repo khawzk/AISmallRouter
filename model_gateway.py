@@ -97,6 +97,7 @@ ADMIN_PATHS = {
     "/v1/gateway/support-policy",
     "/v1/gateway/pilot-checklist",
     "/v1/gateway/pilot-scorecard",
+    "/v1/gateway/evaluation-plan",
     "/v1/gateway/discovery-checklist",
     "/v1/gateway/proposal-summary",
     "/v1/gateway/onboarding-plan",
@@ -3977,6 +3978,115 @@ def pilot_scorecard(server):
     }
 
 
+def evaluation_plan(server):
+    catalog = model_catalog(server)
+    health_rows = {row["id"]: row for row in provider_health(server)}
+    model_rows = []
+    for model in catalog:
+        provider_id = model.get("provider")
+        health = health_rows.get(provider_id, {})
+        recent = model.get("usage", {})
+        score = 0
+        criteria = []
+
+        def add(name, passed, points, evidence):
+            nonlocal score
+            if passed:
+                score += points
+            criteria.append(
+                {
+                    "criterion": name,
+                    "passed": bool(passed),
+                    "points": points if passed else 0,
+                    "max_points": points,
+                    "evidence": evidence,
+                }
+            )
+
+        add("Chat route exists", True, 20, f"Public model {model.get('id')} routes to {model.get('upstream_model')}.")
+        add("Provider is mock-ready", bool(health.get("mock_ready")), 15, f"Provider status is {health.get('status', 'unknown')}.")
+        add("Provider is live-ready", bool(health.get("live_ready")), 15, f"Live-ready is {health.get('live_ready', False)}.")
+        add("Streaming capability known", "streaming" in model.get("capabilities", []), 10, f"Capabilities: {', '.join(model.get('capabilities', [])) or 'none'}.")
+        add("Fallback route available", bool(model.get("fallback_models")), 10, f"Fallback chain: {', '.join(model.get('fallback_models', [])) or 'none'}.")
+        add("Recent demo traffic exists", int(recent.get("requests") or 0) > 0, 10, f"Recent requests: {recent.get('requests', 0)}.")
+        add("Error rate acceptable", float(recent.get("error_rate") or 0) <= 0.05, 10, f"Recent error rate: {recent.get('error_rate', 0)}.")
+        add("Pricing metadata present", bool(model.get("pricing")), 10, "Pricing metadata exists." if model.get("pricing") else "Pricing metadata missing.")
+
+        if score >= 80:
+            decision = "pilot_ready"
+            next_action = "Use this model in a controlled customer pilot with agreed success criteria."
+        elif score >= 55:
+            decision = "needs_more_evidence"
+            next_action = "Run more mock or live tests before using this model with a customer."
+        else:
+            decision = "discovery_only"
+            next_action = "Keep this model in discovery until provider, route, fallback, and usage evidence improve."
+
+        model_rows.append(
+            {
+                "model": model.get("id"),
+                "provider": provider_id,
+                "score": score,
+                "decision": decision,
+                "next_action": next_action,
+                "criteria": criteria,
+            }
+        )
+
+    return {
+        "object": "gateway.evaluation_plan",
+        "title": "AISmallRouter Model Evaluation Plan",
+        "audience": "business owner, customer technical owner, data owner, support owner, and gateway owner",
+        "mode": "mock" if server.mock_mode else "live",
+        "plain_english": "This plan explains how to compare models before routing real customer traffic. It keeps quality, speed, cost, safety, and support evidence visible.",
+        "evaluation_dimensions": [
+            {"name": "Task quality", "question": "Does the model answer the customer's real use case well?", "example_evidence": "Golden prompts, expected answer notes, human review, and customer acceptance."},
+            {"name": "Reliability", "question": "Does the route work repeatedly without confusing errors?", "example_evidence": "Request activity, request detail, provider health, and incident playbook."},
+            {"name": "Latency", "question": "Is the response fast enough for the customer workflow?", "example_evidence": "Recent average latency and route strategy tests."},
+            {"name": "Cost", "question": "Is the model affordable under the customer's budget?", "example_evidence": "Cost estimate, invoice preview, and customer budget state."},
+            {"name": "Safety and data handling", "question": "Can the request be sent without exposing sensitive data?", "example_evidence": "Safety preview, data governance review, and security review."},
+            {"name": "Fallback behavior", "question": "What happens if the first provider is unavailable?", "example_evidence": "Fallback route, forced fallback test, and provider contract review."},
+        ],
+        "sample_eval_set": [
+            {"id": "basic_answer", "prompt": "Explain this gateway in one short sentence.", "checks": ["answer is concise", "mentions one API", "mentions model routing"]},
+            {"id": "customer_support", "prompt": "A customer says their request failed. Explain the first checks.", "checks": ["mentions request_id", "mentions request activity", "uses customer-safe wording"]},
+            {"id": "cost_control", "prompt": "Explain how token and cost budgets protect a customer.", "checks": ["mentions token budget", "mentions cost budget", "does not claim legal billing"]},
+            {"id": "security_boundary", "prompt": "Can customers see provider API keys?", "checks": ["says no", "mentions gateway keys", "mentions provider secrets stay private"]},
+            {"id": "fallback_reasoning", "prompt": "Explain why fallback routing matters.", "checks": ["mentions provider failure", "mentions alternate model", "mentions policy"]},
+        ],
+        "scoring_rules": {
+            "max_score": 100,
+            "decision_rules": [
+                "80 or higher: pilot-ready if customer use case is approved.",
+                "55 to 79: collect more evidence before customer pilot.",
+                "Below 55: discovery-only until route, provider, and usage evidence improve.",
+            ],
+            "human_review_note": "Automated signals are not enough. A customer or domain owner should review quality for real use cases.",
+        },
+        "model_scorecards": model_rows,
+        "recommended_eval_flow": [
+            "Start with mock mode and the sample eval set.",
+            "Run the same prompts through each candidate model route.",
+            "Record answer quality, latency, errors, token usage, and estimated cost.",
+            "Review safety preview and data governance before live prompts.",
+            "Use route preview to confirm fallback and provider policy.",
+            "Promote only pilot-ready models into customer-facing docs.",
+        ],
+        "evidence_endpoints": [
+            "/v1/gateway/model-catalog",
+            "/v1/gateway/provider-health",
+            "/v1/gateway/request-activity",
+            "/v1/gateway/request-detail",
+            "/v1/gateway/cost-estimate",
+            "/v1/gateway/safety-preview",
+            "/v1/gateway/security-review",
+            "/v1/gateway/route-preview",
+        ],
+        "next_best_action": "Use this evaluation plan before adding a new provider or promising quality-based routing to a customer.",
+        "prototype_note": "This is an evaluation plan and scoring explanation. It is not a full offline evaluation platform, benchmark suite, or automatic model ranking system yet.",
+    }
+
+
 def handoff_checklist(server):
     base_url = f"http://{server.server_address[0]}:{server.server_address[1]}"
     return {
@@ -5690,6 +5800,7 @@ def openapi_spec(server):
         "/v1/gateway/provider-health": "Provider health and readiness",
         "/v1/gateway/provider-contracts": "Provider adapter contract matrix",
         "/v1/gateway/model-catalog": "Model catalog and routing plan",
+        "/v1/gateway/evaluation-plan": "Model evaluation and quality plan",
         "/v1/gateway/customer-reports": "Customer usage and budget reports",
         "/v1/gateway/request-activity": "Filtered request activity",
         "/v1/gateway/request-detail": "One request detail by request_id",
@@ -5819,6 +5930,7 @@ def postman_collection(server):
         request_item("Policy Presets", "GET", "/v1/gateway/policy-presets", "admin_api_key"),
         request_item("Provider Health", "GET", "/v1/gateway/provider-health", "admin_api_key"),
         request_item("Provider Contracts", "GET", "/v1/gateway/provider-contracts", "admin_api_key"),
+        request_item("Evaluation Plan", "GET", "/v1/gateway/evaluation-plan", "admin_api_key"),
         request_item("Production Readiness", "GET", "/v1/gateway/production-readiness", "admin_api_key"),
         request_item("Deployment Readiness", "GET", "/v1/gateway/deployment-readiness", "admin_api_key"),
         request_item("Production Backlog", "GET", "/v1/gateway/production-backlog", "admin_api_key"),
@@ -6057,6 +6169,13 @@ def demo_bundle(server):
                 "auth": "adminBearerAuth",
             },
             {
+                "name": "Evaluation plan",
+                "url": f"{base_url}/v1/gateway/evaluation-plan",
+                "audience": "business, customer technical, data, support, and gateway owners",
+                "purpose": "Show how model quality, reliability, latency, cost, safety, and fallback should be compared before routing real traffic.",
+                "auth": "adminBearerAuth",
+            },
+            {
                 "name": "Incident playbook",
                 "url": f"{base_url}/v1/gateway/incident-playbook",
                 "audience": "business and support",
@@ -6271,6 +6390,10 @@ def demo_bundle(server):
                 "command": f"curl {base_url}/v1/gateway/provider-contracts -H 'Authorization: Bearer {server.admin_api_key or DEFAULT_ADMIN_API_KEY}'",
             },
             {
+                "name": "Evaluation plan",
+                "command": f"curl {base_url}/v1/gateway/evaluation-plan -H 'Authorization: Bearer {server.admin_api_key or DEFAULT_ADMIN_API_KEY}'",
+            },
+            {
                 "name": "Incident playbook",
                 "command": f"curl {base_url}/v1/gateway/incident-playbook -H 'Authorization: Bearer {server.admin_api_key or DEFAULT_ADMIN_API_KEY}'",
             },
@@ -6337,6 +6460,7 @@ def gateway_status(server):
         "provider_summary": provider_status(server),
         "provider_health": provider_health(server),
         "model_catalog": model_catalog(server),
+        "evaluation_plan": evaluation_plan(server),
         "access_matrix": access_matrix(server),
         "customer_reports": customer_reports(server),
         "customer_success": customer_success_summary(server),
@@ -7164,6 +7288,9 @@ class GatewayHandler(BaseHTTPRequestHandler):
             return
         if path == "/v1/gateway/model-catalog":
             make_json_response(self, 200, {"data": model_catalog(self.server)})
+            return
+        if path == "/v1/gateway/evaluation-plan":
+            make_json_response(self, 200, evaluation_plan(self.server))
             return
         if path == "/v1/gateway/customer-reports":
             make_json_response(self, 200, {"data": customer_reports(self.server)})

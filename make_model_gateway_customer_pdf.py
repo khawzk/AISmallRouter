@@ -270,6 +270,7 @@ def build():
         "Production readiness endpoint for plain-English go-live gaps.",
         "Data governance endpoint for prompt handling, logs, retention, customer keys, and provider secrets.",
         "Security review endpoint for threat model, current controls, production controls, and go-live security gates.",
+        "Evaluation plan endpoint for model quality, reliability, latency, cost, safety, fallback, and scorecards.",
         "Structured route decision summary for support explanations.",
         "Local safety preview for obvious sensitive data.",
         "Customer key issue preview for safe onboarding demos.",
@@ -323,6 +324,7 @@ def build():
             ["Production backlog", "Teams need to convert gaps into fundable engineering tasks.", "P0, P1, and P2 hardening backlog"],
             ["Data governance", "Customers need to know what happens to prompts, logs, retention, and secrets.", "Plain-English governance review"],
             ["Security review", "Customers will ask what can go wrong and what controls exist.", "Threat model, current controls, and go-live gates"],
+            ["Model evaluation", "Customers will ask how the gateway chooses a better model.", "Evaluation plan, sample prompts, and scorecards"],
             ["Access control", "Each customer may be allowed to use different models.", "Access matrix by customer and model"],
             ["Provider health", "Customers need to know whether a provider can serve traffic.", "Readiness view based on config and recent traffic"],
             ["Provider lifecycle", "Teams need to add and stop providers safely.", "Local JSON-backed create, update, and disable actions"],
@@ -787,6 +789,27 @@ def build():
     security = Table(security_rows, colWidths=[1.45 * inch, 2.5 * inch, 2.5 * inch])
     security.setStyle(table_style())
     story.append(security)
+    story.append(Spacer(1, 0.15 * inch))
+
+    story.append(Paragraph("Model Evaluation Plan", styles["H1Custom"]))
+    story.append(
+        Paragraph(
+            "/v1/gateway/evaluation-plan explains how to compare models before routing real customer traffic. It covers task quality, reliability, latency, cost, safety and data handling, fallback behavior, sample evaluation prompts, model scorecards, and evidence endpoints. It is a simple quality plan for customer conversations, not a full benchmark platform or automatic ranking system.",
+            styles["BodyCustom"],
+        )
+    )
+    eval_rows = [
+        ["Dimension", "Customer question"],
+        ["Task quality", "Does the model answer the customer's real use case well?"],
+        ["Reliability", "Does the route work repeatedly without confusing errors?"],
+        ["Latency", "Is the response fast enough for the customer workflow?"],
+        ["Cost", "Is the model affordable under the customer's budget?"],
+        ["Safety", "Can the request be sent without exposing sensitive data?"],
+        ["Fallback", "What happens if the first provider is unavailable?"],
+    ]
+    eval_table = Table(eval_rows, colWidths=[2.1 * inch, 4.35 * inch])
+    eval_table.setStyle(table_style())
+    story.append(eval_table)
     story.append(Spacer(1, 0.15 * inch))
 
     story.append(Paragraph("Customer Discovery Checklist", styles["H1Custom"]))

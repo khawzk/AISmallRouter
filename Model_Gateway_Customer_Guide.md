@@ -379,6 +379,7 @@ They help explain the control layer:
 - Config check for demo keys and missing production settings
 - Production readiness report
 - Security review and go-live security gates
+- Model evaluation plan and quality scorecards
 
 In the prototype, these endpoints use a separate demo admin key.
 
@@ -1366,6 +1367,34 @@ It is a simple threat model for customer conversations.
 The main message is simple:
 
 The prototype is good for local explanation and mock demos. Before production, the team still needs real key storage, secret manager, role-based admin access, log retention policy, tenant isolation tests, and security review.
+
+## What The Model Evaluation Plan Shows
+
+The prototype includes `/v1/gateway/evaluation-plan`.
+
+This endpoint explains how to compare models before routing real customer traffic.
+
+It is written for business, customer technical, data, support, and gateway owners.
+
+It covers:
+
+- task quality
+- reliability
+- latency
+- cost
+- safety and data handling
+- fallback behavior
+- sample evaluation prompts
+- model scorecards
+- evidence endpoints
+
+This is not a full benchmark platform yet.
+
+It is a simple quality plan for customer conversations.
+
+The main message is simple:
+
+Do not promise "best model" routing until the team has tested real customer prompts, reviewed quality with a human owner, checked cost and latency, and confirmed safety and fallback behavior.
 
 ## What The Discovery Checklist Shows
 

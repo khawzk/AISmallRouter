@@ -188,6 +188,7 @@ class GatewayPrototypeTest(unittest.TestCase):
             "/v1/gateway/data-governance",
             "/v1/gateway/security-review",
             "/v1/gateway/provider-contracts",
+            "/v1/gateway/evaluation-plan",
             "/v1/gateway/incident-playbook",
             "/v1/gateway/support-policy",
             "/v1/gateway/pilot-checklist",
@@ -232,6 +233,7 @@ class GatewayPrototypeTest(unittest.TestCase):
         self.assertIn("Deployment Readiness", admin_names)
         self.assertIn("Production Backlog", admin_names)
         self.assertIn("Provider Contracts", admin_names)
+        self.assertIn("Evaluation Plan", admin_names)
         self.assertIn("Incident Playbook", admin_names)
         self.assertIn("Launch Plan", admin_names)
         self.assertIn("Change Management", admin_names)
@@ -278,6 +280,7 @@ class GatewayPrototypeTest(unittest.TestCase):
         self.assertIn(f"{self.base_url}/v1/gateway/security-review", entry_urls)
         self.assertIn(f"{self.base_url}/v1/gateway/customer-success", entry_urls)
         self.assertIn(f"{self.base_url}/v1/gateway/provider-contracts", entry_urls)
+        self.assertIn(f"{self.base_url}/v1/gateway/evaluation-plan", entry_urls)
         self.assertIn(f"{self.base_url}/v1/gateway/incident-playbook", entry_urls)
         self.assertIn(f"{self.base_url}/v1/gateway/support-policy", entry_urls)
         self.assertIn(f"{self.base_url}/v1/gateway/pilot-checklist", entry_urls)
@@ -341,6 +344,38 @@ class GatewayPrototypeTest(unittest.TestCase):
         self.assertEqual(by_type["xiaomi_planned"]["adapter_status"], "planned")
         self.assertTrue(any("normalizes model names" in line for line in contracts["plain_english"]))
         self.assertNotIn("sk-", json.dumps(contracts))
+
+    def test_evaluation_plan_scores_models_before_routing_live_traffic(self):
+        status, payload = request_json(self.base_url, path="/v1/gateway/evaluation-plan", api_key="dev-gateway-key")
+        self.assertEqual(status, 401)
+        self.assertEqual(payload["error"]["code"], "invalid_admin_key")
+
+        status, plan = request_json(self.base_url, path="/v1/gateway/evaluation-plan", api_key="dev-admin-key")
+        self.assertEqual(status, 200)
+        self.assertEqual(plan["object"], "gateway.evaluation_plan")
+        dimensions = {item["name"] for item in plan["evaluation_dimensions"]}
+        self.assertIn("Task quality", dimensions)
+        self.assertIn("Reliability", dimensions)
+        self.assertIn("Latency", dimensions)
+        self.assertIn("Cost", dimensions)
+        self.assertIn("Safety and data handling", dimensions)
+        self.assertIn("Fallback behavior", dimensions)
+        eval_ids = {item["id"] for item in plan["sample_eval_set"]}
+        self.assertIn("security_boundary", eval_ids)
+        self.assertIn("fallback_reasoning", eval_ids)
+        self.assertGreaterEqual(len(plan["model_scorecards"]), 2)
+        for card in plan["model_scorecards"]:
+            self.assertIn(card["decision"], {"pilot_ready", "needs_more_evidence", "discovery_only"})
+            self.assertGreaterEqual(card["score"], 0)
+            self.assertLessEqual(card["score"], 100)
+            self.assertGreaterEqual(len(card["criteria"]), 6)
+        self.assertEqual(plan["scoring_rules"]["max_score"], 100)
+        self.assertIn("/v1/gateway/model-catalog", plan["evidence_endpoints"])
+        self.assertIn("/v1/gateway/security-review", plan["evidence_endpoints"])
+        self.assertIn("not a full offline evaluation platform", plan["prototype_note"])
+        self.assertNotIn("DASHSCOPE_API_KEY", json.dumps(plan))
+        self.assertNotIn("sk-", json.dumps(plan))
+        self.assertNotIn("provider_api_keys", json.dumps(plan))
 
     def test_incident_playbook_lists_support_scenarios(self):
         status, payload = request_json(self.base_url, path="/v1/gateway/incident-playbook", api_key="dev-gateway-key")
@@ -1200,6 +1235,8 @@ class GatewayPrototypeTest(unittest.TestCase):
         self.assertIn("categories", payload["data_governance"])
         self.assertIn("security_review", payload)
         self.assertIn("threats", payload["security_review"])
+        self.assertIn("evaluation_plan", payload)
+        self.assertIn("model_scorecards", payload["evaluation_plan"])
         self.assertIn("discovery_checklist", payload)
         self.assertIn("discovery_sections", payload["discovery_checklist"])
         self.assertIn("proposal_summary", payload)
@@ -2110,6 +2147,9 @@ class GatewayPrototypeTest(unittest.TestCase):
         self.assertIn("Security review", html)
         self.assertIn("securityReviewList", html)
         self.assertIn("/v1/gateway/security-review?admin_key=", html)
+        self.assertIn("Evaluation plan", html)
+        self.assertIn("evaluationPlanList", html)
+        self.assertIn("/v1/gateway/evaluation-plan?admin_key=", html)
         self.assertIn("Discovery checklist", html)
         self.assertIn("discoveryChecklistList", html)
         self.assertIn("/v1/gateway/discovery-checklist?admin_key=", html)

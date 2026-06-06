@@ -185,6 +185,7 @@ The current version also supports:
 - `GET /v1/gateway/change-management`
 - `GET /v1/gateway/data-governance`
 - `GET /v1/gateway/security-review`
+- `GET /v1/gateway/evaluation-plan`
 - `GET /v1/gateway/executive-brief`
 - `GET /v1/gateway/roadmap`
 - `GET /v1/gateway/decision-guide`
@@ -625,6 +626,37 @@ It is a simple threat model for customer conversations.
 The safest message is:
 
 The prototype is good for local explanation and mock demos. Before production, the team still needs real key storage, secret manager, role-based admin access, log retention policy, tenant isolation tests, and security review.
+
+## Model Evaluation Plan
+
+The gateway has an evaluation plan endpoint:
+
+```bash
+curl http://127.0.0.1:8787/v1/gateway/evaluation-plan \
+  -H "Authorization: Bearer dev-admin-key"
+```
+
+This endpoint explains how to compare models before routing real customer traffic.
+
+It covers:
+
+- task quality
+- reliability
+- latency
+- cost
+- safety and data handling
+- fallback behavior
+- sample evaluation prompts
+- model scorecards
+- evidence endpoints
+
+This is not a full benchmark platform yet.
+
+It is a simple quality plan for customer conversations.
+
+The safest message is:
+
+Do not promise "best model" routing until the team has tested real customer prompts, reviewed quality with a human owner, checked cost and latency, and confirmed safety and fallback behavior.
 
 ## Customer Self View
 

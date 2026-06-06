@@ -1348,6 +1348,16 @@
       </div>
     </section>
 
+    <section class="card" id="evaluationPlan" style="margin-bottom: 18px;">
+      <div class="card-head">
+        <h2>Evaluation plan</h2>
+        <span>model quality, reliability, latency, cost, safety, and fallback evidence before routing live traffic</span>
+      </div>
+      <div class="card-body">
+        <div class="launch-grid" id="evaluationPlanList"></div>
+      </div>
+    </section>
+
     <section class="card" id="discoveryChecklist" style="margin-bottom: 18px;">
       <div class="card-head">
         <h2>Discovery checklist</h2>
@@ -1547,6 +1557,13 @@
               <p>Threat model, current controls, customer security questions, and go-live security gates.</p>
             </div>
             <a class="btn" href="/v1/gateway/security-review?admin_key=__ADMIN_API_KEY__">Open security</a>
+          </article>
+          <article class="handoff-card">
+            <div>
+              <h3>Evaluation plan</h3>
+              <p>Model quality, reliability, latency, cost, safety, and fallback checks before live routing.</p>
+            </div>
+            <a class="btn" href="/v1/gateway/evaluation-plan?admin_key=__ADMIN_API_KEY__">Open eval</a>
           </article>
           <article class="handoff-card">
             <div>
@@ -2021,6 +2038,7 @@
     const changeManagementList = document.getElementById("changeManagementList");
     const dataGovernanceList = document.getElementById("dataGovernanceList");
     const securityReviewList = document.getElementById("securityReviewList");
+    const evaluationPlanList = document.getElementById("evaluationPlanList");
     const discoveryChecklistList = document.getElementById("discoveryChecklistList");
     const proposalSummaryList = document.getElementById("proposalSummaryList");
     const deploymentReadinessList = document.getElementById("deploymentReadinessList");
@@ -2352,6 +2370,43 @@
         </div>
       `;
       securityReviewList.appendChild(card);
+    });
+
+    const evaluationPlan = state.evaluation_plan || {evaluation_dimensions: [], sample_eval_set: [], model_scorecards: []};
+    const evaluationCards = [
+      {
+        title: "Evaluation dimensions",
+        chip: "quality gates",
+        body: evaluationPlan.plain_english || "",
+        items: (evaluationPlan.evaluation_dimensions || []).map((item) => `${item.name}: ${item.question}`),
+      },
+      {
+        title: "Sample eval set",
+        chip: "prompts",
+        body: "Use the same prompts across candidate model routes before choosing one.",
+        items: (evaluationPlan.sample_eval_set || []).map((item) => `${item.id}: ${item.prompt}`),
+      },
+      {
+        title: "Model scorecards",
+        chip: "routing evidence",
+        body: evaluationPlan.next_best_action || "",
+        items: (evaluationPlan.model_scorecards || []).map((item) => `${item.model}: ${item.score}/100 ${item.decision}`),
+      },
+    ];
+    evaluationCards.forEach((item) => {
+      const card = document.createElement("article");
+      card.className = "readiness-card " + (item.title === "Model scorecards" ? "needs_work" : "ready");
+      card.innerHTML = `
+        <div class="readiness-title">
+          <strong>${escapeHtml(item.title)}</strong>
+          <span class="${item.title === "Model scorecards" ? "chip" : "chip green"}">${escapeHtml(item.chip)}</span>
+        </div>
+        <p>${escapeHtml(item.body)}</p>
+        <div class="option-list">
+          ${(item.items || []).slice(0, 5).map((value) => `<span>${escapeHtml(value)}</span>`).join("")}
+        </div>
+      `;
+      evaluationPlanList.appendChild(card);
     });
 
     const discoveryChecklist = state.discovery_checklist || {discovery_sections: []};
