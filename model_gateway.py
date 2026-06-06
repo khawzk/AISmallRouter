@@ -87,6 +87,7 @@ ADMIN_PATHS = {
     "/v1/gateway/demo-bundle",
     "/v1/gateway/production-readiness",
     "/v1/gateway/launch-plan",
+    "/v1/gateway/change-management",
     "/v1/gateway/incident-playbook",
     "/v1/gateway/support-policy",
     "/v1/gateway/pilot-checklist",
@@ -3164,6 +3165,89 @@ def launch_plan(server):
     }
 
 
+def change_management_plan(server):
+    launch = launch_plan(server)
+    return {
+        "object": "gateway.change_management",
+        "title": "AISmallRouter Change Management Plan",
+        "audience": "gateway owner, support owner, and customer technical owner",
+        "mode": "mock" if server.mock_mode else "live",
+        "plain_english": "This plan explains how to change customers, providers, or model routes without surprising a customer.",
+        "change_types": [
+            {
+                "type": "customer_access_change",
+                "examples": ["create customer", "rotate customer key", "disable customer", "change allowed models"],
+                "risk_level": "medium",
+                "approval_owner": "Customer success owner",
+                "before_change": [
+                    "Confirm customer id, allowed models, request limits, token budget, and cost budget.",
+                    "Preview key issue package before saving a new customer.",
+                    "Confirm who receives the one-time customer key.",
+                ],
+                "after_change": [
+                    "Ask customer to call /v1/gateway/me.",
+                    "Check access matrix and audit events.",
+                    "Record whether old keys should stop working.",
+                ],
+                "rollback_path": "Rotate the key again, disable the customer, or restore the previous customer config from version control.",
+            },
+            {
+                "type": "provider_change",
+                "examples": ["create provider", "update provider base URL", "change API key environment variable", "disable provider"],
+                "risk_level": "high",
+                "approval_owner": "Gateway owner",
+                "before_change": [
+                    "Review provider contract and health.",
+                    "Confirm provider key environment variable exists outside JSON.",
+                    "Run route preview for affected public models.",
+                ],
+                "after_change": [
+                    "Check provider health.",
+                    "Check model catalog for affected routes.",
+                    "Run one mock request before any live request.",
+                ],
+                "rollback_path": "Disable the provider, restore the previous provider config from version control, or route affected models to fallback providers.",
+            },
+            {
+                "type": "model_route_change",
+                "examples": ["create public model route", "change upstream model", "change fallback list", "disable route"],
+                "risk_level": "high",
+                "approval_owner": "Technical owner",
+                "before_change": [
+                    "Run route preview with the target customer.",
+                    "Confirm pricing, capabilities, fallback, and provider contract.",
+                    "Check whether customer docs or SDK examples need a model name update.",
+                ],
+                "after_change": [
+                    "Check model catalog.",
+                    "Run /v1/models with customer key.",
+                    "Run one mock chat request and save gateway.request_id.",
+                ],
+                "rollback_path": "Restore the previous route config from version control, disable the new route, or switch customer default policy back to the previous route.",
+            },
+        ],
+        "approval_checklist": [
+            "Business owner understands customer impact.",
+            "Technical owner confirms route/provider behavior.",
+            "Support owner can trace and explain the change.",
+            "Gateway owner confirms rollback path.",
+            "Audit event will be created by the lifecycle endpoint.",
+        ],
+        "evidence_endpoints": [
+            "/v1/gateway/route-preview",
+            "/v1/gateway/provider-health",
+            "/v1/gateway/model-catalog",
+            "/v1/gateway/access-matrix",
+            "/v1/gateway/audit-events",
+            "/v1/gateway/request-activity",
+            "/v1/gateway/launch-plan",
+        ],
+        "current_launch_decision": launch.get("decision"),
+        "next_best_action": "Use route preview and audit events for every provider or model route change before showing it to a customer.",
+        "prototype_note": "The prototype writes local JSON and audit events. Production should add approval workflow, config version history, rollback automation, and staged rollout.",
+    }
+
+
 def incident_playbook(server):
     alerts = gateway_alerts(server)
     alert_codes = {alert.get("code") for alert in alerts.get("alerts", [])}
@@ -4644,6 +4728,7 @@ def openapi_spec(server):
         "/v1/gateway/demo-bundle": "Customer demo bundle manifest",
         "/v1/gateway/production-readiness": "Production readiness report",
         "/v1/gateway/launch-plan": "Production launch plan",
+        "/v1/gateway/change-management": "Change management and rollback plan",
         "/v1/gateway/incident-playbook": "Incident response playbook",
         "/v1/gateway/support-policy": "Support policy and SLA stage guide",
         "/v1/gateway/pilot-checklist": "Customer pilot checklist",
@@ -4754,6 +4839,7 @@ def postman_collection(server):
         request_item("Provider Contracts", "GET", "/v1/gateway/provider-contracts", "admin_api_key"),
         request_item("Production Readiness", "GET", "/v1/gateway/production-readiness", "admin_api_key"),
         request_item("Launch Plan", "GET", "/v1/gateway/launch-plan", "admin_api_key"),
+        request_item("Change Management", "GET", "/v1/gateway/change-management", "admin_api_key"),
         request_item("Incident Playbook", "GET", "/v1/gateway/incident-playbook", "admin_api_key"),
         request_item("Support Policy", "GET", "/v1/gateway/support-policy", "admin_api_key"),
         request_item("Pilot Checklist", "GET", "/v1/gateway/pilot-checklist", "admin_api_key"),
@@ -4923,6 +5009,13 @@ def demo_bundle(server):
                 "url": f"{base_url}/v1/gateway/launch-plan",
                 "audience": "business, technical, support, and operations",
                 "purpose": "Show go-live gates, signoffs, rollout stages, blockers, and next action.",
+                "auth": "adminBearerAuth",
+            },
+            {
+                "name": "Change management plan",
+                "url": f"{base_url}/v1/gateway/change-management",
+                "audience": "gateway owner, support, and customer technical",
+                "purpose": "Show change approval checklist, rollback paths, and evidence endpoints.",
                 "auth": "adminBearerAuth",
             },
             {
@@ -5101,6 +5194,10 @@ def demo_bundle(server):
                 "command": f"curl {base_url}/v1/gateway/launch-plan -H 'Authorization: Bearer {server.admin_api_key or DEFAULT_ADMIN_API_KEY}'",
             },
             {
+                "name": "Change management",
+                "command": f"curl {base_url}/v1/gateway/change-management -H 'Authorization: Bearer {server.admin_api_key or DEFAULT_ADMIN_API_KEY}'",
+            },
+            {
                 "name": "Customer success",
                 "command": f"curl {base_url}/v1/gateway/customer-success -H 'Authorization: Bearer {server.admin_api_key or DEFAULT_ADMIN_API_KEY}'",
             },
@@ -5167,6 +5264,7 @@ def gateway_status(server):
         "invoice_preview": invoice_preview(server),
         "production_readiness": production_readiness(server),
         "launch_plan": launch_plan(server),
+        "change_management": change_management_plan(server),
         "request_activity": request_activity(server.db_path, limit=10),
         "audit_events": audit_events(server.db_path, limit=10),
         "usage_by_customer": usage_grouped_by(server.db_path, "customer_id"),
@@ -5882,6 +5980,9 @@ class GatewayHandler(BaseHTTPRequestHandler):
             return
         if path == "/v1/gateway/launch-plan":
             make_json_response(self, 200, launch_plan(self.server))
+            return
+        if path == "/v1/gateway/change-management":
+            make_json_response(self, 200, change_management_plan(self.server))
             return
         if path == "/v1/gateway/incident-playbook":
             make_json_response(self, 200, incident_playbook(self.server))

@@ -659,6 +659,14 @@ def build():
         )
     )
 
+    story.append(Paragraph("Change Management Plan", styles["H1Custom"]))
+    story.append(
+        Paragraph(
+            "/v1/gateway/change-management explains how to change customers, providers, or model routes without surprising a customer. It includes change types, risk level, approval owner, before-change checklist, after-change validation, rollback path, and evidence endpoints. It is not automatic rollback yet, but it is a simple operating plan for safer demos, pilots, and production discussions.",
+            styles["BodyCustom"],
+        )
+    )
+
     story.append(Paragraph("Recommended Roadmap", styles["H1Custom"]))
     roadmap = Table(
         [

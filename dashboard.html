@@ -1318,6 +1318,16 @@
       </div>
     </section>
 
+    <section class="card" id="changeManagement" style="margin-bottom: 18px;">
+      <div class="card-head">
+        <h2>Change management</h2>
+        <span>approval and rollback plan for customer, provider, and route changes</span>
+      </div>
+      <div class="card-body">
+        <div class="launch-grid" id="changeManagementList"></div>
+      </div>
+    </section>
+
     <section class="card" id="handoff" style="margin-bottom: 18px;">
       <div class="card-head">
         <h2>Customer handoff package</h2>
@@ -1394,6 +1404,13 @@
               <p>Go-live gates, signoffs, rollout stages, blockers, and next action.</p>
             </div>
             <a class="btn" href="/v1/gateway/launch-plan?admin_key=__ADMIN_API_KEY__">Open launch</a>
+          </article>
+          <article class="handoff-card">
+            <div>
+              <h3>Change management</h3>
+              <p>Approval checklist, rollback paths, and evidence endpoints for config changes.</p>
+            </div>
+            <a class="btn" href="/v1/gateway/change-management?admin_key=__ADMIN_API_KEY__">Open changes</a>
           </article>
           <article class="handoff-card">
             <div>
@@ -1865,6 +1882,7 @@
     const readinessList = document.getElementById("readinessList");
     const launchSummary = document.getElementById("launchSummary");
     const launchGateList = document.getElementById("launchGateList");
+    const changeManagementList = document.getElementById("changeManagementList");
     const accessMatrixList = document.getElementById("accessMatrixList");
     const customerSuccessSummary = document.getElementById("customerSuccessSummary");
     const customerSuccessList = document.getElementById("customerSuccessList");
@@ -2107,6 +2125,28 @@
           </div>
         `;
         launchGateList.appendChild(card);
+      });
+    }
+
+    const changeManagement = state.change_management || {change_types: []};
+    if ((changeManagement.change_types || []).length === 0) {
+      changeManagementList.innerHTML = '<div class="trace-item">No change plan available.</div>';
+    } else {
+      (changeManagement.change_types || []).forEach((item) => {
+        const card = document.createElement("article");
+        card.className = "readiness-card " + (item.risk_level === "high" ? "needs_work" : "ready");
+        card.innerHTML = `
+          <div class="readiness-title">
+            <strong>${escapeHtml((item.type || "").replaceAll("_", " "))}</strong>
+            <span class="chip">${escapeHtml(item.risk_level || "")}</span>
+          </div>
+          <p>${escapeHtml(item.approval_owner || "")}</p>
+          <div class="option-list">
+            <span>${escapeHtml((item.before_change || [])[0] || "")}</span>
+            <span>${escapeHtml(item.rollback_path || "")}</span>
+          </div>
+        `;
+        changeManagementList.appendChild(card);
       });
     }
 

@@ -176,6 +176,7 @@ The current version also supports:
 - `GET /v1/gateway/pilot-checklist`
 - `GET /v1/gateway/onboarding-plan`
 - `GET /v1/gateway/launch-plan`
+- `GET /v1/gateway/change-management`
 - `GET /v1/gateway/executive-brief`
 - `GET /v1/gateway/roadmap`
 - `GET /v1/gateway/decision-guide`
@@ -454,6 +455,31 @@ It explains:
 Each gate has an owner, required evidence, current evidence, approval question, status, and next step.
 
 It also shows required signoffs and rollout stages from internal live test to broader rollout.
+
+## Change Management Plan
+
+The gateway has a change management endpoint:
+
+```bash
+curl http://127.0.0.1:8787/v1/gateway/change-management \
+  -H "Authorization: Bearer dev-admin-key"
+```
+
+It explains how to change customers, providers, or model routes without surprising a customer.
+
+It includes:
+
+- change types
+- risk level
+- approval owner
+- before-change checklist
+- after-change validation
+- rollback path
+- evidence endpoints
+
+This is not automatic rollback yet.
+
+It is a simple operating plan for safer demos, pilots, and production discussions.
 
 For production, change the key with `GATEWAY_ADMIN_API_KEY`.
 

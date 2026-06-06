@@ -1202,6 +1202,26 @@ It also shows required signoffs and rollout stages.
 
 This helps a customer understand what must be approved before production traffic.
 
+## What The Change Management Plan Shows
+
+The prototype includes `/v1/gateway/change-management`.
+
+This endpoint explains how to change customers, providers, or model routes without surprising a customer.
+
+It includes:
+
+- change types
+- risk level
+- approval owner
+- before-change checklist
+- after-change validation
+- rollback path
+- evidence endpoints
+
+This is not automatic rollback yet.
+
+It is a simple operating plan for safer demos, pilots, and production discussions.
+
 ## Technical Challenges
 
 ### 1. Different Provider Formats
