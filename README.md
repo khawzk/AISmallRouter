@@ -186,6 +186,7 @@ The current version also supports:
 - `GET /v1/gateway/change-management`
 - `GET /v1/gateway/data-governance`
 - `GET /v1/gateway/security-review`
+- `GET /v1/gateway/operations-runbook`
 - `GET /v1/gateway/evaluation-plan`
 - `GET /v1/gateway/executive-brief`
 - `GET /v1/gateway/roadmap`
@@ -658,6 +659,34 @@ It is a simple threat model for customer conversations.
 The safest message is:
 
 The prototype is good for local explanation and mock demos. Before production, the team still needs real key storage, secret manager, role-based admin access, log retention policy, tenant isolation tests, and security review.
+
+## Operations Runbook
+
+The gateway has an operations runbook endpoint:
+
+```bash
+curl http://127.0.0.1:8787/v1/gateway/operations-runbook \
+  -H "Authorization: Bearer dev-admin-key"
+```
+
+This endpoint explains what to watch after the gateway is used by a customer, who should act, and what evidence to collect before changing routes or promises.
+
+It covers:
+
+- SLO-style targets
+- daily checks
+- alert actions
+- support, gateway, platform, and business owners
+- current signals
+- evidence endpoints
+
+This is not a legal SLA or full monitoring system.
+
+It is a simple operations runbook for customer pilots.
+
+The safest message is:
+
+Before production, the team still needs real monitoring, alert routing, on-call ownership, retention policy, and legal SLA terms.
 
 ## Model Evaluation Plan
 

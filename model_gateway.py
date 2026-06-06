@@ -94,6 +94,7 @@ ADMIN_PATHS = {
     "/v1/gateway/change-management",
     "/v1/gateway/data-governance",
     "/v1/gateway/security-review",
+    "/v1/gateway/operations-runbook",
     "/v1/gateway/incident-playbook",
     "/v1/gateway/support-policy",
     "/v1/gateway/pilot-checklist",
@@ -3627,6 +3628,81 @@ def incident_playbook(server):
     }
 
 
+def operations_runbook(server):
+    alerts = gateway_alerts(server)
+    providers = provider_health(server)
+    customers = customer_reports(server)
+    summary = db_summary(server.db_path)
+    request_summary = request_grouped_by(server.db_path, "status")
+    total_requests = int(summary.get("requests") or 0)
+    total_errors = int(summary.get("errors") or 0)
+    error_rate = round(total_errors / total_requests, 4) if total_requests else 0
+    avg_latency = round(float(summary.get("avg_latency_ms") or 0), 2)
+    return {
+        "object": "gateway.operations_runbook",
+        "title": "AISmallRouter Operations Runbook",
+        "audience": "support owner, gateway owner, platform owner, and business owner",
+        "mode": "mock" if server.mock_mode else "live",
+        "plain_english": "This runbook explains what to watch after the gateway is used by a customer, who should act, and what evidence to collect before changing routes or promises.",
+        "operating_stage": "prototype_demo" if server.mock_mode else "live_test",
+        "slo_targets": [
+            {"name": "Availability target", "prototype_target": "Dashboard and /health should respond during demos.", "production_target": "Define legal uptime only after production hardening and support contract.", "current_signal": "/health"},
+            {"name": "Error rate target", "prototype_target": "Keep recent demo error rate under 5%.", "production_target": "Agree customer-specific error budget and alert threshold.", "current_signal": f"{error_rate} recent error rate"},
+            {"name": "Latency target", "prototype_target": "Track average latency for explanation.", "production_target": "Set workflow-specific latency SLO after live tests.", "current_signal": f"{avg_latency} ms average latency"},
+            {"name": "Budget target", "prototype_target": "Show warning or blocked state clearly.", "production_target": "Agree budget alerts, overage behavior, and owner approval.", "current_signal": "customer reports and invoice preview"},
+        ],
+        "daily_checks": [
+            {"check": "Gateway health", "owner": "Platform owner", "evidence": "/health", "action_if_bad": "Restart local demo or service, then check deployment readiness."},
+            {"check": "Provider health", "owner": "Gateway owner", "evidence": "/v1/gateway/provider-health", "action_if_bad": "Use route preview and fallback policy before changing customer-facing route."},
+            {"check": "Customer errors", "owner": "Support owner", "evidence": "/v1/gateway/request-activity?status=error", "action_if_bad": "Ask for gateway.request_id and open request detail."},
+            {"check": "Customer budget", "owner": "Business owner", "evidence": "/v1/gateway/customer-reports", "action_if_bad": "Confirm whether to raise budget, keep block, or stop test."},
+            {"check": "Security and config warnings", "owner": "Gateway owner", "evidence": "/v1/gateway/alerts", "action_if_bad": "Run config check and security review before live traffic."},
+        ],
+        "alert_actions": [
+            {"alert_area": "provider", "first_action": "Check provider health and route preview.", "customer_message": "The public model route is being checked while we review upstream provider health."},
+            {"alert_area": "requests", "first_action": "Find request_id in request detail.", "customer_message": "Please share the gateway.request_id so we can trace the route decision."},
+            {"alert_area": "budget", "first_action": "Open customer report and invoice preview.", "customer_message": "The gateway is enforcing agreed usage controls; we can review usage before changing limits."},
+            {"alert_area": "security", "first_action": "Open config check, data governance, and security review.", "customer_message": "The demo uses local controls; production requires approved secret and data handling rules."},
+        ],
+        "ownership": [
+            {"role": "Support owner", "owns": ["first customer response", "request_id collection", "incident wording"]},
+            {"role": "Gateway owner", "owns": ["route preview", "provider health", "model route changes", "security review"]},
+            {"role": "Platform owner", "owns": ["deployment health", "logs", "monitoring", "rollback execution"]},
+            {"role": "Business owner", "owns": ["budget decisions", "pilot decision", "customer expectation"]},
+        ],
+        "current_signals": {
+            "request_summary": summary,
+            "status_breakdown": request_summary,
+            "active_alerts": alerts.get("summary", {}),
+            "providers": [
+                {
+                    "id": provider.get("id"),
+                    "status": provider.get("status"),
+                    "reason": provider.get("reason"),
+                    "live_ready": provider.get("live_ready"),
+                    "mock_ready": provider.get("mock_ready"),
+                    "recent": provider.get("recent", {}),
+                }
+                for provider in providers
+            ],
+            "customer_count": len(customers),
+        },
+        "evidence_endpoints": [
+            "/health",
+            "/v1/gateway/alerts",
+            "/v1/gateway/provider-health",
+            "/v1/gateway/request-activity",
+            "/v1/gateway/request-detail",
+            "/v1/gateway/customer-reports",
+            "/v1/gateway/invoice-preview",
+            "/v1/gateway/incident-playbook",
+            "/v1/gateway/support-policy",
+        ],
+        "next_best_action": "Use this runbook during a customer pilot review to decide who watches the gateway and what happens when a signal turns bad.",
+        "prototype_note": "This is an operations runbook for demos and pilots, not a legal SLA. Production still needs real monitoring, alert routing, on-call ownership, retention policy, and legal SLA terms.",
+    }
+
+
 def support_policy(server):
     readiness = production_readiness(server)
     playbook = incident_playbook(server)
@@ -5952,6 +6028,7 @@ def openapi_spec(server):
         "/v1/gateway/change-management": "Change management and rollback plan",
         "/v1/gateway/data-governance": "Data governance and privacy review",
         "/v1/gateway/security-review": "Security review and threat model",
+        "/v1/gateway/operations-runbook": "Operations runbook and SLO watch plan",
         "/v1/gateway/incident-playbook": "Incident response playbook",
         "/v1/gateway/support-policy": "Support policy and SLA stage guide",
         "/v1/gateway/pilot-checklist": "Customer pilot checklist",
@@ -6073,6 +6150,7 @@ def postman_collection(server):
         request_item("Change Management", "GET", "/v1/gateway/change-management", "admin_api_key"),
         request_item("Data Governance", "GET", "/v1/gateway/data-governance", "admin_api_key"),
         request_item("Security Review", "GET", "/v1/gateway/security-review", "admin_api_key"),
+        request_item("Operations Runbook", "GET", "/v1/gateway/operations-runbook", "admin_api_key"),
         request_item("Incident Playbook", "GET", "/v1/gateway/incident-playbook", "admin_api_key"),
         request_item("Support Policy", "GET", "/v1/gateway/support-policy", "admin_api_key"),
         request_item("Pilot Checklist", "GET", "/v1/gateway/pilot-checklist", "admin_api_key"),
@@ -6294,6 +6372,13 @@ def demo_bundle(server):
                 "url": f"{base_url}/v1/gateway/security-review",
                 "audience": "business, customer security, gateway, and support owners",
                 "purpose": "Explain key risks, current controls, production controls, customer security questions, and go-live gates.",
+                "auth": "adminBearerAuth",
+            },
+            {
+                "name": "Operations runbook",
+                "url": f"{base_url}/v1/gateway/operations-runbook",
+                "audience": "support, gateway, platform, and business owners",
+                "purpose": "Show SLO-style targets, daily checks, alert actions, ownership, and evidence endpoints for customer pilots.",
                 "auth": "adminBearerAuth",
             },
             {
@@ -6528,6 +6613,10 @@ def demo_bundle(server):
                 "command": f"curl {base_url}/v1/gateway/security-review -H 'Authorization: Bearer {server.admin_api_key or DEFAULT_ADMIN_API_KEY}'",
             },
             {
+                "name": "Operations runbook",
+                "command": f"curl {base_url}/v1/gateway/operations-runbook -H 'Authorization: Bearer {server.admin_api_key or DEFAULT_ADMIN_API_KEY}'",
+            },
+            {
                 "name": "Customer success",
                 "command": f"curl {base_url}/v1/gateway/customer-success -H 'Authorization: Bearer {server.admin_api_key or DEFAULT_ADMIN_API_KEY}'",
             },
@@ -6620,6 +6709,7 @@ def gateway_status(server):
         "change_management": change_management_plan(server),
         "data_governance": data_governance_review(server),
         "security_review": security_review(server),
+        "operations_runbook": operations_runbook(server),
         "discovery_checklist": discovery_checklist(server),
         "proposal_summary": proposal_summary(server),
         "request_activity": request_activity(server.db_path, limit=10),
@@ -7358,6 +7448,9 @@ class GatewayHandler(BaseHTTPRequestHandler):
             return
         if path == "/v1/gateway/security-review":
             make_json_response(self, 200, security_review(self.server))
+            return
+        if path == "/v1/gateway/operations-runbook":
+            make_json_response(self, 200, operations_runbook(self.server))
             return
         if path == "/v1/gateway/incident-playbook":
             make_json_response(self, 200, incident_playbook(self.server))

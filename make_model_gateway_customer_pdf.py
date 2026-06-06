@@ -271,6 +271,7 @@ def build():
         "Production readiness endpoint for plain-English go-live gaps.",
         "Data governance endpoint for prompt handling, logs, retention, customer keys, and provider secrets.",
         "Security review endpoint for threat model, current controls, production controls, and go-live security gates.",
+        "Operations runbook endpoint for SLO-style targets, daily checks, alert actions, and owners.",
         "Evaluation plan endpoint for model quality, reliability, latency, cost, safety, fallback, and scorecards.",
         "Structured route decision summary for support explanations.",
         "Local safety preview for obvious sensitive data.",
@@ -326,6 +327,7 @@ def build():
             ["Production backlog", "Teams need to convert gaps into fundable engineering tasks.", "P0, P1, and P2 hardening backlog"],
             ["Data governance", "Customers need to know what happens to prompts, logs, retention, and secrets.", "Plain-English governance review"],
             ["Security review", "Customers will ask what can go wrong and what controls exist.", "Threat model, current controls, and go-live gates"],
+            ["Operations runbook", "Customers need to know who watches the gateway after a pilot starts.", "SLO-style checks, owners, and alert actions"],
             ["Model evaluation", "Customers will ask how the gateway chooses a better model.", "Evaluation plan, sample prompts, and scorecards"],
             ["Access control", "Each customer may be allowed to use different models.", "Access matrix by customer and model"],
             ["Provider health", "Customers need to know whether a provider can serve traffic.", "Readiness view based on config and recent traffic"],
@@ -812,6 +814,26 @@ def build():
     security = Table(security_rows, colWidths=[1.45 * inch, 2.5 * inch, 2.5 * inch])
     security.setStyle(table_style())
     story.append(security)
+    story.append(Spacer(1, 0.15 * inch))
+
+    story.append(Paragraph("Operations Runbook", styles["H1Custom"]))
+    story.append(
+        Paragraph(
+            "/v1/gateway/operations-runbook explains what to watch after the gateway is used by a customer, who should act, and what evidence to collect before changing routes or promises. It covers SLO-style targets, daily checks, alert actions, owner responsibilities, current signals, and evidence endpoints. It is a simple operations runbook for customer pilots, not a legal SLA or full monitoring system.",
+            styles["BodyCustom"],
+        )
+    )
+    ops_rows = [
+        ["Area", "What it means"],
+        ["SLO-style targets", "Track health, error rate, latency, and budget before promising legal SLA terms."],
+        ["Daily checks", "Review health, provider status, customer errors, budgets, and security alerts."],
+        ["Alert actions", "Use first actions and customer-safe wording for provider, request, budget, and security signals."],
+        ["Ownership", "Name support, gateway, platform, and business owners before a pilot starts."],
+        ["Evidence", "Use alerts, provider health, request detail, customer reports, invoice preview, and support policy."],
+    ]
+    ops = Table(ops_rows, colWidths=[2.1 * inch, 4.35 * inch])
+    ops.setStyle(table_style())
+    story.append(ops)
     story.append(Spacer(1, 0.15 * inch))
 
     story.append(Paragraph("Model Evaluation Plan", styles["H1Custom"]))

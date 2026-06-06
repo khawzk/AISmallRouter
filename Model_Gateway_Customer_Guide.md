@@ -379,6 +379,7 @@ They help explain the control layer:
 - Config check for demo keys and missing production settings
 - Production readiness report
 - Security review and go-live security gates
+- Operations runbook and SLO-style watch plan
 - Model evaluation plan and quality scorecards
 - Customer migration plan and rollback checklist
 
@@ -1394,6 +1395,31 @@ It is a simple threat model for customer conversations.
 The main message is simple:
 
 The prototype is good for local explanation and mock demos. Before production, the team still needs real key storage, secret manager, role-based admin access, log retention policy, tenant isolation tests, and security review.
+
+## What The Operations Runbook Shows
+
+The prototype includes `/v1/gateway/operations-runbook`.
+
+This endpoint explains what to watch after the gateway is used by a customer, who should act, and what evidence to collect before changing routes or promises.
+
+It is written for support, gateway, platform, and business owners.
+
+It covers:
+
+- SLO-style targets
+- daily checks
+- alert actions
+- support, gateway, platform, and business owners
+- current signals
+- evidence endpoints
+
+This is not a legal SLA or full monitoring system.
+
+It is a simple operations runbook for customer pilots.
+
+The main message is simple:
+
+Before production, the team still needs real monitoring, alert routing, on-call ownership, retention policy, and legal SLA terms.
 
 ## What The Model Evaluation Plan Shows
 

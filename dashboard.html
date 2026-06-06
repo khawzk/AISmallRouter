@@ -1348,6 +1348,16 @@
       </div>
     </section>
 
+    <section class="card" id="operationsRunbook" style="margin-bottom: 18px;">
+      <div class="card-head">
+        <h2>Operations runbook</h2>
+        <span>SLO-style targets, daily checks, alert actions, and owners during customer pilots</span>
+      </div>
+      <div class="card-body">
+        <div class="launch-grid" id="operationsRunbookList"></div>
+      </div>
+    </section>
+
     <section class="card" id="evaluationPlan" style="margin-bottom: 18px;">
       <div class="card-head">
         <h2>Evaluation plan</h2>
@@ -1567,6 +1577,13 @@
               <p>Threat model, current controls, customer security questions, and go-live security gates.</p>
             </div>
             <a class="btn" href="/v1/gateway/security-review?admin_key=__ADMIN_API_KEY__">Open security</a>
+          </article>
+          <article class="handoff-card">
+            <div>
+              <h3>Operations runbook</h3>
+              <p>SLO-style targets, daily checks, alert actions, owners, and evidence endpoints.</p>
+            </div>
+            <a class="btn" href="/v1/gateway/operations-runbook?admin_key=__ADMIN_API_KEY__">Open ops</a>
           </article>
           <article class="handoff-card">
             <div>
@@ -2055,6 +2072,7 @@
     const changeManagementList = document.getElementById("changeManagementList");
     const dataGovernanceList = document.getElementById("dataGovernanceList");
     const securityReviewList = document.getElementById("securityReviewList");
+    const operationsRunbookList = document.getElementById("operationsRunbookList");
     const evaluationPlanList = document.getElementById("evaluationPlanList");
     const discoveryChecklistList = document.getElementById("discoveryChecklistList");
     const proposalSummaryList = document.getElementById("proposalSummaryList");
@@ -2388,6 +2406,43 @@
         </div>
       `;
       securityReviewList.appendChild(card);
+    });
+
+    const operationsRunbook = state.operations_runbook || {slo_targets: [], daily_checks: [], alert_actions: []};
+    const operationsCards = [
+      {
+        title: "SLO-style targets",
+        chip: operationsRunbook.operating_stage || "prototype",
+        body: operationsRunbook.plain_english || "",
+        items: (operationsRunbook.slo_targets || []).map((item) => `${item.name}: ${item.current_signal}`),
+      },
+      {
+        title: "Daily checks",
+        chip: "owners",
+        body: operationsRunbook.next_best_action || "",
+        items: (operationsRunbook.daily_checks || []).map((item) => `${item.owner}: ${item.check}`),
+      },
+      {
+        title: "Alert actions",
+        chip: "runbook",
+        body: "First actions and customer-safe wording for common bad signals.",
+        items: (operationsRunbook.alert_actions || []).map((item) => `${item.alert_area}: ${item.first_action}`),
+      },
+    ];
+    operationsCards.forEach((item) => {
+      const card = document.createElement("article");
+      card.className = "readiness-card " + (item.title === "Alert actions" ? "needs_work" : "ready");
+      card.innerHTML = `
+        <div class="readiness-title">
+          <strong>${escapeHtml(item.title)}</strong>
+          <span class="${item.title === "SLO-style targets" ? "chip green" : "chip"}">${escapeHtml(item.chip)}</span>
+        </div>
+        <p>${escapeHtml(item.body)}</p>
+        <div class="option-list">
+          ${(item.items || []).slice(0, 5).map((value) => `<span>${escapeHtml(value)}</span>`).join("")}
+        </div>
+      `;
+      operationsRunbookList.appendChild(card);
     });
 
     const evaluationPlan = state.evaluation_plan || {evaluation_dimensions: [], sample_eval_set: [], model_scorecards: []};

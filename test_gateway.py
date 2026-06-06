@@ -188,6 +188,7 @@ class GatewayPrototypeTest(unittest.TestCase):
             "/v1/gateway/change-management",
             "/v1/gateway/data-governance",
             "/v1/gateway/security-review",
+            "/v1/gateway/operations-runbook",
             "/v1/gateway/provider-contracts",
             "/v1/gateway/evaluation-plan",
             "/v1/gateway/incident-playbook",
@@ -241,6 +242,7 @@ class GatewayPrototypeTest(unittest.TestCase):
         self.assertIn("Change Management", admin_names)
         self.assertIn("Data Governance", admin_names)
         self.assertIn("Security Review", admin_names)
+        self.assertIn("Operations Runbook", admin_names)
         self.assertIn("Customer Success", admin_names)
         self.assertIn("Support Policy", admin_names)
         self.assertIn("Pilot Checklist", admin_names)
@@ -281,6 +283,7 @@ class GatewayPrototypeTest(unittest.TestCase):
         self.assertIn(f"{self.base_url}/v1/gateway/change-management", entry_urls)
         self.assertIn(f"{self.base_url}/v1/gateway/data-governance", entry_urls)
         self.assertIn(f"{self.base_url}/v1/gateway/security-review", entry_urls)
+        self.assertIn(f"{self.base_url}/v1/gateway/operations-runbook", entry_urls)
         self.assertIn(f"{self.base_url}/v1/gateway/customer-success", entry_urls)
         self.assertIn(f"{self.base_url}/v1/gateway/provider-contracts", entry_urls)
         self.assertIn(f"{self.base_url}/v1/gateway/evaluation-plan", entry_urls)
@@ -807,6 +810,34 @@ class GatewayPrototypeTest(unittest.TestCase):
         self.assertNotIn("sk-", json.dumps(review))
         self.assertNotIn("provider_api_keys", json.dumps(review))
 
+    def test_operations_runbook_lists_slo_checks_and_owner_actions(self):
+        status, payload = request_json(self.base_url, path="/v1/gateway/operations-runbook", api_key="dev-gateway-key")
+        self.assertEqual(status, 401)
+        self.assertEqual(payload["error"]["code"], "invalid_admin_key")
+
+        status, runbook = request_json(self.base_url, path="/v1/gateway/operations-runbook", api_key="dev-admin-key")
+        self.assertEqual(status, 200)
+        self.assertEqual(runbook["object"], "gateway.operations_runbook")
+        target_names = {item["name"] for item in runbook["slo_targets"]}
+        self.assertIn("Availability target", target_names)
+        self.assertIn("Error rate target", target_names)
+        self.assertIn("Latency target", target_names)
+        self.assertIn("Budget target", target_names)
+        check_names = {item["check"] for item in runbook["daily_checks"]}
+        self.assertIn("Gateway health", check_names)
+        self.assertIn("Provider health", check_names)
+        self.assertIn("Customer errors", check_names)
+        owners = {item["role"] for item in runbook["ownership"]}
+        self.assertIn("Support owner", owners)
+        self.assertIn("Gateway owner", owners)
+        self.assertIn("Platform owner", owners)
+        self.assertIn("/v1/gateway/incident-playbook", runbook["evidence_endpoints"])
+        self.assertIn("/v1/gateway/support-policy", runbook["evidence_endpoints"])
+        self.assertIn("not a legal SLA", runbook["prototype_note"])
+        self.assertNotIn("DASHSCOPE_API_KEY", json.dumps(runbook))
+        self.assertNotIn("sk-", json.dumps(runbook))
+        self.assertNotIn("provider_api_keys", json.dumps(runbook))
+
     def test_discovery_checklist_turns_broad_idea_into_scope(self):
         status, payload = request_json(self.base_url, path="/v1/gateway/discovery-checklist", api_key="dev-gateway-key")
         self.assertEqual(status, 401)
@@ -1270,6 +1301,8 @@ class GatewayPrototypeTest(unittest.TestCase):
         self.assertIn("categories", payload["data_governance"])
         self.assertIn("security_review", payload)
         self.assertIn("threats", payload["security_review"])
+        self.assertIn("operations_runbook", payload)
+        self.assertIn("slo_targets", payload["operations_runbook"])
         self.assertIn("evaluation_plan", payload)
         self.assertIn("model_scorecards", payload["evaluation_plan"])
         self.assertIn("discovery_checklist", payload)
@@ -2182,6 +2215,9 @@ class GatewayPrototypeTest(unittest.TestCase):
         self.assertIn("Security review", html)
         self.assertIn("securityReviewList", html)
         self.assertIn("/v1/gateway/security-review?admin_key=", html)
+        self.assertIn("Operations runbook", html)
+        self.assertIn("operationsRunbookList", html)
+        self.assertIn("/v1/gateway/operations-runbook?admin_key=", html)
         self.assertIn("Evaluation plan", html)
         self.assertIn("evaluationPlanList", html)
         self.assertIn("/v1/gateway/evaluation-plan?admin_key=", html)
