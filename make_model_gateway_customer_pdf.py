@@ -246,6 +246,7 @@ def build():
         "Pilot checklist endpoint for before, during, and after a customer trial.",
         "Discovery checklist endpoint for customer goals, provider scope, governance, reporting, and production expectations.",
         "Proposal summary endpoint for customer-facing pilot scope, exclusions, risks, and next steps.",
+        "Deployment readiness endpoint for environment, preflight checks, operations, rollback, and deployment options.",
         "Executive brief endpoint for non-technical customer stakeholders.",
         "Roadmap endpoint for prototype, pilot, production hardening, and multi-provider expansion.",
         "Decision guide endpoint for API Gateway, managed AI Gateway, custom Model Gateway, and OpenRouter-like options.",
@@ -312,6 +313,7 @@ def build():
             ["Customer objections", "Sales and support need consistent answers to common questions.", "FAQ endpoint"],
             ["Demo delivery", "A presenter needs a simple meeting flow, talk track, and likely questions.", "Demo script endpoint"],
             ["Production readiness", "Customers need to understand why demo-ready is not production-ready.", "Plain-English readiness report"],
+            ["Deployment readiness", "Customer technical teams need to know what must be configured before running it.", "Environment, preflight, health checks, rollback, and deployment options"],
             ["Data governance", "Customers need to know what happens to prompts, logs, retention, and secrets.", "Plain-English governance review"],
             ["Access control", "Each customer may be allowed to use different models.", "Access matrix by customer and model"],
             ["Provider health", "Customers need to know whether a provider can serve traffic.", "Readiness view based on config and recent traffic"],
@@ -656,6 +658,26 @@ def build():
             styles["BodyCustom"],
         )
     )
+
+    story.append(Paragraph("Deployment Readiness Guide", styles["H1Custom"]))
+    story.append(
+        Paragraph(
+            "/v1/gateway/deployment-readiness explains how to move from local demo to a controlled pilot or production deployment. It covers local demo, live Qwen test, technical pilot, and production target stages. It also lists required environment variables and files, preflight checks, operational health checks, rollback plan, and deployment options. It is not a one-command production deploy.",
+            styles["BodyCustom"],
+        )
+    )
+    deployment_rows = [
+        ["Area", "What it explains"],
+        ["Stages", "Local demo, live Qwen test, technical pilot, and production target."],
+        ["Environment", "Admin key, customer keys, DASHSCOPE_API_KEY, registry, customer config, and logs."],
+        ["Preflight", "Admin key, provider key strategy, customer keys, data policy, and readiness blockers."],
+        ["Operations", "Health check, model list, mock chat, route preview, and provider health."],
+        ["Rollback", "Config versioning, audit events, database rollback, and fallback route plan."],
+    ]
+    deployment = Table(deployment_rows, colWidths=[2.1 * inch, 4.35 * inch])
+    deployment.setStyle(table_style())
+    story.append(deployment)
+    story.append(Spacer(1, 0.15 * inch))
 
     story.append(Paragraph("Production Launch Plan", styles["H1Custom"]))
     story.append(

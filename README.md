@@ -177,6 +177,7 @@ The current version also supports:
 - `GET /v1/gateway/discovery-checklist`
 - `GET /v1/gateway/proposal-summary`
 - `GET /v1/gateway/onboarding-plan`
+- `GET /v1/gateway/deployment-readiness`
 - `GET /v1/gateway/launch-plan`
 - `GET /v1/gateway/change-management`
 - `GET /v1/gateway/data-governance`
@@ -433,6 +434,33 @@ It is not a full security audit.
 It is a management-friendly view for explaining what still needs work before production traffic.
 
 The dashboard also shows this as **Production readiness** cards.
+
+## Deployment Readiness Guide
+
+The gateway has a deployment readiness endpoint:
+
+```bash
+curl http://127.0.0.1:8787/v1/gateway/deployment-readiness \
+  -H "Authorization: Bearer dev-admin-key"
+```
+
+It explains how to move from local demo to a controlled pilot or production deployment.
+
+It covers:
+
+- local demo stage
+- live Qwen test stage
+- technical pilot stage
+- production target stage
+- required environment variables and files
+- preflight checks
+- operational health checks
+- rollback plan
+- deployment options
+
+This is not a one-command production deploy.
+
+It is a plain-English guide for the customer technical team to understand what must be configured, secured, monitored, and approved before real traffic.
 
 ## Production Launch Plan
 

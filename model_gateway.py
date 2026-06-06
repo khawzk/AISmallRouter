@@ -86,6 +86,7 @@ ADMIN_PATHS = {
     "/v1/gateway/policy-presets",
     "/v1/gateway/demo-bundle",
     "/v1/gateway/production-readiness",
+    "/v1/gateway/deployment-readiness",
     "/v1/gateway/launch-plan",
     "/v1/gateway/change-management",
     "/v1/gateway/data-governance",
@@ -4036,6 +4037,163 @@ def proposal_summary(server):
     }
 
 
+def deployment_readiness(server):
+    config = gateway_config_check(server)
+    readiness = production_readiness(server)
+    return {
+        "object": "gateway.deployment_readiness",
+        "title": "AISmallRouter Deployment Readiness Guide",
+        "audience": "customer technical owner, gateway owner, platform owner, and security owner",
+        "mode": "mock" if server.mock_mode else "live",
+        "plain_english": "This guide explains what must be prepared before moving from a local demo to a customer pilot or production deployment.",
+        "deployment_stages": [
+            {
+                "stage": "local_demo",
+                "purpose": "Explain the gateway idea without paid provider spend.",
+                "run_command": "python3 model_gateway.py --mock --port 8795",
+                "data_store": "local SQLite and local JSON files",
+                "good_for": ["customer explanation", "mock route demo", "documentation review"],
+                "not_good_for": ["production traffic", "real SLA", "shared customer secrets"],
+            },
+            {
+                "stage": "live_qwen_test",
+                "purpose": "Call Alibaba Cloud Model Studio / Qwen for a small controlled test.",
+                "run_command": "DASHSCOPE_API_KEY=... python3 model_gateway.py --port 8795",
+                "data_store": "local SQLite and local JSON files",
+                "good_for": ["one internal live test", "latency and response quality check"],
+                "not_good_for": ["multi-customer production", "long-term secret storage"],
+            },
+            {
+                "stage": "technical_pilot",
+                "purpose": "Let one customer or internal team test the API with limits and reports.",
+                "run_command": "Run behind a controlled internal service endpoint with admin key and customer keys replaced.",
+                "data_store": "database preferred; local files acceptable only for a short private pilot",
+                "good_for": ["one use case", "small request volume", "measured pilot"],
+                "not_good_for": ["public marketplace", "unbounded traffic", "contracted SLA"],
+            },
+            {
+                "stage": "production_target",
+                "purpose": "Run real customer traffic with operational ownership.",
+                "run_command": "Deploy as a managed service with database, secret manager, monitoring, backups, and rollback workflow.",
+                "data_store": "production database, secret manager, log retention, and backup policy",
+                "good_for": ["approved customer traffic", "supportable operations"],
+                "not_good_for": ["unreviewed provider adapters", "unknown billing rules", "unapproved data retention"],
+            },
+        ],
+        "required_environment": [
+            {
+                "name": "GATEWAY_ADMIN_API_KEY",
+                "required_for": "admin endpoints",
+                "prototype_default": DEFAULT_ADMIN_API_KEY,
+                "production_rule": "Must be changed before any shared environment.",
+            },
+            {
+                "name": "customer gateway API keys",
+                "required_for": "customer calls to /v1/models and /v1/chat/completions",
+                "prototype_default": "dev-gateway-key and demo keys",
+                "production_rule": "Issue per customer, store safely, rotate, and disable when needed.",
+            },
+            {
+                "name": "DASHSCOPE_API_KEY",
+                "required_for": "live Alibaba Cloud Model Studio / Qwen calls",
+                "prototype_default": "not required in mock mode",
+                "production_rule": "Store in secret manager or customer BYOK mapping, not in repo files.",
+            },
+            {
+                "name": "model_registry.json",
+                "required_for": "provider configs and public model routes",
+                "prototype_default": "local file",
+                "production_rule": "Move to database or controlled config store with approvals and rollback.",
+            },
+            {
+                "name": "customer_keys.json",
+                "required_for": "customer access, budgets, and BYOK mapping",
+                "prototype_default": "local file",
+                "production_rule": "Move to database or key management system with audit history.",
+            },
+            {
+                "name": "SQLite request log",
+                "required_for": "demo request, usage, and audit records",
+                "prototype_default": "local database file",
+                "production_rule": "Move to managed database with retention, backup, and access control.",
+            },
+        ],
+        "preflight_checks": [
+            {
+                "check": "Admin key replaced",
+                "why": "Default admin key is fine for local demo only.",
+                "evidence": "/v1/gateway/config-check",
+                "current_status": "needs_work" if any(item.get("code") == "default_admin_key" for item in config.get("checks", [])) else "ready",
+            },
+            {
+                "check": "Provider key strategy agreed",
+                "why": "Live provider calls need server-side key or customer BYOK policy.",
+                "evidence": "/v1/gateway/provider-health",
+                "current_status": "ready" if server.mock_mode else "check_provider_health",
+            },
+            {
+                "check": "Customer keys and budgets issued",
+                "why": "Each customer should have separate access, allowed models, and limits.",
+                "evidence": "/v1/gateway/access-matrix",
+                "current_status": "ready" if server.customers_by_key else "needs_work",
+            },
+            {
+                "check": "Data handling policy agreed",
+                "why": "Prompt logs and request detail can contain sensitive data.",
+                "evidence": "/v1/gateway/data-governance",
+                "current_status": "needs_policy",
+            },
+            {
+                "check": "Readiness blockers owned",
+                "why": "A demo can work while production gaps remain.",
+                "evidence": "/v1/gateway/production-readiness",
+                "current_status": readiness.get("overall_status"),
+            },
+        ],
+        "operational_checks": [
+            {"name": "Health check", "endpoint": "/health", "expected": "200 OK"},
+            {"name": "Admin status", "endpoint": "/v1/gateway/status", "expected": "admin auth required and status JSON after valid admin key"},
+            {"name": "Model list", "endpoint": "/v1/models", "expected": "customer auth required and OpenAI-compatible model list"},
+            {"name": "Mock chat", "endpoint": "/v1/chat/completions", "expected": "OpenAI-compatible chat.completion response"},
+            {"name": "Route preview", "endpoint": "/v1/gateway/route-preview", "expected": "route decision without provider spend"},
+            {"name": "Provider health", "endpoint": "/v1/gateway/provider-health", "expected": "mock-ready or live-ready provider explanation"},
+        ],
+        "rollback_plan": [
+            "Keep the last known good model_registry.json and customer_keys.json in version control for prototype demos.",
+            "For pilot, record every customer, provider, and model route change in audit events.",
+            "For production, use database migrations, config versions, staged rollout, and one-command rollback.",
+            "If a live provider fails, switch affected public models to mock/demo mode or approved fallback route before broad customer traffic.",
+        ],
+        "deployment_options": [
+            {
+                "option": "single VM or internal server",
+                "fit": "simple private pilot",
+                "requirements": ["reverse proxy", "TLS", "process manager", "secret environment variables", "backup plan"],
+            },
+            {
+                "option": "container service",
+                "fit": "repeatable pilot and production path",
+                "requirements": ["container image", "health check", "secret manager", "managed database", "logs and metrics"],
+            },
+            {
+                "option": "serverless or managed functions",
+                "fit": "low-ops API deployment if streaming/runtime limits are acceptable",
+                "requirements": ["streaming support review", "timeout review", "persistent database", "central secret manager"],
+            },
+        ],
+        "reference_endpoints": [
+            "/health",
+            "/v1/gateway/config-check",
+            "/v1/gateway/provider-health",
+            "/v1/gateway/data-governance",
+            "/v1/gateway/production-readiness",
+            "/v1/gateway/launch-plan",
+            "/v1/gateway/change-management",
+        ],
+        "next_best_action": "Keep local demo on mock mode, then run one live Qwen test only after admin key, customer key, provider key, and data handling policy are understood.",
+    }
+
+
 def onboarding_plan(server):
     readiness = production_readiness(server)
     pilot = pilot_checklist(server)
@@ -5074,6 +5232,7 @@ def openapi_spec(server):
         "/v1/gateway/request-summary": "Request summary by dimensions",
         "/v1/gateway/demo-bundle": "Customer demo bundle manifest",
         "/v1/gateway/production-readiness": "Production readiness report",
+        "/v1/gateway/deployment-readiness": "Deployment readiness guide",
         "/v1/gateway/launch-plan": "Production launch plan",
         "/v1/gateway/change-management": "Change management and rollback plan",
         "/v1/gateway/data-governance": "Data governance and privacy review",
@@ -5188,6 +5347,7 @@ def postman_collection(server):
         request_item("Provider Health", "GET", "/v1/gateway/provider-health", "admin_api_key"),
         request_item("Provider Contracts", "GET", "/v1/gateway/provider-contracts", "admin_api_key"),
         request_item("Production Readiness", "GET", "/v1/gateway/production-readiness", "admin_api_key"),
+        request_item("Deployment Readiness", "GET", "/v1/gateway/deployment-readiness", "admin_api_key"),
         request_item("Launch Plan", "GET", "/v1/gateway/launch-plan", "admin_api_key"),
         request_item("Change Management", "GET", "/v1/gateway/change-management", "admin_api_key"),
         request_item("Data Governance", "GET", "/v1/gateway/data-governance", "admin_api_key"),
@@ -5358,6 +5518,13 @@ def demo_bundle(server):
                 "auth": "adminBearerAuth",
             },
             {
+                "name": "Deployment readiness guide",
+                "url": f"{base_url}/v1/gateway/deployment-readiness",
+                "audience": "customer technical, platform, security, and gateway owners",
+                "purpose": "Show deployment stages, environment requirements, preflight checks, operational checks, rollback, and deployment options.",
+                "auth": "adminBearerAuth",
+            },
+            {
                 "name": "Production launch plan",
                 "url": f"{base_url}/v1/gateway/launch-plan",
                 "audience": "business, technical, support, and operations",
@@ -5510,8 +5677,8 @@ def demo_bundle(server):
             {
                 "step": 5,
                 "title": "Show control plane",
-                "show": "/v1/gateway/status, /v1/gateway/production-readiness, /v1/gateway/launch-plan, and /v1/gateway/data-governance",
-                "talk_track": "Admin views show provider health, customer usage, alerts, readiness, launch gates, data governance, audit events, and invoice preview.",
+                "show": "/v1/gateway/status, /v1/gateway/production-readiness, /v1/gateway/deployment-readiness, /v1/gateway/launch-plan, and /v1/gateway/data-governance",
+                "talk_track": "Admin views show provider health, customer usage, alerts, readiness, deployment checks, launch gates, data governance, audit events, and invoice preview.",
             },
             {
                 "step": 6,
@@ -5562,6 +5729,10 @@ def demo_bundle(server):
             {
                 "name": "Production readiness",
                 "command": f"curl {base_url}/v1/gateway/production-readiness -H 'Authorization: Bearer {server.admin_api_key or DEFAULT_ADMIN_API_KEY}'",
+            },
+            {
+                "name": "Deployment readiness",
+                "command": f"curl {base_url}/v1/gateway/deployment-readiness -H 'Authorization: Bearer {server.admin_api_key or DEFAULT_ADMIN_API_KEY}'",
             },
             {
                 "name": "Launch plan",
@@ -5650,6 +5821,7 @@ def gateway_status(server):
         "customer_success": customer_success_summary(server),
         "invoice_preview": invoice_preview(server),
         "production_readiness": production_readiness(server),
+        "deployment_readiness": deployment_readiness(server),
         "launch_plan": launch_plan(server),
         "change_management": change_management_plan(server),
         "data_governance": data_governance_review(server),
@@ -6367,6 +6539,9 @@ class GatewayHandler(BaseHTTPRequestHandler):
             return
         if path == "/v1/gateway/production-readiness":
             make_json_response(self, 200, production_readiness(self.server))
+            return
+        if path == "/v1/gateway/deployment-readiness":
+            make_json_response(self, 200, deployment_readiness(self.server))
             return
         if path == "/v1/gateway/launch-plan":
             make_json_response(self, 200, launch_plan(self.server))

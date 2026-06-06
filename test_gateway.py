@@ -180,6 +180,7 @@ class GatewayPrototypeTest(unittest.TestCase):
             "/v1/gateway/customer-success",
             "/v1/gateway/demo-bundle",
             "/v1/gateway/production-readiness",
+            "/v1/gateway/deployment-readiness",
             "/v1/gateway/launch-plan",
             "/v1/gateway/change-management",
             "/v1/gateway/data-governance",
@@ -224,6 +225,7 @@ class GatewayPrototypeTest(unittest.TestCase):
         self.assertIn("Customer SDK Starter", customer_names)
         self.assertIn("Route Preview", admin_names)
         self.assertIn("Production Readiness", admin_names)
+        self.assertIn("Deployment Readiness", admin_names)
         self.assertIn("Provider Contracts", admin_names)
         self.assertIn("Incident Playbook", admin_names)
         self.assertIn("Launch Plan", admin_names)
@@ -259,6 +261,7 @@ class GatewayPrototypeTest(unittest.TestCase):
         self.assertIn(f"{self.base_url}/postman_collection.json", entry_urls)
         self.assertIn(f"{self.base_url}/v1/gateway/sdk-starter", entry_urls)
         self.assertIn(f"{self.base_url}/v1/gateway/production-readiness", entry_urls)
+        self.assertIn(f"{self.base_url}/v1/gateway/deployment-readiness", entry_urls)
         self.assertIn(f"{self.base_url}/v1/gateway/launch-plan", entry_urls)
         self.assertIn(f"{self.base_url}/v1/gateway/change-management", entry_urls)
         self.assertIn(f"{self.base_url}/v1/gateway/data-governance", entry_urls)
@@ -508,6 +511,35 @@ class GatewayPrototypeTest(unittest.TestCase):
             self.assertIn("plain_english", category)
             self.assertIn("next_step", category)
         self.assertNotIn("DASHSCOPE_API_KEY", json.dumps(readiness))
+
+    def test_deployment_readiness_lists_environment_and_preflight_checks(self):
+        status, payload = request_json(self.base_url, path="/v1/gateway/deployment-readiness", api_key="dev-gateway-key")
+        self.assertEqual(status, 401)
+        self.assertEqual(payload["error"]["code"], "invalid_admin_key")
+
+        status, guide = request_json(self.base_url, path="/v1/gateway/deployment-readiness", api_key="dev-admin-key")
+        self.assertEqual(status, 200)
+        self.assertEqual(guide["object"], "gateway.deployment_readiness")
+        stages = {stage["stage"] for stage in guide["deployment_stages"]}
+        self.assertIn("local_demo", stages)
+        self.assertIn("live_qwen_test", stages)
+        self.assertIn("technical_pilot", stages)
+        self.assertIn("production_target", stages)
+        env_names = {item["name"] for item in guide["required_environment"]}
+        self.assertIn("GATEWAY_ADMIN_API_KEY", env_names)
+        self.assertIn("DASHSCOPE_API_KEY", env_names)
+        self.assertIn("model_registry.json", env_names)
+        preflight = {item["check"] for item in guide["preflight_checks"]}
+        self.assertIn("Admin key replaced", preflight)
+        self.assertIn("Data handling policy agreed", preflight)
+        ops = {item["endpoint"] for item in guide["operational_checks"]}
+        self.assertIn("/health", ops)
+        self.assertIn("/v1/models", ops)
+        self.assertIn("/v1/gateway/provider-health", ops)
+        self.assertGreaterEqual(len(guide["rollback_plan"]), 3)
+        self.assertIn("/v1/gateway/config-check", guide["reference_endpoints"])
+        self.assertIn("local demo", guide["plain_english"])
+        self.assertNotIn("sk-", json.dumps(guide))
 
     def test_launch_plan_lists_go_live_gates(self):
         status, payload = request_json(self.base_url, path="/v1/gateway/launch-plan", api_key="dev-gateway-key")
@@ -1025,6 +1057,8 @@ class GatewayPrototypeTest(unittest.TestCase):
         self.assertIn("production_readiness", payload)
         self.assertIn("categories", payload["production_readiness"])
         self.assertGreaterEqual(len(payload["production_readiness"]["categories"]), 5)
+        self.assertIn("deployment_readiness", payload)
+        self.assertIn("deployment_stages", payload["deployment_readiness"])
         self.assertIn("launch_plan", payload)
         self.assertIn("gates", payload["launch_plan"])
         self.assertIn("change_management", payload)
@@ -1944,6 +1978,9 @@ class GatewayPrototypeTest(unittest.TestCase):
         self.assertIn("Proposal summary", html)
         self.assertIn("proposalSummaryList", html)
         self.assertIn("/v1/gateway/proposal-summary?admin_key=", html)
+        self.assertIn("Deployment readiness", html)
+        self.assertIn("deploymentReadinessList", html)
+        self.assertIn("/v1/gateway/deployment-readiness?admin_key=", html)
         self.assertIn("Customer success summary", html)
         self.assertIn("customerSuccessList", html)
         self.assertIn("Customer handoff package", html)

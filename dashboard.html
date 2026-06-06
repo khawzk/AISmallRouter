@@ -1358,6 +1358,16 @@
       </div>
     </section>
 
+    <section class="card" id="deploymentReadiness" style="margin-bottom: 18px;">
+      <div class="card-head">
+        <h2>Deployment readiness</h2>
+        <span>environment, preflight checks, operational checks, and rollback path</span>
+      </div>
+      <div class="card-body">
+        <div class="launch-grid" id="deploymentReadinessList"></div>
+      </div>
+    </section>
+
     <section class="card" id="handoff" style="margin-bottom: 18px;">
       <div class="card-head">
         <h2>Customer handoff package</h2>
@@ -1441,6 +1451,13 @@
               <p>Plain-English view of what is demo-ready and what still needs hardening.</p>
             </div>
             <a class="btn" href="/v1/gateway/production-readiness?admin_key=__ADMIN_API_KEY__">Open readiness</a>
+          </article>
+          <article class="handoff-card">
+            <div>
+              <h3>Deployment readiness</h3>
+              <p>Environment variables, deployment stages, preflight checks, health checks, and rollback path.</p>
+            </div>
+            <a class="btn" href="/v1/gateway/deployment-readiness?admin_key=__ADMIN_API_KEY__">Open deployment</a>
           </article>
           <article class="handoff-card">
             <div>
@@ -1937,6 +1954,7 @@
     const dataGovernanceList = document.getElementById("dataGovernanceList");
     const discoveryChecklistList = document.getElementById("discoveryChecklistList");
     const proposalSummaryList = document.getElementById("proposalSummaryList");
+    const deploymentReadinessList = document.getElementById("deploymentReadinessList");
     const accessMatrixList = document.getElementById("accessMatrixList");
     const customerSuccessSummary = document.getElementById("customerSuccessSummary");
     const customerSuccessList = document.getElementById("customerSuccessList");
@@ -2284,6 +2302,43 @@
         </div>
       `;
       proposalSummaryList.appendChild(card);
+    });
+
+    const deploymentReadiness = state.deployment_readiness || {deployment_stages: [], preflight_checks: []};
+    const deploymentCards = [
+      {
+        title: "Deployment stages",
+        chip: "stages",
+        body: deploymentReadiness.plain_english || "",
+        items: (deploymentReadiness.deployment_stages || []).map((stage) => `${stage.stage}: ${stage.purpose}`),
+      },
+      {
+        title: "Required environment",
+        chip: "env",
+        body: "Things that must be configured before shared or live use.",
+        items: (deploymentReadiness.required_environment || []).map((item) => `${item.name}: ${item.production_rule}`),
+      },
+      {
+        title: "Preflight checks",
+        chip: "check",
+        body: deploymentReadiness.next_best_action || "",
+        items: (deploymentReadiness.preflight_checks || []).map((item) => `${item.check}: ${item.current_status}`),
+      },
+    ];
+    deploymentCards.forEach((item) => {
+      const card = document.createElement("article");
+      card.className = "readiness-card " + (item.chip === "check" ? "needs_work" : "ready");
+      card.innerHTML = `
+        <div class="readiness-title">
+          <strong>${escapeHtml(item.title)}</strong>
+          <span class="${item.chip === "stages" ? "chip green" : "chip"}">${escapeHtml(item.chip)}</span>
+        </div>
+        <p>${escapeHtml(item.body)}</p>
+        <div class="option-list">
+          ${(item.items || []).slice(0, 4).map((value) => `<span>${escapeHtml(value)}</span>`).join("")}
+        </div>
+      `;
+      deploymentReadinessList.appendChild(card);
     });
 
     function tokenPercent(report) {

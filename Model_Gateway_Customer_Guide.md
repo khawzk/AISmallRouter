@@ -1173,6 +1173,28 @@ This is not a full security audit.
 
 It helps a customer understand why a prototype is not the same as a production platform.
 
+## What The Deployment Readiness Guide Shows
+
+The prototype includes `/v1/gateway/deployment-readiness`.
+
+This endpoint explains how to move from local demo to a controlled pilot or production deployment.
+
+It covers:
+
+- local demo stage
+- live Qwen test stage
+- technical pilot stage
+- production target stage
+- required environment variables and files
+- preflight checks
+- operational health checks
+- rollback plan
+- deployment options
+
+This is not a one-command production deploy.
+
+It is a plain-English guide for the customer technical team to understand what must be configured, secured, monitored, and approved before real traffic.
+
 ## What The Launch Plan Shows
 
 The prototype includes `/v1/gateway/launch-plan`.
