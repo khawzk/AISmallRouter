@@ -92,6 +92,7 @@ ADMIN_PATHS = {
     "/v1/gateway/incident-playbook",
     "/v1/gateway/support-policy",
     "/v1/gateway/pilot-checklist",
+    "/v1/gateway/discovery-checklist",
     "/v1/gateway/onboarding-plan",
     "/v1/gateway/executive-brief",
     "/v1/gateway/roadmap",
@@ -3795,6 +3796,132 @@ def executive_brief(server):
     }
 
 
+def discovery_checklist(server):
+    return {
+        "object": "gateway.discovery_checklist",
+        "title": "AISmallRouter Customer Discovery Checklist",
+        "audience": "business owner, sales, solution architect, customer success, and customer technical owner",
+        "mode": "mock" if server.mock_mode else "live",
+        "plain_english": "Use this checklist before building or promising an OpenRouter-like gateway. It turns a broad customer idea into clear scope, risks, and next steps.",
+        "why_it_matters": [
+            "A customer may say they need one AI API, but they may actually need governance, billing, model choice, privacy, fallback, or only a simple proxy.",
+            "A normal API Gateway may be enough for simple HTTP control, but it does not solve provider adapters, usage records, model policy, or customer-specific model access.",
+            "A small discovery step prevents over-promising production readiness too early.",
+        ],
+        "discovery_sections": [
+            {
+                "section": "Customer goal",
+                "plain_english": "Find the real business reason for the gateway.",
+                "questions": [
+                    "What customer workflow will call the gateway first?",
+                    "Is the goal cost control, model choice, private model access, compliance, fallback, or simpler integration?",
+                    "Who will decide whether the pilot worked?",
+                ],
+                "evidence_to_collect": ["first use case", "pilot owner", "success metric"],
+                "red_flags": ["No named use case", "No pilot owner", "Customer expects production SLA immediately"],
+            },
+            {
+                "section": "Model and provider scope",
+                "plain_english": "List the first models and providers before discussing a marketplace.",
+                "questions": [
+                    "Which provider must work first: Alibaba Cloud Model Studio, OpenAI, Claude, Xiaomi, or another provider?",
+                    "Are public model aliases enough, or does the customer need to choose exact upstream models?",
+                    "Does the customer need streaming, tool calling, embeddings, images, or only chat?",
+                ],
+                "evidence_to_collect": ["provider list", "required capabilities", "first public model names"],
+                "red_flags": ["Too many providers in phase one", "Unknown provider docs", "No agreed first model"],
+            },
+            {
+                "section": "Customer access and tenant rules",
+                "plain_english": "Understand who can use which model and under what limits.",
+                "questions": [
+                    "How many customer teams or tenants will use the gateway?",
+                    "Does each customer need separate API keys, budgets, and allowed models?",
+                    "Does the customer bring their own provider key or use a shared provider key?",
+                ],
+                "evidence_to_collect": ["tenant list", "allowed model matrix", "BYOK decision"],
+                "red_flags": ["Shared keys across customers", "No tenant isolation expectation", "Unclear owner for key rotation"],
+            },
+            {
+                "section": "Data and governance",
+                "plain_english": "Agree what can be logged, retained, shown, or deleted.",
+                "questions": [
+                    "Can prompts and responses be stored for support?",
+                    "What is the retention period for request logs, usage logs, and audit logs?",
+                    "What sensitive data should be blocked, redacted, or allowed?",
+                ],
+                "evidence_to_collect": ["logging policy", "retention policy", "sensitive data examples"],
+                "red_flags": ["No retention answer", "PII expected in prompts", "No rule for customer data deletion"],
+            },
+            {
+                "section": "Commercial and reporting",
+                "plain_english": "Clarify whether the gateway must support usage reports, budgets, or invoice preview.",
+                "questions": [
+                    "Does the customer need internal chargeback, customer billing, or only usage visibility?",
+                    "Which numbers matter: requests, tokens, model cost, error rate, latency, or all of them?",
+                    "Who receives usage reports and how often?",
+                ],
+                "evidence_to_collect": ["pricing model", "report audience", "budget rule"],
+                "red_flags": ["Need billing but no pricing rule", "No cost owner", "Provider cost units are not understood"],
+            },
+            {
+                "section": "Production expectation",
+                "plain_english": "Separate a demo, a pilot, and a production service.",
+                "questions": [
+                    "Is this for a demo, a small pilot, limited production, or full production?",
+                    "What uptime, support hours, incident response, and rollback expectations exist?",
+                    "Who approves provider changes, model route changes, and customer key changes?",
+                ],
+                "evidence_to_collect": ["support stage", "approval owner", "rollback expectation"],
+                "red_flags": ["Production traffic before secret manager and monitoring", "No support owner", "No approval path"],
+            },
+        ],
+        "fit_assessment": [
+            {
+                "fit": "Normal API Gateway may be enough",
+                "when": "Customer only needs auth, rate limits, HTTP routing, and logs for one provider with one stable API shape.",
+                "next_step": "Use the decision guide before building custom model routing.",
+            },
+            {
+                "fit": "Managed AI Gateway may be enough",
+                "when": "Customer accepts a hosted gateway, standard provider integrations, and platform-level cost tracking.",
+                "next_step": "Compare managed AI gateway features against privacy, region, and customer ownership needs.",
+            },
+            {
+                "fit": "Custom Model Gateway is useful",
+                "when": "Customer needs private customer controls, model aliases, provider adapter logic, BYOK, audit, custom reports, or special rollout rules.",
+                "next_step": "Start with one customer, one provider, one or two public models, and mock mode.",
+            },
+            {
+                "fit": "OpenRouter-like marketplace is later",
+                "when": "Customer needs many providers, model discovery, pricing comparison, public model marketplace behavior, and broader provider operations.",
+                "next_step": "Do not start here. Prove the private gateway control layer first.",
+            },
+        ],
+        "recommended_first_pilot": {
+            "scope": "one customer, one use case, one provider, one or two public model aliases",
+            "first_provider": "Alibaba Cloud Model Studio / Qwen if this is the only available API key",
+            "mode": "mock first, live only after route and data handling are explained",
+            "success_evidence": [
+                "/v1/models works with customer key",
+                "/v1/chat/completions returns an OpenAI-compatible response",
+                "/v1/gateway/route-preview explains the route",
+                "/v1/gateway/customer-reports shows usage",
+                "/v1/gateway/data-governance explains data handling gaps",
+            ],
+        },
+        "reference_endpoints": [
+            "/v1/gateway/decision-guide",
+            "/v1/gateway/provider-contracts",
+            "/v1/gateway/data-governance",
+            "/v1/gateway/onboarding-plan",
+            "/v1/gateway/pilot-checklist",
+            "/v1/gateway/production-readiness",
+        ],
+        "next_best_action": "Use this checklist in the first customer meeting, then create a small Day 0 onboarding plan only after the first use case and provider scope are clear.",
+    }
+
+
 def onboarding_plan(server):
     readiness = production_readiness(server)
     pilot = pilot_checklist(server)
@@ -4839,6 +4966,7 @@ def openapi_spec(server):
         "/v1/gateway/incident-playbook": "Incident response playbook",
         "/v1/gateway/support-policy": "Support policy and SLA stage guide",
         "/v1/gateway/pilot-checklist": "Customer pilot checklist",
+        "/v1/gateway/discovery-checklist": "Customer discovery checklist",
         "/v1/gateway/onboarding-plan": "Customer onboarding plan",
         "/v1/gateway/executive-brief": "Executive customer brief",
         "/v1/gateway/roadmap": "Prototype to production roadmap",
@@ -4951,6 +5079,7 @@ def postman_collection(server):
         request_item("Incident Playbook", "GET", "/v1/gateway/incident-playbook", "admin_api_key"),
         request_item("Support Policy", "GET", "/v1/gateway/support-policy", "admin_api_key"),
         request_item("Pilot Checklist", "GET", "/v1/gateway/pilot-checklist", "admin_api_key"),
+        request_item("Discovery Checklist", "GET", "/v1/gateway/discovery-checklist", "admin_api_key"),
         request_item("Onboarding Plan", "GET", "/v1/gateway/onboarding-plan", "admin_api_key"),
         request_item("Executive Brief", "GET", "/v1/gateway/executive-brief", "admin_api_key"),
         request_item("Roadmap", "GET", "/v1/gateway/roadmap", "admin_api_key"),
@@ -5169,6 +5298,13 @@ def demo_bundle(server):
                 "auth": "adminBearerAuth",
             },
             {
+                "name": "Discovery checklist",
+                "url": f"{base_url}/v1/gateway/discovery-checklist",
+                "audience": "sales, solution architect, business, and customer technical",
+                "purpose": "Turn a broad OpenRouter-like idea into clear scope, risks, evidence, and pilot next steps.",
+                "auth": "adminBearerAuth",
+            },
+            {
                 "name": "Onboarding plan",
                 "url": f"{base_url}/v1/gateway/onboarding-plan",
                 "audience": "business, support, and customer technical",
@@ -5257,8 +5393,8 @@ def demo_bundle(server):
             {
                 "step": 6,
                 "title": "Agree onboarding plan",
-                "show": "/v1/gateway/onboarding-plan and /v1/gateway/pilot-checklist",
-                "talk_track": "Use the onboarding plan to show who does what from Day 0 to Day 5, then use the pilot checklist to keep the scope measurable.",
+                "show": "/v1/gateway/discovery-checklist, /v1/gateway/onboarding-plan, and /v1/gateway/pilot-checklist",
+                "talk_track": "Use discovery to confirm the first use case and provider scope, then use onboarding and pilot checklist to keep the work measurable.",
             },
             {
                 "step": 7,
@@ -5337,6 +5473,10 @@ def demo_bundle(server):
                 "command": f"curl {base_url}/v1/gateway/pilot-checklist -H 'Authorization: Bearer {server.admin_api_key or DEFAULT_ADMIN_API_KEY}'",
             },
             {
+                "name": "Discovery checklist",
+                "command": f"curl {base_url}/v1/gateway/discovery-checklist -H 'Authorization: Bearer {server.admin_api_key or DEFAULT_ADMIN_API_KEY}'",
+            },
+            {
                 "name": "Onboarding plan",
                 "command": f"curl {base_url}/v1/gateway/onboarding-plan -H 'Authorization: Bearer {server.admin_api_key or DEFAULT_ADMIN_API_KEY}'",
             },
@@ -5386,6 +5526,7 @@ def gateway_status(server):
         "launch_plan": launch_plan(server),
         "change_management": change_management_plan(server),
         "data_governance": data_governance_review(server),
+        "discovery_checklist": discovery_checklist(server),
         "request_activity": request_activity(server.db_path, limit=10),
         "audit_events": audit_events(server.db_path, limit=10),
         "usage_by_customer": usage_grouped_by(server.db_path, "customer_id"),
@@ -6116,6 +6257,9 @@ class GatewayHandler(BaseHTTPRequestHandler):
             return
         if path == "/v1/gateway/pilot-checklist":
             make_json_response(self, 200, pilot_checklist(self.server))
+            return
+        if path == "/v1/gateway/discovery-checklist":
+            make_json_response(self, 200, discovery_checklist(self.server))
             return
         if path == "/v1/gateway/onboarding-plan":
             make_json_response(self, 200, onboarding_plan(self.server))

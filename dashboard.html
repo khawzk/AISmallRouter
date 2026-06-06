@@ -1338,6 +1338,16 @@
       </div>
     </section>
 
+    <section class="card" id="discoveryChecklist" style="margin-bottom: 18px;">
+      <div class="card-head">
+        <h2>Discovery checklist</h2>
+        <span>turn a broad gateway idea into scope, evidence, and a small pilot</span>
+      </div>
+      <div class="card-body">
+        <div class="launch-grid" id="discoveryChecklistList"></div>
+      </div>
+    </section>
+
     <section class="card" id="handoff" style="margin-bottom: 18px;">
       <div class="card-head">
         <h2>Customer handoff package</h2>
@@ -1400,6 +1410,13 @@
               <p>Day 0 to Day 5 pilot path with owners, actions, evidence, and exit checks.</p>
             </div>
             <a class="btn" href="/v1/gateway/onboarding-plan?admin_key=__ADMIN_API_KEY__">Open plan</a>
+          </article>
+          <article class="handoff-card">
+            <div>
+              <h3>Discovery checklist</h3>
+              <p>Questions, evidence, red flags, and fit assessment before scoping a gateway pilot.</p>
+            </div>
+            <a class="btn" href="/v1/gateway/discovery-checklist?admin_key=__ADMIN_API_KEY__">Open checklist</a>
           </article>
           <article class="handoff-card">
             <div>
@@ -1901,6 +1918,7 @@
     const launchGateList = document.getElementById("launchGateList");
     const changeManagementList = document.getElementById("changeManagementList");
     const dataGovernanceList = document.getElementById("dataGovernanceList");
+    const discoveryChecklistList = document.getElementById("discoveryChecklistList");
     const accessMatrixList = document.getElementById("accessMatrixList");
     const customerSuccessSummary = document.getElementById("customerSuccessSummary");
     const customerSuccessList = document.getElementById("customerSuccessList");
@@ -2188,6 +2206,28 @@
           </div>
         `;
         dataGovernanceList.appendChild(card);
+      });
+    }
+
+    const discoveryChecklist = state.discovery_checklist || {discovery_sections: []};
+    if ((discoveryChecklist.discovery_sections || []).length === 0) {
+      discoveryChecklistList.innerHTML = '<div class="trace-item">No discovery checklist available.</div>';
+    } else {
+      (discoveryChecklist.discovery_sections || []).forEach((item) => {
+        const card = document.createElement("article");
+        card.className = "readiness-card ready";
+        card.innerHTML = `
+          <div class="readiness-title">
+            <strong>${escapeHtml(item.section || "")}</strong>
+            <span class="chip green">discovery</span>
+          </div>
+          <p>${escapeHtml(item.plain_english || "")}</p>
+          <div class="option-list">
+            <span>${escapeHtml((item.questions || [])[0] || "")}</span>
+            <span>Red flag: ${escapeHtml((item.red_flags || [])[0] || "")}</span>
+          </div>
+        `;
+        discoveryChecklistList.appendChild(card);
       });
     }
 

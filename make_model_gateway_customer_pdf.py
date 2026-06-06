@@ -244,6 +244,7 @@ def build():
         "Incident playbook endpoint with support scenarios and customer-safe wording.",
         "Support policy endpoint for prototype, pilot, and production support stages.",
         "Pilot checklist endpoint for before, during, and after a customer trial.",
+        "Discovery checklist endpoint for customer goals, provider scope, governance, reporting, and production expectations.",
         "Executive brief endpoint for non-technical customer stakeholders.",
         "Roadmap endpoint for prototype, pilot, production hardening, and multi-provider expansion.",
         "Decision guide endpoint for API Gateway, managed AI Gateway, custom Model Gateway, and OpenRouter-like options.",
@@ -302,6 +303,7 @@ def build():
             ["Incident response", "Support teams need a shared script when requests fail.", "Playbook with signals, steps, and customer wording"],
             ["Support policy", "Customers need to know what support is promised at each stage.", "Prototype, pilot, and production support guide"],
             ["Pilot planning", "A customer trial needs scope, roles, success criteria, and exit decision.", "Pilot checklist endpoint"],
+            ["Customer discovery", "Broad gateway ideas need clear scope before implementation.", "Discovery checklist with questions, evidence, and red flags"],
             ["Executive communication", "Non-technical stakeholders need a short business summary.", "Executive brief endpoint"],
             ["Roadmap planning", "Customers need to see the path from demo to production.", "Roadmap endpoint"],
             ["Build or buy decision", "Customers need to compare gateway options clearly.", "Decision guide endpoint"],
@@ -687,6 +689,26 @@ def build():
     governance = Table(governance_rows, colWidths=[2.1 * inch, 4.35 * inch])
     governance.setStyle(table_style())
     story.append(governance)
+    story.append(Spacer(1, 0.15 * inch))
+
+    story.append(Paragraph("Customer Discovery Checklist", styles["H1Custom"]))
+    story.append(
+        Paragraph(
+            "/v1/gateway/discovery-checklist helps before promising an OpenRouter-like gateway. It turns a broad customer idea into clear scope by asking about the customer goal, model and provider scope, tenant rules, data governance, commercial reporting, and production expectations. It also lists evidence to collect, red flags, fit assessment, and a recommended first pilot.",
+            styles["BodyCustom"],
+        )
+    )
+    discovery_rows = [
+        ["Area", "What to clarify"],
+        ["Customer goal", "What workflow calls the gateway first and who decides pilot success."],
+        ["Provider scope", "Which provider and capabilities must work first."],
+        ["Tenant rules", "Which customers can use which models, budgets, and keys."],
+        ["Data rules", "What can be logged, retained, redacted, or deleted."],
+        ["Production expectation", "Whether this is a demo, pilot, limited production, or full production."],
+    ]
+    discovery = Table(discovery_rows, colWidths=[2.1 * inch, 4.35 * inch])
+    discovery.setStyle(table_style())
+    story.append(discovery)
     story.append(Spacer(1, 0.15 * inch))
 
     story.append(Paragraph("Recommended Roadmap", styles["H1Custom"]))

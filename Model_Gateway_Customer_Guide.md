@@ -1248,6 +1248,37 @@ The main message is simple:
 
 Before production, the customer and gateway owner must agree how prompts are logged, how long logs are kept, who can see request details, how secrets are rotated, and how customer data can be deleted.
 
+## What The Discovery Checklist Shows
+
+The prototype includes `/v1/gateway/discovery-checklist`.
+
+Use this before promising an OpenRouter-like gateway.
+
+It helps turn a broad customer idea into clear scope.
+
+It covers:
+
+- customer goal
+- model and provider scope
+- customer access and tenant rules
+- data and governance
+- commercial and reporting needs
+- production expectation
+
+It also shows:
+
+- questions to ask
+- evidence to collect
+- red flags
+- fit assessment
+- recommended first pilot
+
+The simple message is:
+
+Do not start with every provider and every feature.
+
+Start with one customer, one use case, one provider, one or two public model names, mock mode first, and clear success evidence.
+
 ## Technical Challenges
 
 ### 1. Different Provider Formats

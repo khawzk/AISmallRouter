@@ -174,6 +174,7 @@ The current version also supports:
 - `GET /v1/gateway/incident-playbook`
 - `GET /v1/gateway/support-policy`
 - `GET /v1/gateway/pilot-checklist`
+- `GET /v1/gateway/discovery-checklist`
 - `GET /v1/gateway/onboarding-plan`
 - `GET /v1/gateway/launch-plan`
 - `GET /v1/gateway/change-management`
@@ -630,6 +631,36 @@ It covers:
 - stop, extend, or productionize decision
 
 It helps keep a customer pilot small, honest, and measurable.
+
+## Discovery Checklist
+
+The gateway has a customer discovery checklist endpoint:
+
+```bash
+curl http://127.0.0.1:8787/v1/gateway/discovery-checklist \
+  -H "Authorization: Bearer dev-admin-key"
+```
+
+Use this before promising an OpenRouter-like gateway.
+
+It helps turn a broad customer idea into clear scope.
+
+It covers:
+
+- customer goal
+- model and provider scope
+- customer access and tenant rules
+- data and governance
+- commercial and reporting needs
+- production expectation
+
+It also shows red flags, evidence to collect, fit assessment, and a recommended first pilot.
+
+The simple message is:
+
+Do not start with every provider and every feature.
+
+Start with one customer, one use case, one provider, one or two public model names, mock mode first, and clear success evidence.
 
 ## Onboarding Plan
 
