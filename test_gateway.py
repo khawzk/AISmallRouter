@@ -182,6 +182,7 @@ class GatewayPrototypeTest(unittest.TestCase):
             "/v1/gateway/procurement-pack",
             "/v1/gateway/business-case",
             "/v1/gateway/implementation-plan",
+            "/v1/gateway/alternatives-pack",
             "/v1/gateway/demo-bundle",
             "/v1/gateway/handoff-checklist",
             "/v1/gateway/production-readiness",
@@ -252,6 +253,7 @@ class GatewayPrototypeTest(unittest.TestCase):
         self.assertIn("Procurement Pack", admin_names)
         self.assertIn("Business Case", admin_names)
         self.assertIn("Implementation Plan", admin_names)
+        self.assertIn("Alternatives Pack", admin_names)
         self.assertIn("Support Policy", admin_names)
         self.assertIn("Pilot Checklist", admin_names)
         self.assertIn("Pilot Scorecard", admin_names)
@@ -297,6 +299,7 @@ class GatewayPrototypeTest(unittest.TestCase):
         self.assertIn(f"{self.base_url}/v1/gateway/procurement-pack", entry_urls)
         self.assertIn(f"{self.base_url}/v1/gateway/business-case", entry_urls)
         self.assertIn(f"{self.base_url}/v1/gateway/implementation-plan", entry_urls)
+        self.assertIn(f"{self.base_url}/v1/gateway/alternatives-pack", entry_urls)
         self.assertIn(f"{self.base_url}/v1/gateway/provider-contracts", entry_urls)
         self.assertIn(f"{self.base_url}/v1/gateway/evaluation-plan", entry_urls)
         self.assertIn(f"{self.base_url}/v1/gateway/incident-playbook", entry_urls)
@@ -1295,6 +1298,8 @@ class GatewayPrototypeTest(unittest.TestCase):
         self.assertIn("value_hypotheses", payload["business_case"])
         self.assertIn("implementation_plan", payload)
         self.assertIn("delivery_phases", payload["implementation_plan"])
+        self.assertIn("alternatives_pack", payload)
+        self.assertIn("alternatives", payload["alternatives_pack"])
         self.assertIn("request_activity", payload)
         self.assertIn("audit_events", payload)
         self.assertIn("audit_event_count", payload["summary"])
@@ -2220,6 +2225,28 @@ class GatewayPrototypeTest(unittest.TestCase):
         self.assertNotIn("sk-", json.dumps(implementation))
         self.assertNotIn("provider_api_keys", json.dumps(implementation))
 
+        status, alternatives = request_json(self.base_url, path="/v1/gateway/alternatives-pack")
+        self.assertEqual(status, 401)
+
+        status, alternatives = request_json(self.base_url, path="/v1/gateway/alternatives-pack", api_key="dev-admin-key")
+        self.assertEqual(status, 200)
+        self.assertEqual(alternatives["object"], "gateway.alternatives_pack")
+        self.assertIn("OpenRouter-like", alternatives["plain_english"])
+        options = {item["option"] for item in alternatives["alternatives"]}
+        self.assertIn("Normal API Gateway", options)
+        self.assertIn("Vercel AI Gateway", options)
+        self.assertIn("OpenRouter-like platform", options)
+        self.assertIn("Custom AISmallRouter-style Model Gateway", options)
+        self.assertIn("Complete OpenRouter clone", alternatives["not_claimed"])
+        self.assertIn("/v1/gateway/decision-guide", alternatives["evidence_endpoints"])
+        sources = {item["name"] for item in alternatives["reference_sources"]}
+        self.assertIn("OpenRouter documentation", sources)
+        self.assertIn("Vercel AI Gateway documentation", sources)
+        self.assertIn("Alibaba Cloud AI Gateway documentation", sources)
+        self.assertNotIn("DASHSCOPE_API_KEY", json.dumps(alternatives))
+        self.assertNotIn("sk-", json.dumps(alternatives))
+        self.assertNotIn("provider_api_keys", json.dumps(alternatives))
+
         status, invoice = request_json(self.base_url, path="/v1/gateway/invoice-preview", api_key="dev-admin-key")
         self.assertEqual(status, 200)
         self.assertIn("totals", invoice)
@@ -2358,6 +2385,9 @@ class GatewayPrototypeTest(unittest.TestCase):
         self.assertIn("Implementation plan", html)
         self.assertIn("implementationPlanList", html)
         self.assertIn("/v1/gateway/implementation-plan?admin_key=", html)
+        self.assertIn("Alternatives pack", html)
+        self.assertIn("alternativesPackList", html)
+        self.assertIn("/v1/gateway/alternatives-pack?admin_key=", html)
         self.assertIn("Customer handoff package", html)
         self.assertIn("/openapi.json", html)
         self.assertIn("/postman_collection.json", html)

@@ -96,6 +96,7 @@ The prototype supports:
 - Procurement review pack for customer internal approval
 - Business case pack for pilot value and ROI discussion
 - Implementation plan for delivery phases and owners
+- Alternatives pack for build, buy, managed gateway, and OpenRouter-like comparison
 - Provider adapter scaffolds for OpenAI and Claude
 - Automated mock regression test
 - Mock mode
@@ -1146,6 +1147,39 @@ The suggested path is:
 This is not a fixed delivery quote.
 
 It does not promise a final price, guaranteed delivery date, production SLA, security certification, legal approval, or provider cost guarantee.
+
+## What The Alternatives Pack Shows
+
+The prototype includes `/v1/gateway/alternatives-pack`.
+
+This endpoint helps a customer compare build, buy, managed gateway, and OpenRouter-like options.
+
+It compares:
+
+- direct provider integration
+- normal API Gateway
+- Alibaba Cloud AI Gateway
+- Vercel AI Gateway
+- OpenRouter-like platform
+- custom AISmallRouter-style Model Gateway
+
+It gives simple decision rules.
+
+For example:
+
+- use direct provider integration when there is only one provider
+- use normal API Gateway when the main need is HTTP traffic control
+- evaluate managed AI Gateway when the customer accepts a hosted platform
+- evaluate OpenRouter-like options when broad model access is more important than private control
+- build custom only when customer-owned controls, custom routing, private reports, or special rollout rules matter
+
+Useful reference docs to review before a real customer recommendation:
+
+- OpenRouter docs: `https://openrouter.ai/docs/faq`
+- Vercel AI Gateway docs: `https://vercel.com/docs/ai-gateway/`
+- Alibaba Cloud AI Gateway docs: `https://www.alibabacloud.com/help/en/api-gateway/ai-gateway/product-overview/what-is-an-ai-gateway`
+
+This endpoint is not a live vendor benchmark, legal recommendation, final procurement decision, or promise to build a full OpenRouter clone.
 
 ## What Invoice Preview Shows
 

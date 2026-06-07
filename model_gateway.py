@@ -87,6 +87,7 @@ ADMIN_PATHS = {
     "/v1/gateway/procurement-pack",
     "/v1/gateway/business-case",
     "/v1/gateway/implementation-plan",
+    "/v1/gateway/alternatives-pack",
     "/v1/gateway/policy-presets",
     "/v1/gateway/demo-bundle",
     "/v1/gateway/handoff-checklist",
@@ -1548,6 +1549,149 @@ def implementation_plan(server):
             "/v1/gateway/production-backlog",
             "/v1/gateway/launch-plan",
             "/v1/gateway/migration-plan",
+        ],
+    }
+
+
+def alternatives_pack(server):
+    decision = decision_guide(server)
+    procurement = procurement_pack(server)
+    implementation = implementation_plan(server)
+    return {
+        "object": "gateway.alternatives_pack",
+        "title": "AISmallRouter Alternatives Pack",
+        "audience": "customer sponsor, solution architect, procurement, platform owner, and gateway owner",
+        "mode": "mock" if server.mock_mode else "live",
+        "plain_english": "This pack explains when to use a normal API Gateway, a managed AI Gateway, an OpenRouter-like platform, or a custom customer-owned Model Gateway.",
+        "customer_safe_summary": {
+            "one_sentence": "Do not build a custom gateway just because it is interesting. Build it only when customer-owned controls, custom routing, private usage reports, or special rollout rules matter.",
+            "best_use": "Use this before committing to build work, because the cheapest good answer may be a managed gateway or direct provider integration.",
+            "prototype_boundary": "This is a planning comparison. It is not a live vendor benchmark, legal recommendation, or procurement score.",
+        },
+        "alternatives": [
+            {
+                "option": "Direct provider integration",
+                "plain_english": "The customer app calls one provider directly, such as Qwen, OpenAI, or Claude.",
+                "best_for": "One provider, one stable model, one team, and low need for central control.",
+                "tradeoffs": [
+                    "Fastest start.",
+                    "Lowest gateway complexity.",
+                    "Harder to switch providers later.",
+                    "Each provider format, key, usage report, and error shape becomes app work.",
+                ],
+                "choose_when": "The customer only needs one model provider and can accept provider-specific integration.",
+            },
+            {
+                "option": "Normal API Gateway",
+                "plain_english": "A standard HTTP API gateway handles auth, rate limits, routing, WAF, logs, and network policy.",
+                "best_for": "Enterprise traffic control around APIs.",
+                "tradeoffs": [
+                    "Strong for HTTP security and traffic policy.",
+                    "Does not automatically normalize AI model request, response, streaming, tool, usage, or fallback differences.",
+                    "Can sit in front of a model gateway later.",
+                ],
+                "choose_when": "The customer mainly needs network/API control and does not need model-aware routing.",
+            },
+            {
+                "option": "Alibaba Cloud AI Gateway",
+                "plain_english": "A managed cloud-native AI gateway can connect AI apps to model services, tools, and agents inside Alibaba Cloud scenarios.",
+                "best_for": "Alibaba Cloud-centered deployments and teams that want managed gateway capabilities near Model Studio or cloud runtime services.",
+                "tradeoffs": [
+                    "Good fit when the customer already uses Alibaba Cloud platform controls.",
+                    "May reduce custom platform work.",
+                    "Customer-specific UX, reporting, procurement pack, custom billing language, or private route lifecycle may still need custom code around it.",
+                ],
+                "choose_when": "The customer prefers Alibaba Cloud managed controls and most providers/routes fit that platform.",
+            },
+            {
+                "option": "Vercel AI Gateway",
+                "plain_english": "A managed AI gateway gives one API for many models, with provider routing, fallback, usage, and observability concepts.",
+                "best_for": "Teams already using Vercel or Vercel AI SDK patterns and wanting managed multi-provider access.",
+                "tradeoffs": [
+                    "Can reduce provider integration and observability work.",
+                    "Useful when hosted platform ownership is acceptable.",
+                    "May not fit customers that require private tenancy, custom procurement materials, local-only control, or custom provider contracts.",
+                ],
+                "choose_when": "The customer wants a managed multi-provider gateway and accepts the platform ownership model.",
+            },
+            {
+                "option": "OpenRouter-like platform",
+                "plain_english": "A public model access platform gives one API to many models and providers, often with model discovery and BYOK-style choices.",
+                "best_for": "Fast access to many public models and marketplace-style model choice.",
+                "tradeoffs": [
+                    "Great reference for unified API and model catalog experience.",
+                    "May be faster than building broad provider coverage yourself.",
+                    "May not satisfy customers who need private customer-owned controls, custom procurement evidence, special billing, or local deployment ownership.",
+                ],
+                "choose_when": "The customer values broad model access more than private gateway ownership.",
+            },
+            {
+                "option": "Custom AISmallRouter-style Model Gateway",
+                "plain_english": "A private gateway that owns customer keys, model aliases, provider adapters, routing policy, budgets, reports, handoff material, and rollout rules.",
+                "best_for": "Customer-specific control, explanation, reporting, procurement support, and phased production hardening.",
+                "tradeoffs": [
+                    "Best control and customer-specific story.",
+                    "More engineering responsibility.",
+                    "Must build security, storage, monitoring, billing, support, and adapter tests before production.",
+                ],
+                "choose_when": "The customer needs private controls, custom reporting, BYOK mapping, audit, special route lifecycle, or customer-facing explanation material.",
+            },
+        ],
+        "comparison_matrix": [
+            {"criterion": "Fastest first demo", "strongest_option": "Direct provider integration or OpenRouter-like platform", "custom_gateway_note": "Use mock mode to explain value without broad provider coverage."},
+            {"criterion": "Enterprise HTTP/security controls", "strongest_option": "Normal API Gateway", "custom_gateway_note": "Can integrate with an enterprise gateway later."},
+            {"criterion": "Managed multi-model access", "strongest_option": "Vercel AI Gateway or Alibaba Cloud AI Gateway", "custom_gateway_note": "Use custom gateway only when managed defaults are not enough."},
+            {"criterion": "Broad public model marketplace", "strongest_option": "OpenRouter-like platform", "custom_gateway_note": "Do not try to clone marketplace breadth in phase one."},
+            {"criterion": "Private customer-specific controls", "strongest_option": "Custom AISmallRouter-style Model Gateway", "custom_gateway_note": "This is the strongest reason to build."},
+            {"criterion": "Customer explanation pack", "strongest_option": "Custom AISmallRouter-style Model Gateway", "custom_gateway_note": "Dashboard, PDF, business case, procurement pack, and implementation plan are local assets."},
+        ],
+        "decision_rules": [
+            "If there is only one provider and no need for custom reporting, use direct provider integration first.",
+            "If the main need is WAF, rate limits, network policy, and API logs, use a normal API Gateway.",
+            "If the customer accepts a managed platform and needs many providers quickly, evaluate managed AI Gateway options.",
+            "If the customer needs broad public model access and marketplace-style discovery, evaluate OpenRouter-like options.",
+            "If the customer needs private customer controls, BYOK mapping, custom route lifecycle, audit, budget reports, and customer-specific explanation material, use a custom Model Gateway.",
+        ],
+        "reference_sources": [
+            {
+                "name": "OpenRouter documentation",
+                "url": "https://openrouter.ai/docs/faq",
+                "what_to_verify": "Unified API, supported models, BYOK behavior, rate limits, billing, and provider routing rules.",
+            },
+            {
+                "name": "Vercel AI Gateway documentation",
+                "url": "https://vercel.com/docs/ai-gateway/",
+                "what_to_verify": "Unified API, provider routing, fallbacks, observability, retention, pricing, and supported models.",
+            },
+            {
+                "name": "Alibaba Cloud AI Gateway documentation",
+                "url": "https://www.alibabacloud.com/help/en/api-gateway/ai-gateway/product-overview/what-is-an-ai-gateway",
+                "what_to_verify": "Cloud-native AI Gateway scope, Model Studio integration, supported providers, routing, and deployment fit.",
+            },
+        ],
+        "current_recommendation": {
+            "short_answer": "For this prototype, continue as a private custom Model Gateway demo, but keep managed AI Gateway and OpenRouter-like options in the comparison.",
+            "why": "The current project is mainly about customer-specific explanation, routing control, budget reports, procurement support, and production planning, not marketplace breadth.",
+            "next_step": "Use the decision guide first, then use this alternatives pack before approving build or pilot scope.",
+        },
+        "evidence_endpoints": [
+            "/v1/gateway/decision-guide",
+            "/v1/gateway/business-case",
+            "/v1/gateway/procurement-pack",
+            "/v1/gateway/implementation-plan",
+            "/v1/gateway/provider-contracts",
+        ],
+        "current_context": {
+            "decision_guide_options": [item.get("option") for item in decision.get("options", [])],
+            "procurement_tracks": [item.get("track") for item in procurement.get("review_tracks", [])],
+            "implementation_phases": [item.get("phase") for item in implementation.get("delivery_phases", [])],
+        },
+        "not_claimed": [
+            "Live vendor benchmark",
+            "Legal procurement decision",
+            "Final product recommendation",
+            "Guaranteed cheapest option",
+            "Complete OpenRouter clone",
         ],
     }
 
@@ -6486,6 +6630,7 @@ def openapi_spec(server):
         "/v1/gateway/procurement-pack": "Procurement and vendor review pack",
         "/v1/gateway/business-case": "Business case and pilot ROI discussion pack",
         "/v1/gateway/implementation-plan": "Implementation estimate and delivery plan",
+        "/v1/gateway/alternatives-pack": "Build, buy, managed gateway, and OpenRouter-like alternatives pack",
         "/v1/gateway/invoice-preview": "Invoice preview JSON or CSV",
         "/v1/gateway/model-usage": "Usage grouped by model",
         "/v1/gateway/request-summary": "Request summary by dimensions",
@@ -6642,6 +6787,7 @@ def postman_collection(server):
         request_item("Procurement Pack", "GET", "/v1/gateway/procurement-pack", "admin_api_key"),
         request_item("Business Case", "GET", "/v1/gateway/business-case", "admin_api_key"),
         request_item("Implementation Plan", "GET", "/v1/gateway/implementation-plan", "admin_api_key"),
+        request_item("Alternatives Pack", "GET", "/v1/gateway/alternatives-pack", "admin_api_key"),
         request_item("Invoice Preview", "GET", "/v1/gateway/invoice-preview", "admin_api_key"),
         request_item(
             "Route Preview",
@@ -6889,6 +7035,13 @@ def demo_bundle(server):
                 "url": f"{base_url}/v1/gateway/implementation-plan",
                 "audience": "customer sponsor, delivery, platform, security, finance, and gateway owners",
                 "purpose": "Explain delivery phases, rough duration ranges, roles, risks, assumptions, and acceptance evidence.",
+                "auth": "adminBearerAuth",
+            },
+            {
+                "name": "Alternatives pack",
+                "url": f"{base_url}/v1/gateway/alternatives-pack",
+                "audience": "customer sponsor, solution architect, procurement, platform owner, and gateway owner",
+                "purpose": "Compare direct provider integration, API Gateway, managed AI Gateway, OpenRouter-like options, and custom AISmallRouter.",
                 "auth": "adminBearerAuth",
             },
             {
@@ -7140,6 +7293,10 @@ def demo_bundle(server):
                 "command": f"curl {base_url}/v1/gateway/implementation-plan -H 'Authorization: Bearer {server.admin_api_key or DEFAULT_ADMIN_API_KEY}'",
             },
             {
+                "name": "Alternatives pack",
+                "command": f"curl {base_url}/v1/gateway/alternatives-pack -H 'Authorization: Bearer {server.admin_api_key or DEFAULT_ADMIN_API_KEY}'",
+            },
+            {
                 "name": "Provider contracts",
                 "command": f"curl {base_url}/v1/gateway/provider-contracts -H 'Authorization: Bearer {server.admin_api_key or DEFAULT_ADMIN_API_KEY}'",
             },
@@ -7222,6 +7379,7 @@ def gateway_status(server):
         "procurement_pack": procurement_pack(server),
         "business_case": business_case(server),
         "implementation_plan": implementation_plan(server),
+        "alternatives_pack": alternatives_pack(server),
         "pilot_scorecard": pilot_scorecard(server),
         "invoice_preview": invoice_preview(server),
         "production_readiness": production_readiness(server),
@@ -8075,6 +8233,9 @@ class GatewayHandler(BaseHTTPRequestHandler):
             return
         if path == "/v1/gateway/implementation-plan":
             make_json_response(self, 200, implementation_plan(self.server))
+            return
+        if path == "/v1/gateway/alternatives-pack":
+            make_json_response(self, 200, alternatives_pack(self.server))
             return
         if path == "/v1/gateway/request-activity":
             filters = {

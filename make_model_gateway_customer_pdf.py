@@ -269,6 +269,7 @@ def build():
         "Procurement pack endpoint for vendor review tracks, evidence documents, approval owners, and red lines.",
         "Business case endpoint for value hypotheses, pilot metrics, ROI inputs, and decision options.",
         "Implementation plan endpoint for delivery phases, duration ranges, roles, risks, and acceptance evidence.",
+        "Alternatives pack endpoint for direct provider, API Gateway, managed AI Gateway, OpenRouter-like, and custom gateway comparison.",
         "Request activity endpoint with simple filters for troubleshooting.",
         "Request detail lookup using gateway.request_id returned in chat responses.",
         "Config check endpoint for demo keys and missing production settings.",
@@ -352,6 +353,7 @@ def build():
             ["Procurement pack", "Customers may need procurement, legal, IT, security, and finance review.", "Review tracks, evidence documents, approval owners, and red lines"],
             ["Business case", "Business sponsors need to explain why a pilot is worth doing.", "Value hypotheses, pilot metrics, ROI inputs, and decision options"],
             ["Implementation plan", "Customers need to know how the idea becomes real work.", "Delivery phases, rough duration ranges, roles, risks, and acceptance evidence"],
+            ["Alternatives pack", "Customers may ask why not use OpenRouter, Vercel AI Gateway, Alibaba Cloud AI Gateway, or a normal API Gateway.", "Build, buy, managed gateway, and custom gateway comparison"],
             ["Customer onboarding", "New customers need keys, limits, and model access.", "Key issue preview creates a safe config snippet"],
             ["Key lifecycle", "Customers need key rotation and disable workflows.", "Local JSON-backed create, rotate, and disable actions"],
             ["Audit trail", "Teams need to know who changed customer access.", "Audit events for customer lifecycle actions"],
@@ -721,6 +723,26 @@ def build():
     implementation = Table(implementation_rows, colWidths=[2.1 * inch, 4.35 * inch])
     implementation.setStyle(table_style())
     story.append(implementation)
+    story.append(Spacer(1, 0.15 * inch))
+
+    story.append(Paragraph("Alternatives Pack", styles["H1Custom"]))
+    story.append(
+        Paragraph(
+            "/v1/gateway/alternatives-pack compares direct provider integration, normal API Gateway, Alibaba Cloud AI Gateway, Vercel AI Gateway, OpenRouter-like platforms, and a custom AISmallRouter-style Model Gateway. It explains when each option fits, what tradeoffs exist, and why a custom gateway should only be built when customer-owned controls, custom routing, private reports, or special rollout rules matter. It is not a live vendor benchmark, legal recommendation, final procurement decision, or promise to build a full OpenRouter clone.",
+            styles["BodyCustom"],
+        )
+    )
+    alternatives_rows = [
+        ["Option", "Plain-English fit"],
+        ["Direct provider", "Best when there is one provider and low need for central control."],
+        ["Normal API Gateway", "Best for HTTP traffic control, WAF, rate limits, and API logs."],
+        ["Managed AI Gateway", "Best when hosted platform ownership and managed provider routing are acceptable."],
+        ["OpenRouter-like", "Best when broad public model access matters more than private gateway ownership."],
+        ["Custom Model Gateway", "Best when customer-owned controls, reports, audit, and rollout rules matter."],
+    ]
+    alternatives = Table(alternatives_rows, colWidths=[2.1 * inch, 4.35 * inch])
+    alternatives.setStyle(table_style())
+    story.append(alternatives)
     story.append(Spacer(1, 0.15 * inch))
 
     story.append(Paragraph("Invoice Preview", styles["H1Custom"]))

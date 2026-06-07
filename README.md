@@ -221,6 +221,7 @@ The current version also supports:
 - `GET /v1/gateway/procurement-pack`
 - `GET /v1/gateway/business-case`
 - `GET /v1/gateway/implementation-plan`
+- `GET /v1/gateway/alternatives-pack`
 - `GET /v1/gateway/invoice-preview`
 - `GET /v1/gateway/request-activity`
 - `GET /v1/gateway/request-detail`
@@ -1666,6 +1667,36 @@ It explains:
 This is not a fixed delivery quote.
 
 It does not promise a final price, guaranteed delivery date, production SLA, security certification, legal approval, or provider cost guarantee.
+
+## Alternatives Pack
+
+The gateway has an alternatives pack endpoint:
+
+```bash
+curl http://127.0.0.1:8787/v1/gateway/alternatives-pack \
+  -H "Authorization: Bearer dev-admin-key"
+```
+
+It helps a customer compare build, buy, managed gateway, and OpenRouter-like options.
+
+It compares:
+
+- direct provider integration
+- normal API Gateway
+- Alibaba Cloud AI Gateway
+- Vercel AI Gateway
+- OpenRouter-like platform
+- custom AISmallRouter-style Model Gateway
+
+It explains when each option fits, what tradeoffs exist, and why a custom gateway should only be built when customer-owned controls, custom routing, private reports, or special rollout rules matter.
+
+Useful reference docs to review before a real customer recommendation:
+
+- OpenRouter docs: `https://openrouter.ai/docs/faq`
+- Vercel AI Gateway docs: `https://vercel.com/docs/ai-gateway/`
+- Alibaba Cloud AI Gateway docs: `https://www.alibabacloud.com/help/en/api-gateway/ai-gateway/product-overview/what-is-an-ai-gateway`
+
+This endpoint is not a live vendor benchmark, legal recommendation, final procurement decision, or promise to build a full OpenRouter clone.
 
 ## Invoice Preview
 

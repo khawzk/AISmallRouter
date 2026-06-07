@@ -1615,6 +1615,13 @@
           </article>
           <article class="handoff-card">
             <div>
+              <h3>Alternatives pack</h3>
+              <p>Direct provider, API Gateway, managed AI Gateway, OpenRouter-like, and custom gateway comparison.</p>
+            </div>
+            <a class="btn" href="/v1/gateway/alternatives-pack?admin_key=__ADMIN_API_KEY__">Open alternatives</a>
+          </article>
+          <article class="handoff-card">
+            <div>
               <h3>Evaluation plan</h3>
               <p>Model quality, reliability, latency, cost, safety, and fallback checks before live routing.</p>
             </div>
@@ -1830,6 +1837,16 @@
       </div>
       <div class="card-body">
         <div class="report-grid" id="implementationPlanList"></div>
+      </div>
+    </section>
+
+    <section class="card" id="alternativesPack" style="margin-bottom: 18px;">
+      <div class="card-head">
+        <h2>Alternatives pack</h2>
+        <span>build, buy, managed gateway, and OpenRouter-like options</span>
+      </div>
+      <div class="card-body">
+        <div class="report-grid" id="alternativesPackList"></div>
       </div>
     </section>
 
@@ -2157,6 +2174,7 @@
     const procurementPackList = document.getElementById("procurementPackList");
     const businessCaseList = document.getElementById("businessCaseList");
     const implementationPlanList = document.getElementById("implementationPlanList");
+    const alternativesPackList = document.getElementById("alternativesPackList");
     const invoicePreviewList = document.getElementById("invoicePreviewList");
     const activityList = document.getElementById("activityList");
     const auditList = document.getElementById("auditList");
@@ -3043,6 +3061,60 @@
         </div>
       `;
       implementationPlanList.appendChild(card);
+    });
+
+    const alternativesPack = state.alternatives_pack || {customer_safe_summary: {}, alternatives: [], comparison_matrix: [], decision_rules: [], not_claimed: []};
+    const alternativesCards = [
+      {
+        title: "Customer-safe summary",
+        chip: "compare",
+        body: alternativesPack.customer_safe_summary?.one_sentence || "",
+        items: [
+          alternativesPack.customer_safe_summary?.best_use,
+          alternativesPack.customer_safe_summary?.prototype_boundary,
+        ].filter(Boolean),
+      },
+      {
+        title: "Options",
+        chip: "choices",
+        body: alternativesPack.current_recommendation?.short_answer || "",
+        items: (alternativesPack.alternatives || []).map((item) => `${item.option}: ${item.choose_when}`),
+      },
+      {
+        title: "Comparison matrix",
+        chip: "fit",
+        body: alternativesPack.current_recommendation?.why || "",
+        items: (alternativesPack.comparison_matrix || []).map((item) => `${item.criterion}: ${item.strongest_option}`),
+      },
+      {
+        title: "Decision rules",
+        chip: "rules",
+        body: alternativesPack.current_recommendation?.next_step || "",
+        items: alternativesPack.decision_rules || [],
+      },
+      {
+        title: "Do not claim",
+        chip: "boundary",
+        body: "This comparison is not a live vendor benchmark or procurement decision.",
+        items: alternativesPack.not_claimed || [],
+      },
+    ];
+    alternativesCards.forEach((item) => {
+      const card = document.createElement("article");
+      card.className = "report-card";
+      card.innerHTML = `
+        <div class="report-top">
+          <div>
+            <strong>${escapeHtml(item.title)}</strong>
+            <span>${escapeHtml(item.body)}</span>
+          </div>
+          <span class="${item.title === "Customer-safe summary" ? "chip green" : "chip"}">${escapeHtml(item.chip)}</span>
+        </div>
+        <div class="option-list">
+          ${(item.items || []).slice(0, 6).map((value) => `<span>${escapeHtml(value)}</span>`).join("")}
+        </div>
+      `;
+      alternativesPackList.appendChild(card);
     });
 
     const invoicePreview = state.invoice_preview || {totals: {}, data: []};
