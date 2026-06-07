@@ -83,6 +83,7 @@ ADMIN_PATHS = {
     "/v1/gateway/provider-contracts",
     "/v1/gateway/customer-reports",
     "/v1/gateway/customer-success",
+    "/v1/gateway/commercial-policy",
     "/v1/gateway/policy-presets",
     "/v1/gateway/demo-bundle",
     "/v1/gateway/handoff-checklist",
@@ -1083,6 +1084,80 @@ def invoice_preview_csv(invoice_payload):
             }
         )
     return output.getvalue()
+
+
+def commercial_policy(server):
+    invoice = invoice_preview(server)
+    reports = customer_reports(server)
+    return {
+        "object": "gateway.commercial_policy",
+        "title": "AISmallRouter Commercial Policy",
+        "audience": "business owner, customer sponsor, finance owner, and gateway owner",
+        "mode": "mock" if server.mock_mode else "live",
+        "plain_english": "This policy explains how to talk about pricing, budgets, invoice previews, and commercial boundaries before a real contract exists.",
+        "commercial_position": {
+            "current_stage": "prototype_preview",
+            "customer_safe_message": "The gateway can estimate usage and budget impact, but it is not a legal invoice, quote, payment system, or tax document.",
+            "what_can_be_shown_now": [
+                "Estimated token usage from local records.",
+                "Estimated model cost from registry pricing metadata.",
+                "Customer token and cost budgets.",
+                "Invoice preview JSON and CSV.",
+                "Budget warning or blocked state.",
+            ],
+            "what_needs_contract_later": [
+                "Final pricing units and currency.",
+                "Billing period and payment terms.",
+                "Overage behavior and approval owner.",
+                "Refund, credit, and dispute process.",
+                "Tax, legal invoice fields, and audited records.",
+            ],
+        },
+        "budget_rules": [
+            {"rule": "Request limit", "prototype_behavior": "Limits requests per configured time window.", "production_question": "Should limits reset monthly, daily, hourly, or by contract period?"},
+            {"rule": "Token budget", "prototype_behavior": "Blocks requests when recorded token usage reaches the customer token budget.", "production_question": "Who can approve a token budget increase?"},
+            {"rule": "Cost budget", "prototype_behavior": "Blocks requests when estimated cost reaches the customer cost budget.", "production_question": "Should overage be blocked, allowed, or require approval?"},
+            {"rule": "Invoice preview", "prototype_behavior": "Shows local estimated usage and CSV export.", "production_question": "What fields are required for legal invoice and finance export?"},
+        ],
+        "customer_commercial_summary": [
+            {
+                "customer_id": report.get("id"),
+                "plan": report.get("plan"),
+                "budget_state": report.get("budget_state"),
+                "requests": int((report.get("request_summary") or {}).get("requests") or 0),
+                "estimated_cost": float((report.get("budget", {}).get("usage") or {}).get("estimated_cost") or 0),
+                "commercial_note": "Estimate only; not a legal invoice.",
+            }
+            for report in reports
+        ],
+        "invoice_preview_summary": invoice.get("totals", {}),
+        "approval_questions": [
+            "Who owns the customer commercial relationship?",
+            "What model pricing should be shown to the customer?",
+            "What happens when budget is reached?",
+            "Who approves budget increases?",
+            "What invoice fields, tax fields, and payment terms are required?",
+            "How are refunds, credits, and disputes handled?",
+        ],
+        "excluded_from_prototype": [
+            "Legal quotation",
+            "Tax invoice",
+            "Payment collection",
+            "Refund workflow",
+            "Currency conversion",
+            "Audited billing ledger",
+        ],
+        "evidence_endpoints": [
+            "/v1/gateway/cost-estimate",
+            "/v1/gateway/invoice-preview",
+            "/v1/gateway/customer-reports",
+            "/v1/gateway/customer-success",
+            "/v1/gateway/production-backlog",
+            "/v1/gateway/proposal-summary",
+        ],
+        "next_best_action": "Use this policy with the proposal summary before discussing price or production billing with a customer.",
+        "prototype_note": "This is a commercial explanation for demos and pilots. Production still needs approved pricing, legal terms, finance review, tax handling, payment records, and audited billing data.",
+    }
 
 
 def customer_self_view(server, customer):
@@ -6015,6 +6090,7 @@ def openapi_spec(server):
         "/v1/gateway/request-detail": "One request detail by request_id",
         "/v1/gateway/customer-usage": "Usage grouped by customer",
         "/v1/gateway/customer-success": "Customer success account health summary",
+        "/v1/gateway/commercial-policy": "Commercial policy and billing boundaries",
         "/v1/gateway/invoice-preview": "Invoice preview JSON or CSV",
         "/v1/gateway/model-usage": "Usage grouped by model",
         "/v1/gateway/request-summary": "Request summary by dimensions",
@@ -6167,6 +6243,7 @@ def postman_collection(server):
         request_item("Audit Events", "GET", "/v1/gateway/audit-events", "admin_api_key"),
         request_item("Customer Reports", "GET", "/v1/gateway/customer-reports", "admin_api_key"),
         request_item("Customer Success", "GET", "/v1/gateway/customer-success", "admin_api_key"),
+        request_item("Commercial Policy", "GET", "/v1/gateway/commercial-policy", "admin_api_key"),
         request_item("Invoice Preview", "GET", "/v1/gateway/invoice-preview", "admin_api_key"),
         request_item(
             "Route Preview",
@@ -6386,6 +6463,13 @@ def demo_bundle(server):
                 "url": f"{base_url}/v1/gateway/customer-success",
                 "audience": "business, support, and customer success",
                 "purpose": "Show customer health, risk reasons, recommended action, and evidence for follow-up.",
+                "auth": "adminBearerAuth",
+            },
+            {
+                "name": "Commercial policy",
+                "url": f"{base_url}/v1/gateway/commercial-policy",
+                "audience": "business, customer sponsor, finance, and gateway owners",
+                "purpose": "Explain pricing assumptions, budget behavior, invoice preview limits, exclusions, and production contract questions.",
                 "auth": "adminBearerAuth",
             },
             {
@@ -6621,6 +6705,10 @@ def demo_bundle(server):
                 "command": f"curl {base_url}/v1/gateway/customer-success -H 'Authorization: Bearer {server.admin_api_key or DEFAULT_ADMIN_API_KEY}'",
             },
             {
+                "name": "Commercial policy",
+                "command": f"curl {base_url}/v1/gateway/commercial-policy -H 'Authorization: Bearer {server.admin_api_key or DEFAULT_ADMIN_API_KEY}'",
+            },
+            {
                 "name": "Provider contracts",
                 "command": f"curl {base_url}/v1/gateway/provider-contracts -H 'Authorization: Bearer {server.admin_api_key or DEFAULT_ADMIN_API_KEY}'",
             },
@@ -6699,6 +6787,7 @@ def gateway_status(server):
         "access_matrix": access_matrix(server),
         "customer_reports": customer_reports(server),
         "customer_success": customer_success_summary(server),
+        "commercial_policy": commercial_policy(server),
         "pilot_scorecard": pilot_scorecard(server),
         "invoice_preview": invoice_preview(server),
         "production_readiness": production_readiness(server),
@@ -7540,6 +7629,9 @@ class GatewayHandler(BaseHTTPRequestHandler):
             return
         if path == "/v1/gateway/customer-success":
             make_json_response(self, 200, customer_success_summary(self.server))
+            return
+        if path == "/v1/gateway/commercial-policy":
+            make_json_response(self, 200, commercial_policy(self.server))
             return
         if path == "/v1/gateway/request-activity":
             filters = {

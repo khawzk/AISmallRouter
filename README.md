@@ -217,6 +217,7 @@ The current version also supports:
 - `POST /v1/gateway/safety-preview`
 - `GET /v1/gateway/customer-reports`
 - `GET /v1/gateway/customer-success`
+- `GET /v1/gateway/commercial-policy`
 - `GET /v1/gateway/invoice-preview`
 - `GET /v1/gateway/request-activity`
 - `GET /v1/gateway/request-detail`
@@ -1557,6 +1558,32 @@ The dashboard also has an **Audit timeline** section for recent customer, provid
 This is useful for explaining control history.
 
 It is not a full compliance audit system.
+
+## Commercial Policy
+
+The gateway has a commercial policy endpoint:
+
+```bash
+curl http://127.0.0.1:8787/v1/gateway/commercial-policy \
+  -H "Authorization: Bearer dev-admin-key"
+```
+
+It explains how to talk about pricing, budgets, invoice previews, and commercial boundaries before a real contract exists.
+
+It covers:
+
+- what can be shown now
+- what needs contract approval later
+- request limit behavior
+- token budget behavior
+- cost budget behavior
+- invoice preview limits
+- approval questions
+- what is excluded from the prototype
+
+This is not a legal quote, tax invoice, payment system, or audited billing ledger.
+
+It is a simple commercial explanation for demos and pilots.
 
 ## Invoice Preview
 

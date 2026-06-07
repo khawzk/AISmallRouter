@@ -1587,6 +1587,13 @@
           </article>
           <article class="handoff-card">
             <div>
+              <h3>Commercial policy</h3>
+              <p>Pricing assumptions, budget behavior, invoice preview limits, and contract questions.</p>
+            </div>
+            <a class="btn" href="/v1/gateway/commercial-policy?admin_key=__ADMIN_API_KEY__">Open commercial</a>
+          </article>
+          <article class="handoff-card">
+            <div>
               <h3>Evaluation plan</h3>
               <p>Model quality, reliability, latency, cost, safety, and fallback checks before live routing.</p>
             </div>
@@ -1762,6 +1769,16 @@
       </div>
       <div class="card-body">
         <div class="report-grid" id="customerReportList"></div>
+      </div>
+    </section>
+
+    <section class="card" id="commercialPolicy" style="margin-bottom: 18px;">
+      <div class="card-head">
+        <h2>Commercial policy</h2>
+        <span>pricing assumptions, budget rules, invoice preview limits, and contract questions</span>
+      </div>
+      <div class="card-body">
+        <div class="report-grid" id="commercialPolicyList"></div>
       </div>
     </section>
 
@@ -2085,6 +2102,7 @@
     const customerSuccessList = document.getElementById("customerSuccessList");
     const pilotScorecardList = document.getElementById("pilotScorecardList");
     const customerReportList = document.getElementById("customerReportList");
+    const commercialPolicyList = document.getElementById("commercialPolicyList");
     const invoicePreviewList = document.getElementById("invoicePreviewList");
     const activityList = document.getElementById("activityList");
     const auditList = document.getElementById("auditList");
@@ -2777,6 +2795,45 @@
         <div class="recent-list">${recentHtml}</div>
       `;
       customerReportList.appendChild(card);
+    });
+
+    const commercialPolicy = state.commercial_policy || {commercial_position: {}, budget_rules: [], customer_commercial_summary: []};
+    const commercialCards = [
+      {
+        title: "Commercial position",
+        chip: commercialPolicy.commercial_position?.current_stage || "preview",
+        body: commercialPolicy.commercial_position?.customer_safe_message || "",
+        items: commercialPolicy.commercial_position?.what_can_be_shown_now || [],
+      },
+      {
+        title: "Budget rules",
+        chip: "controls",
+        body: commercialPolicy.next_best_action || "",
+        items: (commercialPolicy.budget_rules || []).map((item) => `${item.rule}: ${item.prototype_behavior}`),
+      },
+      {
+        title: "Contract questions",
+        chip: "before quote",
+        body: commercialPolicy.prototype_note || "",
+        items: commercialPolicy.approval_questions || [],
+      },
+    ];
+    commercialCards.forEach((item) => {
+      const card = document.createElement("article");
+      card.className = "report-card";
+      card.innerHTML = `
+        <div class="report-top">
+          <div>
+            <strong>${escapeHtml(item.title)}</strong>
+            <span>${escapeHtml(item.body)}</span>
+          </div>
+          <span class="${item.title === "Commercial position" ? "chip green" : "chip"}">${escapeHtml(item.chip)}</span>
+        </div>
+        <div class="option-list">
+          ${(item.items || []).slice(0, 5).map((value) => `<span>${escapeHtml(value)}</span>`).join("")}
+        </div>
+      `;
+      commercialPolicyList.appendChild(card);
     });
 
     const invoicePreview = state.invoice_preview || {totals: {}, data: []};

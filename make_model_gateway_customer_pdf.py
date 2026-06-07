@@ -265,6 +265,7 @@ def build():
         "Route preview endpoint to dry-run model access, budget, provider readiness, and fallback order.",
         "Cost estimate endpoint to dry-run token estimate, estimated cost, and budget impact.",
         "Customer reports endpoint for request count, errors, token usage, and budget state.",
+        "Commercial policy endpoint for pricing assumptions, budget behavior, invoice preview limits, and exclusions.",
         "Request activity endpoint with simple filters for troubleshooting.",
         "Request detail lookup using gateway.request_id returned in chat responses.",
         "Config check endpoint for demo keys and missing production settings.",
@@ -344,6 +345,7 @@ def build():
             ["Customer default policy", "Customers may not want to send routing controls every time.", "Customer config can set a default policy"],
             ["Capability routing", "Requests may need streaming, tools, or other abilities.", "gateway_required_capabilities filters route candidates"],
             ["Cost estimate", "Customers need budget planning before live calls.", "Dry-run estimate for tokens, cost, and budget impact"],
+            ["Commercial policy", "Customers need to know what is an estimate and what requires a contract.", "Pricing assumptions, budget rules, and exclusions"],
             ["Customer onboarding", "New customers need keys, limits, and model access.", "Key issue preview creates a safe config snippet"],
             ["Key lifecycle", "Customers need key rotation and disable workflows.", "Local JSON-backed create, rotate, and disable actions"],
             ["Audit trail", "Teams need to know who changed customer access.", "Audit events for customer lifecycle actions"],
@@ -636,6 +638,25 @@ def build():
             styles["BodyCustom"],
         )
     )
+
+    story.append(Paragraph("Commercial Policy", styles["H1Custom"]))
+    story.append(
+        Paragraph(
+            "/v1/gateway/commercial-policy explains how to talk about pricing, budgets, invoice previews, and commercial boundaries before a real contract exists. It covers what can be shown now, what needs contract approval later, request limit behavior, token budget behavior, cost budget behavior, invoice preview limits, approval questions, and prototype exclusions. It is not a legal quote, tax invoice, payment system, or audited billing ledger.",
+            styles["BodyCustom"],
+        )
+    )
+    commercial_rows = [
+        ["Area", "Plain-English meaning"],
+        ["What can be shown now", "Estimated usage, estimated cost, budgets, invoice preview, and CSV export."],
+        ["Contract later", "Final pricing, payment terms, overage behavior, refunds, tax, and legal invoice fields."],
+        ["Budget behavior", "Request, token, and cost limits can block or warn in the prototype."],
+        ["Exclusions", "No legal quote, payment collection, refund workflow, or audited billing ledger yet."],
+    ]
+    commercial = Table(commercial_rows, colWidths=[2.1 * inch, 4.35 * inch])
+    commercial.setStyle(table_style())
+    story.append(commercial)
+    story.append(Spacer(1, 0.15 * inch))
 
     story.append(Paragraph("Invoice Preview", styles["H1Custom"]))
     story.append(

@@ -370,6 +370,7 @@ They help explain the control layer:
 - Audit events
 - Customer self view
 - Customer usage reports
+- Commercial policy
 - Invoice preview
 - Request activity feed
 - Request detail lookup
@@ -1043,6 +1044,27 @@ The dashboard also has an Audit timeline section for recent changes.
 This helps explain control history.
 
 It is not a full compliance audit system.
+
+## What The Commercial Policy Shows
+
+The prototype includes `/v1/gateway/commercial-policy`.
+
+This endpoint explains how to talk about pricing, budgets, invoice previews, and commercial boundaries before a real contract exists.
+
+It covers:
+
+- what can be shown now
+- what needs contract approval later
+- request limit behavior
+- token budget behavior
+- cost budget behavior
+- invoice preview limits
+- approval questions
+- what is excluded from the prototype
+
+This is not a legal quote, tax invoice, payment system, or audited billing ledger.
+
+It is a simple commercial explanation for demos and pilots.
 
 ## What Invoice Preview Shows
 
