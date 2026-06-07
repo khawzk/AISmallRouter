@@ -273,6 +273,7 @@ def build():
         "SOW draft endpoint for proposed scope, deliverables, exclusions, milestones, acceptance criteria, and open contract items.",
         "Workshop agenda endpoint for attendees, pre-work, meeting flow, questions, demo order, outputs, and follow-up actions.",
         "Decision log endpoint for workshop decisions, owners, evidence, open questions, next actions, and meeting notes.",
+        "Follow-up email endpoint for customer recap, links, next actions, boundaries, and internal checklist.",
         "Request activity endpoint with simple filters for troubleshooting.",
         "Request detail lookup using gateway.request_id returned in chat responses.",
         "Config check endpoint for demo keys and missing production settings.",
@@ -360,6 +361,7 @@ def build():
             ["SOW draft", "Customers may need a safe project scope draft before legal contract work.", "Scope, deliverables, exclusions, milestones, acceptance criteria, and open items"],
             ["Workshop agenda", "The first customer meeting needs structure and clear outputs.", "Attendees, pre-work, agenda, questions, demo order, outputs, and follow-up"],
             ["Decision log", "Workshop decisions need owners and follow-up evidence.", "Decision records, open questions, next actions, status meanings, and notes template"],
+            ["Follow-up email", "After a workshop, customers need a simple recap and safe next step.", "Subject options, email draft, links, actions, boundaries, and internal checklist"],
             ["Customer onboarding", "New customers need keys, limits, and model access.", "Key issue preview creates a safe config snippet"],
             ["Key lifecycle", "Customers need key rotation and disable workflows.", "Local JSON-backed create, rotate, and disable actions"],
             ["Audit trail", "Teams need to know who changed customer access.", "Audit events for customer lifecycle actions"],
@@ -809,6 +811,26 @@ def build():
     decision = Table(decision_rows, colWidths=[2.1 * inch, 4.35 * inch])
     decision.setStyle(table_style())
     story.append(decision)
+    story.append(Spacer(1, 0.15 * inch))
+
+    story.append(Paragraph("Follow-up Email", styles["H1Custom"]))
+    story.append(
+        Paragraph(
+            "/v1/gateway/follow-up-email helps write the customer email after a workshop. It includes subject options, a customer email draft, recap points, links to include, decision summary, next actions, internal checklist, and things not to claim. It is a communication draft, not a signed contract, final quote, invoice, SLA, or security approval.",
+            styles["BodyCustom"],
+        )
+    )
+    follow_up_rows = [
+        ["Area", "Plain-English meaning"],
+        ["Email draft", "A simple thank-you message with the gateway idea, pilot path, and open items."],
+        ["Links", "Dashboard, OpenAPI, Postman, proposal summary, SOW draft, and decision log."],
+        ["Next actions", "Owner-based actions copied from the decision log."],
+        ["Do not claim", "No provider keys, unapproved production dates, final price, or security certification wording."],
+        ["Boundary", "Not a contract, final quote, invoice, SLA, security approval, or OpenRouter clone."],
+    ]
+    follow_up = Table(follow_up_rows, colWidths=[2.1 * inch, 4.35 * inch])
+    follow_up.setStyle(table_style())
+    story.append(follow_up)
     story.append(Spacer(1, 0.15 * inch))
 
     story.append(Paragraph("Invoice Preview", styles["H1Custom"]))

@@ -91,6 +91,7 @@ ADMIN_PATHS = {
     "/v1/gateway/sow-draft",
     "/v1/gateway/workshop-agenda",
     "/v1/gateway/decision-log",
+    "/v1/gateway/follow-up-email",
     "/v1/gateway/policy-presets",
     "/v1/gateway/demo-bundle",
     "/v1/gateway/handoff-checklist",
@@ -2029,6 +2030,97 @@ def decision_log(server):
             "/v1/gateway/sow-draft",
             "/v1/gateway/business-case",
             "/v1/gateway/implementation-plan",
+        ],
+    }
+
+
+def follow_up_email_pack(server):
+    base_url = f"http://{server.server_address[0]}:{server.server_address[1]}"
+    workshop = workshop_agenda(server)
+    decisions = decision_log(server)
+    sow = sow_draft(server)
+    proposal = proposal_summary(server)
+    return {
+        "object": "gateway.follow_up_email",
+        "title": "AISmallRouter Customer Follow-up Email Pack",
+        "audience": "customer sponsor, customer technical contact, delivery owner, support owner, and gateway owner",
+        "mode": "mock" if server.mock_mode else "live",
+        "plain_english": "This pack helps write the customer follow-up email after a gateway workshop. It gives a simple recap, links to share, next actions, and boundaries so the email does not over-promise.",
+        "customer_safe_summary": {
+            "one_sentence": "Use this after the workshop to send a clear recap and ask for the next customer decision.",
+            "best_use": "Send it with the dashboard URL, proposal summary, decision log, and SOW draft when the customer wants a concrete next step.",
+            "boundary": "This is a communication draft. It is not a signed contract, final quote, invoice, SLA, or security approval.",
+        },
+        "subject_options": [
+            "AISmallRouter workshop recap and next steps",
+            "AI model gateway pilot scope and follow-up",
+            "Next steps for your model gateway pilot",
+        ],
+        "customer_email": {
+            "greeting": "Hi <Customer Name>,",
+            "body": [
+                "Thank you for the workshop. The main idea we discussed is simple: your applications call one AI gateway API, and the gateway manages model access, routing, provider adapters, usage records, and customer controls behind the scenes.",
+                "For the first pilot, the safest path is to keep the scope small. We can start with mock mode for explanation, then use Alibaba Cloud Model Studio / Qwen only when data handling and spend limits are agreed.",
+                "The current prototype shows the dashboard, model list, route preview, mock chat response, customer usage view, OpenAPI contract, Postman collection, proposal summary, SOW draft, and decision log.",
+                "The key open items are the first use case, the named customer sponsor, whether live Qwen testing is required, prompt logging rules, budget limits, and the target pilot decision date.",
+                "Please review the links below and confirm who should own the next customer decision.",
+            ],
+            "closing": "Best,\n<Your Name>",
+        },
+        "recap_points": [
+            "One customer API can hide provider differences from customer applications.",
+            "The first live provider can be Qwen through Alibaba Cloud Model Studio because that key is available for testing.",
+            "Other providers such as OpenAI, Claude, Xiaomi, or OpenRouter-like routing need adapter work, tests, billing rules, and provider-specific review.",
+            "A normal API Gateway can help with traffic and security, but it does not by itself solve model routing, provider normalization, usage reporting, or fallback behavior.",
+            "The prototype is useful for explanation and pilot planning, but production still needs database storage, secret management, monitoring, billing, support, approval workflow, and security review.",
+        ],
+        "links_to_include": [
+            {"name": "Visual dashboard", "url": f"{base_url}/", "purpose": "Explain the gateway concept visually."},
+            {"name": "OpenAPI contract", "url": f"{base_url}/openapi.json", "purpose": "Let the technical team inspect the API shape."},
+            {"name": "Postman collection", "url": f"{base_url}/postman_collection.json", "purpose": "Click through demo requests."},
+            {"name": "Proposal summary", "url": f"{base_url}/v1/gateway/proposal-summary", "purpose": "Review recommended scope, exclusions, risks, and next steps."},
+            {"name": "SOW draft", "url": f"{base_url}/v1/gateway/sow-draft", "purpose": "Review proposed scope, deliverables, milestones, and contract boundaries."},
+            {"name": "Decision log", "url": f"{base_url}/v1/gateway/decision-log", "purpose": "Record decisions, owners, open questions, and next actions."},
+        ],
+        "decision_summary": decisions.get("decision_records", [])[:4],
+        "next_actions": decisions.get("next_actions", []),
+        "internal_checklist": [
+            "Replace placeholders before sending.",
+            "Confirm the dashboard URL and demo keys are safe for the audience.",
+            "Do not paste provider API keys or environment variable values.",
+            "Attach or link the customer guide PDF when the audience needs a simple non-technical explanation.",
+            "Ask the customer to confirm owner, use case, budget, data handling, and decision date.",
+            "Store final customer answers back into the decision log before drafting a formal SOW.",
+        ],
+        "do_not_send": [
+            "Provider API keys",
+            "Unapproved production dates",
+            "Final price or tax invoice wording",
+            "Security certification wording",
+            "Claims that all providers are already implemented",
+        ],
+        "not_claimed": [
+            "Signed contract",
+            "Final quote",
+            "Tax invoice",
+            "Production SLA",
+            "Security certification",
+            "Complete OpenRouter clone",
+        ],
+        "current_context": {
+            "workshop_expected_outputs": workshop.get("expected_outputs", []),
+            "proposal_scope_count": len(proposal.get("phase_one_scope", [])),
+            "sow_milestones": [item.get("milestone") for item in sow.get("milestones", [])],
+        },
+        "recommended_next_action": "Send the recap email, ask the customer to confirm the first use case and decision owner, then update the decision log.",
+        "evidence_endpoints": [
+            "/v1/gateway/workshop-agenda",
+            "/v1/gateway/decision-log",
+            "/v1/gateway/proposal-summary",
+            "/v1/gateway/sow-draft",
+            "/v1/gateway/demo-bundle",
+            "/openapi.json",
+            "/postman_collection.json",
         ],
     }
 
@@ -6971,6 +7063,7 @@ def openapi_spec(server):
         "/v1/gateway/sow-draft": "Statement of Work draft and scope guardrails",
         "/v1/gateway/workshop-agenda": "Customer workshop agenda and meeting pack",
         "/v1/gateway/decision-log": "Customer workshop decision log",
+        "/v1/gateway/follow-up-email": "Customer follow-up email and recap pack",
         "/v1/gateway/invoice-preview": "Invoice preview JSON or CSV",
         "/v1/gateway/model-usage": "Usage grouped by model",
         "/v1/gateway/request-summary": "Request summary by dimensions",
@@ -7131,6 +7224,7 @@ def postman_collection(server):
         request_item("SOW Draft", "GET", "/v1/gateway/sow-draft", "admin_api_key"),
         request_item("Workshop Agenda", "GET", "/v1/gateway/workshop-agenda", "admin_api_key"),
         request_item("Decision Log", "GET", "/v1/gateway/decision-log", "admin_api_key"),
+        request_item("Follow-up Email", "GET", "/v1/gateway/follow-up-email", "admin_api_key"),
         request_item("Invoice Preview", "GET", "/v1/gateway/invoice-preview", "admin_api_key"),
         request_item(
             "Route Preview",
@@ -7409,6 +7503,13 @@ def demo_bundle(server):
                 "auth": "adminBearerAuth",
             },
             {
+                "name": "Follow-up email",
+                "url": f"{base_url}/v1/gateway/follow-up-email",
+                "audience": "customer sponsor, delivery, support, and gateway owners",
+                "purpose": "Draft the customer recap email, links to share, decisions, next actions, boundaries, and internal checklist.",
+                "auth": "adminBearerAuth",
+            },
+            {
                 "name": "Provider contract matrix",
                 "url": f"{base_url}/v1/gateway/provider-contracts",
                 "audience": "business and technical",
@@ -7673,6 +7774,10 @@ def demo_bundle(server):
                 "command": f"curl {base_url}/v1/gateway/decision-log -H 'Authorization: Bearer {server.admin_api_key or DEFAULT_ADMIN_API_KEY}'",
             },
             {
+                "name": "Follow-up email",
+                "command": f"curl {base_url}/v1/gateway/follow-up-email -H 'Authorization: Bearer {server.admin_api_key or DEFAULT_ADMIN_API_KEY}'",
+            },
+            {
                 "name": "Provider contracts",
                 "command": f"curl {base_url}/v1/gateway/provider-contracts -H 'Authorization: Bearer {server.admin_api_key or DEFAULT_ADMIN_API_KEY}'",
             },
@@ -7759,6 +7864,7 @@ def gateway_status(server):
         "sow_draft": sow_draft(server),
         "workshop_agenda": workshop_agenda(server),
         "decision_log": decision_log(server),
+        "follow_up_email": follow_up_email_pack(server),
         "pilot_scorecard": pilot_scorecard(server),
         "invoice_preview": invoice_preview(server),
         "production_readiness": production_readiness(server),
@@ -8624,6 +8730,9 @@ class GatewayHandler(BaseHTTPRequestHandler):
             return
         if path == "/v1/gateway/decision-log":
             make_json_response(self, 200, decision_log(self.server))
+            return
+        if path == "/v1/gateway/follow-up-email":
+            make_json_response(self, 200, follow_up_email_pack(self.server))
             return
         if path == "/v1/gateway/request-activity":
             filters = {

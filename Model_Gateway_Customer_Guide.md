@@ -58,6 +58,7 @@ The prototype supports:
 - Postman collection
 - Demo bundle manifest
 - Customer integration guide
+- Follow-up email pack
 - Operational alerts
 - Incident playbook
 - Support policy
@@ -1252,6 +1253,29 @@ This is useful because customer decisions can disappear into chat messages or me
 The decision log keeps the next step clear.
 
 It is a planning record, not a contract, legal approval, invoice, SLA, or security certification.
+
+## What The Follow-up Email Shows
+
+The prototype includes `/v1/gateway/follow-up-email`.
+
+This endpoint helps write the customer email after a workshop.
+
+It shows:
+
+- subject options
+- a customer email draft
+- customer-safe recap points
+- links to include
+- decision summary
+- next actions
+- internal checklist
+- things not to claim
+
+This is useful because a customer may understand the demo but still need a clear next step.
+
+The follow-up email turns the workshop into a simple recap and a request for the next decision.
+
+It is a communication draft, not a signed contract, final quote, invoice, SLA, or security approval.
 
 ## What Invoice Preview Shows
 

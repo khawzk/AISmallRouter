@@ -225,6 +225,7 @@ The current version also supports:
 - `GET /v1/gateway/sow-draft`
 - `GET /v1/gateway/workshop-agenda`
 - `GET /v1/gateway/decision-log`
+- `GET /v1/gateway/follow-up-email`
 - `GET /v1/gateway/invoice-preview`
 - `GET /v1/gateway/request-activity`
 - `GET /v1/gateway/request-detail`
@@ -1776,6 +1777,32 @@ It includes:
 Use it after the workshop agenda, together with the proposal summary or SOW draft.
 
 This is a planning record, not a contract, legal approval, invoice, SLA, or security certification.
+
+## Follow-up Email
+
+The gateway has a customer follow-up email endpoint:
+
+```bash
+curl http://127.0.0.1:8787/v1/gateway/follow-up-email \
+  -H "Authorization: Bearer dev-admin-key"
+```
+
+It helps write the email after a customer workshop.
+
+It includes:
+
+- subject options
+- customer email draft
+- customer-safe recap
+- links to include
+- decision summary
+- next actions
+- internal checklist
+- things not to claim
+
+Use it after the workshop agenda and decision log.
+
+This is a communication draft, not a signed contract, final quote, invoice, SLA, or security approval.
 
 ## Invoice Preview
 

@@ -1643,6 +1643,13 @@
           </article>
           <article class="handoff-card">
             <div>
+              <h3>Follow-up email</h3>
+              <p>Customer recap email, links, decisions, next actions, boundaries, and internal checklist.</p>
+            </div>
+            <a class="btn" href="/v1/gateway/follow-up-email?admin_key=__ADMIN_API_KEY__">Open email</a>
+          </article>
+          <article class="handoff-card">
+            <div>
               <h3>Evaluation plan</h3>
               <p>Model quality, reliability, latency, cost, safety, and fallback checks before live routing.</p>
             </div>
@@ -1898,6 +1905,16 @@
       </div>
       <div class="card-body">
         <div class="report-grid" id="decisionLogList"></div>
+      </div>
+    </section>
+
+    <section class="card" id="followUpEmail" style="margin-bottom: 18px;">
+      <div class="card-head">
+        <h2>Follow-up email</h2>
+        <span>customer recap, links, next actions, and safe boundaries</span>
+      </div>
+      <div class="card-body">
+        <div class="report-grid" id="followUpEmailList"></div>
       </div>
     </section>
 
@@ -2229,6 +2246,7 @@
     const sowDraftList = document.getElementById("sowDraftList");
     const workshopAgendaList = document.getElementById("workshopAgendaList");
     const decisionLogList = document.getElementById("decisionLogList");
+    const followUpEmailList = document.getElementById("followUpEmailList");
     const invoicePreviewList = document.getElementById("invoicePreviewList");
     const activityList = document.getElementById("activityList");
     const auditList = document.getElementById("auditList");
@@ -3349,6 +3367,66 @@
         </div>
       `;
       decisionLogList.appendChild(card);
+    });
+
+    const followUpEmail = state.follow_up_email || {customer_email: {}, links_to_include: [], next_actions: [], not_claimed: []};
+    const followUpCards = [
+      {
+        title: "Customer-safe summary",
+        chip: "recap",
+        body: followUpEmail.customer_safe_summary?.one_sentence || "",
+        items: [
+          followUpEmail.customer_safe_summary?.best_use,
+          followUpEmail.customer_safe_summary?.boundary,
+        ].filter(Boolean),
+      },
+      {
+        title: "Subject options",
+        chip: "email",
+        body: "Choose one subject line before sending the recap.",
+        items: followUpEmail.subject_options || [],
+      },
+      {
+        title: "Email draft",
+        chip: "draft",
+        body: followUpEmail.customer_email?.greeting || "",
+        items: followUpEmail.customer_email?.body || [],
+      },
+      {
+        title: "Links to include",
+        chip: "links",
+        body: "Share only the links that match the customer audience.",
+        items: (followUpEmail.links_to_include || []).map((item) => `${item.name}: ${item.purpose}`),
+      },
+      {
+        title: "Next actions",
+        chip: "owners",
+        body: followUpEmail.recommended_next_action || "",
+        items: (followUpEmail.next_actions || []).map((item) => `${item.owner}: ${item.action}`),
+      },
+      {
+        title: "Do not claim",
+        chip: "boundary",
+        body: "Keep the email honest and avoid accidental commitments.",
+        items: followUpEmail.not_claimed || [],
+      },
+    ];
+    followUpCards.forEach((item) => {
+      const card = document.createElement("article");
+      card.className = "report-card";
+      card.innerHTML = `
+        <div class="report-top">
+          <div>
+            <strong>${escapeHtml(item.title)}</strong>
+            <span>${escapeHtml(item.body)}</span>
+          </div>
+          <span class="${item.title === "Customer-safe summary" ? "chip green" : "chip"}">${escapeHtml(item.chip)}</span>
+        </div>
+        <div class="option-list">
+          ${(item.items || []).slice(0, 6).map((value) => `<span>${escapeHtml(value)}</span>`).join("")}
+        </div>
+      `;
+      followUpEmailList.appendChild(card);
     });
 
     const invoicePreview = state.invoice_preview || {totals: {}, data: []};
