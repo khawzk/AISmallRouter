@@ -230,6 +230,7 @@ The current version also supports:
 - `GET /v1/gateway/pilot-review`
 - `GET /v1/gateway/production-transition`
 - `GET /v1/gateway/operating-review`
+- `GET /v1/gateway/provider-expansion`
 - `GET /v1/gateway/invoice-preview`
 - `GET /v1/gateway/request-activity`
 - `GET /v1/gateway/request-detail`
@@ -1914,6 +1915,32 @@ It includes:
 Use it after production transition, launch, or a limited production start.
 
 This is an operating review guide, not an SLA report, legal audit, final invoice, or security certification.
+
+## Provider Expansion
+
+The gateway has a provider expansion endpoint:
+
+```bash
+curl http://127.0.0.1:8787/v1/gateway/provider-expansion \
+  -H "Authorization: Bearer dev-admin-key"
+```
+
+It helps plan how to add more model providers without promising an uncontrolled marketplace.
+
+It includes:
+
+- expansion principles
+- provider candidates
+- approval gates
+- test matrix
+- expansion phases
+- customer questions
+- current provider context
+- things not to claim
+
+Use it before promising OpenAI, Claude, Xiaomi, OpenRouter-like routing, or broad provider coverage.
+
+This is an expansion planning pack, not a live vendor benchmark, procurement approval, provider certification, final price, or full OpenRouter clone promise.
 
 ## Invoice Preview
 

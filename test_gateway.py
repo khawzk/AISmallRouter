@@ -191,6 +191,7 @@ class GatewayPrototypeTest(unittest.TestCase):
             "/v1/gateway/pilot-review",
             "/v1/gateway/production-transition",
             "/v1/gateway/operating-review",
+            "/v1/gateway/provider-expansion",
             "/v1/gateway/demo-bundle",
             "/v1/gateway/handoff-checklist",
             "/v1/gateway/production-readiness",
@@ -267,6 +268,7 @@ class GatewayPrototypeTest(unittest.TestCase):
         self.assertIn("Pilot Review", admin_names)
         self.assertIn("Production Transition", admin_names)
         self.assertIn("Operating Review", admin_names)
+        self.assertIn("Provider Expansion", admin_names)
         self.assertIn("SOW Draft", admin_names)
         self.assertIn("Workshop Agenda", admin_names)
         self.assertIn("Decision Log", admin_names)
@@ -324,6 +326,7 @@ class GatewayPrototypeTest(unittest.TestCase):
         self.assertIn(f"{self.base_url}/v1/gateway/pilot-review", entry_urls)
         self.assertIn(f"{self.base_url}/v1/gateway/production-transition", entry_urls)
         self.assertIn(f"{self.base_url}/v1/gateway/operating-review", entry_urls)
+        self.assertIn(f"{self.base_url}/v1/gateway/provider-expansion", entry_urls)
         self.assertIn(f"{self.base_url}/v1/gateway/provider-contracts", entry_urls)
         self.assertIn(f"{self.base_url}/v1/gateway/evaluation-plan", entry_urls)
         self.assertIn(f"{self.base_url}/v1/gateway/incident-playbook", entry_urls)
@@ -1340,6 +1343,8 @@ class GatewayPrototypeTest(unittest.TestCase):
         self.assertIn("transition_phases", payload["production_transition"])
         self.assertIn("operating_review", payload)
         self.assertIn("review_cadence", payload["operating_review"])
+        self.assertIn("provider_expansion", payload)
+        self.assertIn("provider_candidates", payload["provider_expansion"])
         self.assertIn("request_activity", payload)
         self.assertIn("audit_events", payload)
         self.assertIn("audit_event_count", payload["summary"])
@@ -2454,6 +2459,28 @@ class GatewayPrototypeTest(unittest.TestCase):
         self.assertNotIn("sk-", json.dumps(operating))
         self.assertNotIn("provider_api_keys", json.dumps(operating))
 
+        status, expansion = request_json(self.base_url, path="/v1/gateway/provider-expansion")
+        self.assertEqual(status, 401)
+
+        status, expansion = request_json(self.base_url, path="/v1/gateway/provider-expansion", api_key="dev-admin-key")
+        self.assertEqual(status, 200)
+        self.assertEqual(expansion["object"], "gateway.provider_expansion")
+        self.assertIn("add more model providers", expansion["plain_english"])
+        candidates = {item["provider"] for item in expansion["provider_candidates"]}
+        self.assertIn("Alibaba Cloud Model Studio / Qwen", candidates)
+        self.assertIn("Anthropic / Claude", candidates)
+        gates = {item["gate"] for item in expansion["approval_gates"]}
+        self.assertIn("Technical contract", gates)
+        self.assertIn("Security and data", gates)
+        tests = {item["test"] for item in expansion["test_matrix"]}
+        self.assertIn("Route preview", tests)
+        self.assertIn("Fallback and rollback", tests)
+        self.assertIn("Full OpenRouter clone", expansion["not_claimed"])
+        self.assertIn("/v1/gateway/provider-contracts", expansion["evidence_endpoints"])
+        self.assertNotIn("DASHSCOPE_API_KEY", json.dumps(expansion))
+        self.assertNotIn("sk-", json.dumps(expansion))
+        self.assertNotIn("provider_api_keys", json.dumps(expansion))
+
         status, invoice = request_json(self.base_url, path="/v1/gateway/invoice-preview", api_key="dev-admin-key")
         self.assertEqual(status, 200)
         self.assertIn("totals", invoice)
@@ -2619,6 +2646,9 @@ class GatewayPrototypeTest(unittest.TestCase):
         self.assertIn("Operating review", html)
         self.assertIn("operatingReviewList", html)
         self.assertIn("/v1/gateway/operating-review?admin_key=", html)
+        self.assertIn("Provider expansion", html)
+        self.assertIn("providerExpansionList", html)
+        self.assertIn("/v1/gateway/provider-expansion?admin_key=", html)
         self.assertIn("Customer handoff package", html)
         self.assertIn("/openapi.json", html)
         self.assertIn("/postman_collection.json", html)

@@ -1678,6 +1678,13 @@
           </article>
           <article class="handoff-card">
             <div>
+              <h3>Provider expansion</h3>
+              <p>Plan OpenAI, Claude, Xiaomi, OpenRouter-like, or other provider additions safely.</p>
+            </div>
+            <a class="btn" href="/v1/gateway/provider-expansion?admin_key=__ADMIN_API_KEY__">Open expansion</a>
+          </article>
+          <article class="handoff-card">
+            <div>
               <h3>Evaluation plan</h3>
               <p>Model quality, reliability, latency, cost, safety, and fallback checks before live routing.</p>
             </div>
@@ -1983,6 +1990,16 @@
       </div>
       <div class="card-body">
         <div class="report-grid" id="operatingReviewList"></div>
+      </div>
+    </section>
+
+    <section class="card" id="providerExpansion" style="margin-bottom: 18px;">
+      <div class="card-head">
+        <h2>Provider expansion</h2>
+        <span>provider candidates, approval gates, tests, and expansion phases</span>
+      </div>
+      <div class="card-body">
+        <div class="report-grid" id="providerExpansionList"></div>
       </div>
     </section>
 
@@ -2319,6 +2336,7 @@
     const pilotReviewList = document.getElementById("pilotReviewList");
     const productionTransitionList = document.getElementById("productionTransitionList");
     const operatingReviewList = document.getElementById("operatingReviewList");
+    const providerExpansionList = document.getElementById("providerExpansionList");
     const invoicePreviewList = document.getElementById("invoicePreviewList");
     const activityList = document.getElementById("activityList");
     const auditList = document.getElementById("auditList");
@@ -3773,6 +3791,72 @@
         </div>
       `;
       operatingReviewList.appendChild(card);
+    });
+
+    const providerExpansion = state.provider_expansion || {provider_candidates: [], approval_gates: [], test_matrix: [], expansion_phases: [], customer_questions: [], not_claimed: []};
+    const expansionCards = [
+      {
+        title: "Customer-safe summary",
+        chip: "expansion",
+        body: providerExpansion.customer_safe_summary?.one_sentence || "",
+        items: [
+          providerExpansion.customer_safe_summary?.best_use,
+          providerExpansion.customer_safe_summary?.boundary,
+        ].filter(Boolean),
+      },
+      {
+        title: "Expansion principles",
+        chip: "principles",
+        body: providerExpansion.recommended_next_action || "",
+        items: providerExpansion.expansion_principles || [],
+      },
+      {
+        title: "Provider candidates",
+        chip: "providers",
+        body: "Provider options and why each needs review.",
+        items: (providerExpansion.provider_candidates || []).map((item) => `${item.provider}: ${item.why}`),
+      },
+      {
+        title: "Approval gates",
+        chip: "gates",
+        body: "Owners who must approve before live customer routes.",
+        items: (providerExpansion.approval_gates || []).map((item) => `${item.gate}: ${item.owner}`),
+      },
+      {
+        title: "Test matrix",
+        chip: "tests",
+        body: "Checks before adding or promoting a provider.",
+        items: (providerExpansion.test_matrix || []).map((item) => `${item.test}: ${item.why}`),
+      },
+      {
+        title: "Customer questions",
+        chip: "questions",
+        body: "Questions to answer before promising multi-provider support.",
+        items: providerExpansion.customer_questions || [],
+      },
+      {
+        title: "Do not claim",
+        chip: "boundary",
+        body: "Provider expansion is planned and tested one provider at a time.",
+        items: providerExpansion.not_claimed || [],
+      },
+    ];
+    expansionCards.forEach((item) => {
+      const card = document.createElement("article");
+      card.className = "report-card";
+      card.innerHTML = `
+        <div class="report-top">
+          <div>
+            <strong>${escapeHtml(item.title)}</strong>
+            <span>${escapeHtml(item.body)}</span>
+          </div>
+          <span class="${item.title === "Customer-safe summary" ? "chip green" : "chip"}">${escapeHtml(item.chip)}</span>
+        </div>
+        <div class="option-list">
+          ${(item.items || []).slice(0, 6).map((value) => `<span>${escapeHtml(value)}</span>`).join("")}
+        </div>
+      `;
+      providerExpansionList.appendChild(card);
     });
 
     const invoicePreview = state.invoice_preview || {totals: {}, data: []};

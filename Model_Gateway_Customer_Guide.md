@@ -63,6 +63,7 @@ The prototype supports:
 - Pilot review pack
 - Production transition pack
 - Operating review pack
+- Provider expansion pack
 - Operational alerts
 - Incident playbook
 - Support policy
@@ -1375,6 +1376,29 @@ This is useful because a gateway needs ongoing ownership after launch or limited
 The operating review pack helps the team decide whether to expand usage, hold steady, fix blockers, or pause.
 
 It is an operating review guide, not an SLA report, legal audit, final invoice, or security certification.
+
+## What The Provider Expansion Shows
+
+The prototype includes `/v1/gateway/provider-expansion`.
+
+This endpoint helps plan how to add more model providers.
+
+It shows:
+
+- expansion principles
+- provider candidates
+- approval gates
+- test matrix
+- expansion phases
+- customer questions
+- current provider context
+- things not to claim
+
+This is useful when a customer asks for OpenAI, Claude, Xiaomi, OpenRouter-like routing, or broad model coverage.
+
+The provider expansion pack keeps the answer honest: add one provider at a time, test the contract, approve data and cost rules, then expose it to customers.
+
+It is an expansion planning pack, not a live vendor benchmark, procurement approval, provider certification, final price, or full OpenRouter clone promise.
 
 ## What Invoice Preview Shows
 

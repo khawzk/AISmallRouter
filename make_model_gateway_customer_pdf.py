@@ -278,6 +278,7 @@ def build():
         "Pilot review endpoint for stop, extend, or production hardening decision support.",
         "Production transition endpoint for moving from pilot review to hardening work without over-promising production readiness.",
         "Operating review endpoint for recurring customer health, usage, incidents, budget, change, and expansion decisions.",
+        "Provider expansion endpoint for adding OpenAI, Claude, Xiaomi, OpenRouter-like, or other providers with gates and tests.",
         "Request activity endpoint with simple filters for troubleshooting.",
         "Request detail lookup using gateway.request_id returned in chat responses.",
         "Config check endpoint for demo keys and missing production settings.",
@@ -370,6 +371,7 @@ def build():
             ["Pilot review", "A pilot should end with a clear decision, not another vague meeting.", "Evidence, go/no-go checks, stop/extend/harden options, and follow-up outputs"],
             ["Production transition", "Pilot success does not mean production approval.", "Transition trigger, phases, role handoff, P0 controls, SOW questions, and kickoff agenda"],
             ["Operating review", "A gateway needs ongoing ownership after launch or limited production.", "Cadence, signals, customer snapshots, decisions, owners, and review outputs"],
+            ["Provider expansion", "Adding providers is governance work, not just another API URL.", "Provider candidates, approval gates, tests, phases, questions, and boundaries"],
             ["Customer onboarding", "New customers need keys, limits, and model access.", "Key issue preview creates a safe config snippet"],
             ["Key lifecycle", "Customers need key rotation and disable workflows.", "Local JSON-backed create, rotate, and disable actions"],
             ["Audit trail", "Teams need to know who changed customer access.", "Audit events for customer lifecycle actions"],
@@ -919,6 +921,26 @@ def build():
     operating = Table(operating_rows, colWidths=[2.1 * inch, 4.35 * inch])
     operating.setStyle(table_style())
     story.append(operating)
+    story.append(Spacer(1, 0.15 * inch))
+
+    story.append(Paragraph("Provider Expansion", styles["H1Custom"]))
+    story.append(
+        Paragraph(
+            "/v1/gateway/provider-expansion helps plan how to add more model providers without promising an uncontrolled marketplace. It includes expansion principles, provider candidates, approval gates, test matrix, expansion phases, customer questions, current provider context, and things not to claim. It is an expansion planning pack, not a live vendor benchmark, procurement approval, provider certification, final price, or full OpenRouter clone promise.",
+            styles["BodyCustom"],
+        )
+    )
+    expansion_rows = [
+        ["Area", "Plain-English meaning"],
+        ["Principles", "Add providers one at a time, with one use case, one model alias, and provider keys kept private."],
+        ["Candidates", "Qwen first, then OpenAI-compatible, Claude, Xiaomi or regional providers, or OpenRouter-like options."],
+        ["Approval gates", "Business value, technical contract, security/data, cost, support, and customer communication."],
+        ["Tests", "Models, route preview, mock chat, live smoke test, streaming, tools, cost, fallback, and rollback."],
+        ["Boundary", "Not a full OpenRouter clone, live benchmark, procurement approval, provider certification, or unlimited coverage."],
+    ]
+    expansion = Table(expansion_rows, colWidths=[2.1 * inch, 4.35 * inch])
+    expansion.setStyle(table_style())
+    story.append(expansion)
     story.append(Spacer(1, 0.15 * inch))
 
     story.append(Paragraph("Invoice Preview", styles["H1Custom"]))

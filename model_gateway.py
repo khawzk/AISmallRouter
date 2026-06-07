@@ -96,6 +96,7 @@ ADMIN_PATHS = {
     "/v1/gateway/pilot-review",
     "/v1/gateway/production-transition",
     "/v1/gateway/operating-review",
+    "/v1/gateway/provider-expansion",
     "/v1/gateway/policy-presets",
     "/v1/gateway/demo-bundle",
     "/v1/gateway/handoff-checklist",
@@ -2612,6 +2613,131 @@ def operating_review_pack(server):
             "/v1/gateway/incident-playbook",
             "/v1/gateway/support-policy",
             "/v1/gateway/request-activity",
+        ],
+    }
+
+
+def provider_expansion_pack(server):
+    contracts = provider_contracts(server)
+    providers = provider_health(server)
+    catalog = model_catalog(server)
+    evaluation = evaluation_plan(server)
+    alternatives = alternatives_pack(server)
+    enabled_provider_ids = [provider.get("id") for provider in providers]
+    model_provider_ids = sorted({model.get("provider") for model in catalog if model.get("provider")})
+    return {
+        "object": "gateway.provider_expansion",
+        "title": "AISmallRouter Provider Expansion Pack",
+        "audience": "customer sponsor, solution architect, gateway owner, security owner, finance owner, and customer technical contact",
+        "mode": "mock" if server.mock_mode else "live",
+        "plain_english": "This pack explains how to add more model providers without turning the gateway into an uncontrolled marketplace. It shows the review steps, approval owners, test gates, and boundaries for OpenAI, Claude, Xiaomi, OpenRouter-like routing, or other providers.",
+        "customer_safe_summary": {
+            "one_sentence": "Use this when the customer asks to add more model providers after the Qwen-first prototype.",
+            "best_use": "Run it before promising OpenAI, Claude, Xiaomi, OpenRouter-like routing, or broad provider coverage.",
+            "boundary": "This is an expansion planning pack. It is not a live vendor benchmark, procurement approval, provider certification, final price, or promise to build a full OpenRouter clone.",
+        },
+        "expansion_principles": [
+            "Add providers one at a time.",
+            "Start with one customer use case and one public model alias.",
+            "Do contract checks before live traffic.",
+            "Keep provider API keys private and outside customer-facing responses.",
+            "Test request shape, response shape, streaming, tools, usage, errors, and billing behavior.",
+            "Use route preview and evaluation before changing production routes.",
+        ],
+        "provider_candidates": [
+            {
+                "provider": "Alibaba Cloud Model Studio / Qwen",
+                "suggested_stage": "first_live_provider",
+                "why": "The available API key makes Qwen the practical first live provider path.",
+                "main_checks": ["DashScope-compatible request", "streaming", "usage", "budget behavior", "data handling"],
+            },
+            {
+                "provider": "OpenAI-compatible provider",
+                "suggested_stage": "second_provider_candidate",
+                "why": "The gateway already uses OpenAI-compatible request and response shapes for the customer API.",
+                "main_checks": ["auth header", "chat completions", "streaming chunks", "tools", "usage normalization"],
+            },
+            {
+                "provider": "Anthropic / Claude",
+                "suggested_stage": "adapter_expansion",
+                "why": "Claude-style APIs can be valuable but need request and response normalization.",
+                "main_checks": ["messages API shape", "tool schema", "streaming support", "usage mapping", "error mapping"],
+            },
+            {
+                "provider": "Xiaomi or regional provider",
+                "suggested_stage": "docs_first",
+                "why": "Regional providers may have different auth, billing, streaming, tools, and data terms.",
+                "main_checks": ["official docs", "auth method", "model list", "billing data", "data residency", "support terms"],
+            },
+            {
+                "provider": "OpenRouter-like marketplace",
+                "suggested_stage": "buy_or_integrate_review",
+                "why": "Useful when broad model access matters more than private provider control.",
+                "main_checks": ["customer ownership", "BYOK", "routing controls", "billing", "data handling", "vendor dependency"],
+            },
+        ],
+        "approval_gates": [
+            {"gate": "Business value", "owner": "Customer sponsor", "question": "What customer workflow needs this provider?"},
+            {"gate": "Technical contract", "owner": "Gateway owner", "question": "Can auth, requests, responses, streaming, tools, usage, and errors be normalized?"},
+            {"gate": "Security and data", "owner": "Security/data owner", "question": "Are key handling, prompt handling, retention, and provider data terms acceptable?"},
+            {"gate": "Cost and billing", "owner": "Finance owner", "question": "Can usage, cost, budget limits, and invoice policy be explained?"},
+            {"gate": "Support readiness", "owner": "Support owner", "question": "Can failures be detected, explained, escalated, and rolled back?"},
+            {"gate": "Customer communication", "owner": "Customer success owner", "question": "Can the customer understand what changed and what is not guaranteed?"},
+        ],
+        "test_matrix": [
+            {"test": "List models", "why": "Confirm provider model names and customer-facing aliases.", "evidence": ["/v1/gateway/model-catalog", "/v1/models"]},
+            {"test": "Route preview", "why": "Explain routing before spending provider credits.", "evidence": ["/v1/gateway/route-preview"]},
+            {"test": "Mock chat", "why": "Check customer response shape without paid usage.", "evidence": ["/v1/chat/completions"]},
+            {"test": "Live smoke test", "why": "Confirm real provider auth and response mapping with low limits.", "evidence": ["/v1/gateway/provider-health", "/v1/gateway/request-activity"]},
+            {"test": "Streaming", "why": "Confirm chunk shape, usage, finish reason, and error behavior.", "evidence": ["/v1/chat/completions"]},
+            {"test": "Tool calling", "why": "Check provider-specific tool schema and normalized response.", "evidence": ["/v1/gateway/evaluation-plan"]},
+            {"test": "Cost estimate and usage", "why": "Confirm budgets and reporting before customer traffic.", "evidence": ["/v1/gateway/cost-estimate", "/v1/gateway/customer-reports"]},
+            {"test": "Fallback and rollback", "why": "Make provider failure safe to explain and recover from.", "evidence": ["/v1/gateway/route-preview", "/v1/gateway/change-management"]},
+        ],
+        "expansion_phases": [
+            {"phase": "1. Candidate review", "output": "Provider value, owner, docs, data terms, and initial model list."},
+            {"phase": "2. Adapter contract", "output": "Auth, request, response, stream, tools, usage, and errors mapped."},
+            {"phase": "3. Mock and contract tests", "output": "Provider can be explained without customer traffic."},
+            {"phase": "4. Low-limit live test", "output": "Provider key works and costs are controlled."},
+            {"phase": "5. Customer pilot route", "output": "One customer, one model alias, one fallback path, and one review date."},
+            {"phase": "6. Production route approval", "output": "Security, data, support, billing, and change gates approved."},
+        ],
+        "customer_questions": [
+            "Why do we need this provider instead of Qwen first?",
+            "Which customer workflow will use it?",
+            "Should the customer bring their own provider key?",
+            "What data does the provider receive and retain?",
+            "How will usage and cost be reported?",
+            "What happens if the provider fails or changes API behavior?",
+            "Is broad model access more important than private control?",
+        ],
+        "current_context": {
+            "enabled_provider_ids": enabled_provider_ids,
+            "model_provider_ids": model_provider_ids,
+            "configured_provider_count": len(contracts.get("configured_providers", [])),
+            "provider_type_contract_count": len(contracts.get("provider_type_contracts", [])),
+            "model_count": len(catalog),
+            "evaluation_dimensions": [item.get("name") for item in evaluation.get("evaluation_dimensions", [])],
+            "alternative_options": [item.get("option") for item in alternatives.get("alternatives", [])],
+        },
+        "not_claimed": [
+            "Full OpenRouter clone",
+            "Live vendor benchmark",
+            "Provider certification",
+            "Procurement approval",
+            "Final provider pricing",
+            "Guaranteed model quality",
+            "Unlimited model coverage",
+        ],
+        "recommended_next_action": "Choose one provider candidate, collect official docs, add a disabled provider config, then run adapter contract tests before any live customer route.",
+        "evidence_endpoints": [
+            "/v1/gateway/provider-contracts",
+            "/v1/gateway/provider-health",
+            "/v1/gateway/model-catalog",
+            "/v1/gateway/evaluation-plan",
+            "/v1/gateway/alternatives-pack",
+            "/v1/gateway/route-preview",
+            "/v1/gateway/change-management",
         ],
     }
 
@@ -7559,6 +7685,7 @@ def openapi_spec(server):
         "/v1/gateway/pilot-review": "Customer pilot review and go/no-go pack",
         "/v1/gateway/production-transition": "Production transition and hardening handoff pack",
         "/v1/gateway/operating-review": "Recurring operating review pack",
+        "/v1/gateway/provider-expansion": "Provider expansion governance pack",
         "/v1/gateway/invoice-preview": "Invoice preview JSON or CSV",
         "/v1/gateway/model-usage": "Usage grouped by model",
         "/v1/gateway/request-summary": "Request summary by dimensions",
@@ -7724,6 +7851,7 @@ def postman_collection(server):
         request_item("Pilot Review", "GET", "/v1/gateway/pilot-review", "admin_api_key"),
         request_item("Production Transition", "GET", "/v1/gateway/production-transition", "admin_api_key"),
         request_item("Operating Review", "GET", "/v1/gateway/operating-review", "admin_api_key"),
+        request_item("Provider Expansion", "GET", "/v1/gateway/provider-expansion", "admin_api_key"),
         request_item("Invoice Preview", "GET", "/v1/gateway/invoice-preview", "admin_api_key"),
         request_item(
             "Route Preview",
@@ -8037,6 +8165,13 @@ def demo_bundle(server):
                 "auth": "adminBearerAuth",
             },
             {
+                "name": "Provider expansion",
+                "url": f"{base_url}/v1/gateway/provider-expansion",
+                "audience": "customer sponsor, solution architect, gateway, security, finance, and customer technical owners",
+                "purpose": "Plan adding OpenAI, Claude, Xiaomi, OpenRouter-like, or other providers with gates, tests, approvals, and boundaries.",
+                "auth": "adminBearerAuth",
+            },
+            {
                 "name": "Provider contract matrix",
                 "url": f"{base_url}/v1/gateway/provider-contracts",
                 "audience": "business and technical",
@@ -8321,6 +8456,10 @@ def demo_bundle(server):
                 "command": f"curl {base_url}/v1/gateway/operating-review -H 'Authorization: Bearer {server.admin_api_key or DEFAULT_ADMIN_API_KEY}'",
             },
             {
+                "name": "Provider expansion",
+                "command": f"curl {base_url}/v1/gateway/provider-expansion -H 'Authorization: Bearer {server.admin_api_key or DEFAULT_ADMIN_API_KEY}'",
+            },
+            {
                 "name": "Provider contracts",
                 "command": f"curl {base_url}/v1/gateway/provider-contracts -H 'Authorization: Bearer {server.admin_api_key or DEFAULT_ADMIN_API_KEY}'",
             },
@@ -8412,6 +8551,7 @@ def gateway_status(server):
         "pilot_review": pilot_review_pack(server),
         "production_transition": production_transition_pack(server),
         "operating_review": operating_review_pack(server),
+        "provider_expansion": provider_expansion_pack(server),
         "pilot_scorecard": pilot_scorecard(server),
         "invoice_preview": invoice_preview(server),
         "production_readiness": production_readiness(server),
@@ -9292,6 +9432,9 @@ class GatewayHandler(BaseHTTPRequestHandler):
             return
         if path == "/v1/gateway/operating-review":
             make_json_response(self, 200, operating_review_pack(self.server))
+            return
+        if path == "/v1/gateway/provider-expansion":
+            make_json_response(self, 200, provider_expansion_pack(self.server))
             return
         if path == "/v1/gateway/request-activity":
             filters = {
