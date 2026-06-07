@@ -267,6 +267,7 @@ def build():
         "Customer reports endpoint for request count, errors, token usage, and budget state.",
         "Commercial policy endpoint for pricing assumptions, budget behavior, invoice preview limits, and exclusions.",
         "Procurement pack endpoint for vendor review tracks, evidence documents, approval owners, and red lines.",
+        "Business case endpoint for value hypotheses, pilot metrics, ROI inputs, and decision options.",
         "Request activity endpoint with simple filters for troubleshooting.",
         "Request detail lookup using gateway.request_id returned in chat responses.",
         "Config check endpoint for demo keys and missing production settings.",
@@ -348,6 +349,7 @@ def build():
             ["Cost estimate", "Customers need budget planning before live calls.", "Dry-run estimate for tokens, cost, and budget impact"],
             ["Commercial policy", "Customers need to know what is an estimate and what requires a contract.", "Pricing assumptions, budget rules, and exclusions"],
             ["Procurement pack", "Customers may need procurement, legal, IT, security, and finance review.", "Review tracks, evidence documents, approval owners, and red lines"],
+            ["Business case", "Business sponsors need to explain why a pilot is worth doing.", "Value hypotheses, pilot metrics, ROI inputs, and decision options"],
             ["Customer onboarding", "New customers need keys, limits, and model access.", "Key issue preview creates a safe config snippet"],
             ["Key lifecycle", "Customers need key rotation and disable workflows.", "Local JSON-backed create, rotate, and disable actions"],
             ["Audit trail", "Teams need to know who changed customer access.", "Audit events for customer lifecycle actions"],
@@ -677,6 +679,26 @@ def build():
     procurement = Table(procurement_rows, colWidths=[2.1 * inch, 4.35 * inch])
     procurement.setStyle(table_style())
     story.append(procurement)
+    story.append(Spacer(1, 0.15 * inch))
+
+    story.append(Paragraph("Business Case", styles["H1Custom"]))
+    story.append(
+        Paragraph(
+            "/v1/gateway/business-case helps a business sponsor explain why the gateway may be worth a pilot. It shows a simple value story, value hypotheses, pilot metrics from local usage records, ROI inputs the customer must provide, decision options, and what the prototype does not claim. It is not a formal ROI model and does not promise guaranteed savings, final production price, production SLA, security certification, or legal billing output.",
+            styles["BodyCustom"],
+        )
+    )
+    business_rows = [
+        ["Area", "Plain-English meaning"],
+        ["Value hypotheses", "Integration work, provider control, budget visibility, lower change risk, and clearer approval can be tested."],
+        ["Pilot metrics", "Local requests, tokens, estimated cost, active customers, and readiness status are visible."],
+        ["ROI inputs", "The customer must provide engineering cost, current integration effort, risk cost, and finance assumptions."],
+        ["Decision options", "Stop after demo, run a small pilot, or harden for production."],
+        ["Not claimed", "No guaranteed savings, formal ROI, final price, SLA, certification, or legal invoice."],
+    ]
+    business = Table(business_rows, colWidths=[2.1 * inch, 4.35 * inch])
+    business.setStyle(table_style())
+    story.append(business)
     story.append(Spacer(1, 0.15 * inch))
 
     story.append(Paragraph("Invoice Preview", styles["H1Custom"]))

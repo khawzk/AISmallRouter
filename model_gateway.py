@@ -85,6 +85,7 @@ ADMIN_PATHS = {
     "/v1/gateway/customer-success",
     "/v1/gateway/commercial-policy",
     "/v1/gateway/procurement-pack",
+    "/v1/gateway/business-case",
     "/v1/gateway/policy-presets",
     "/v1/gateway/demo-bundle",
     "/v1/gateway/handoff-checklist",
@@ -1270,6 +1271,137 @@ def procurement_pack(server):
             "/v1/gateway/deployment-readiness",
             "/v1/gateway/operations-runbook",
         ],
+    }
+
+
+def business_case(server):
+    reports = customer_reports(server)
+    invoice = invoice_preview(server)
+    readiness = production_readiness(server)
+    procurement = procurement_pack(server)
+    total_requests = sum(int((report.get("request_summary") or {}).get("requests") or 0) for report in reports)
+    total_tokens = sum(int((report.get("budget", {}).get("usage") or {}).get("total_tokens") or 0) for report in reports)
+    total_cost = sum(float((report.get("budget", {}).get("usage") or {}).get("estimated_cost") or 0) for report in reports)
+    active_customers = [
+        report.get("id")
+        for report in reports
+        if int((report.get("request_summary") or {}).get("requests") or 0) > 0
+    ]
+    return {
+        "object": "gateway.business_case",
+        "title": "AISmallRouter Business Case",
+        "audience": "business sponsor, customer sponsor, finance, procurement, and gateway owner",
+        "mode": "mock" if server.mock_mode else "live",
+        "plain_english": "This business case explains why one model gateway may be worth a pilot, what value can be measured, and what still cannot be promised from prototype data.",
+        "customer_safe_summary": {
+            "one_sentence": "One gateway can reduce integration work, make model choice easier to control, and give business teams clearer usage and budget visibility.",
+            "prototype_boundary": "The numbers below are pilot estimates from local records. They are not guaranteed savings, a formal ROI, a quote, or a production billing report.",
+            "best_use": "Use this before an executive or finance conversation to agree what success should be measured during a pilot.",
+        },
+        "value_hypotheses": [
+            {
+                "value": "Less integration work",
+                "why_it_matters": "Customer teams call one OpenAI-compatible API instead of building a separate integration for every provider.",
+                "pilot_measure": "Count how many provider-specific code paths are avoided in the first use case.",
+                "evidence": ["/v1/gateway/integration-guide", "/openapi.json", "/postman_collection.json"],
+            },
+            {
+                "value": "Better provider control",
+                "why_it_matters": "The business can start with Qwen and add OpenAI, Claude, Xiaomi, or other providers behind the same customer API later.",
+                "pilot_measure": "Show route preview, fallback order, provider health, and provider contract differences.",
+                "evidence": ["/v1/gateway/route-preview", "/v1/gateway/provider-health", "/v1/gateway/provider-contracts"],
+            },
+            {
+                "value": "Budget visibility",
+                "why_it_matters": "Usage, token budgets, cost estimates, and invoice preview make spending easier to discuss before production billing exists.",
+                "pilot_measure": "Review estimated usage, cost, budget state, and invoice preview after pilot traffic.",
+                "evidence": ["/v1/gateway/customer-reports", "/v1/gateway/cost-estimate", "/v1/gateway/invoice-preview"],
+            },
+            {
+                "value": "Lower change risk",
+                "why_it_matters": "Model/provider changes can be previewed, audited, and rolled back without changing the customer app endpoint.",
+                "pilot_measure": "Run one route change in mock mode and inspect audit events, change management, and rollback notes.",
+                "evidence": ["/v1/gateway/audit-events", "/v1/gateway/change-management", "/v1/gateway/model-catalog"],
+            },
+            {
+                "value": "Clearer internal approval",
+                "why_it_matters": "Procurement, legal, IT, security, and finance get a shared review pack instead of only a technical demo.",
+                "pilot_measure": "Confirm which approval questions are answered and which remain production blockers.",
+                "evidence": ["/v1/gateway/procurement-pack", "/v1/gateway/security-review", "/v1/gateway/data-governance"],
+            },
+        ],
+        "pilot_metrics": {
+            "customer_count": len(reports),
+            "active_customers": active_customers,
+            "requests_recorded": total_requests,
+            "tokens_recorded": total_tokens,
+            "estimated_cost": round(total_cost, 6),
+            "invoice_preview_totals": invoice.get("totals", {}),
+            "production_readiness_status": readiness.get("overall_status"),
+        },
+        "roi_inputs_to_collect": [
+            "How many provider integrations would the customer otherwise build?",
+            "How many engineering days does one provider integration usually take?",
+            "How often does the customer expect to change models or providers?",
+            "What is the cost of a failed provider route during a customer workflow?",
+            "What budget limit should stop or warn before spend grows?",
+            "Which internal approval documents delay the pilot today?",
+        ],
+        "simple_roi_formula": {
+            "description": "Use this only as a workshop formula, not as a formal finance model.",
+            "formula": "estimated_value = avoided_integration_days + avoided_change_risk + improved_budget_control - gateway_build_and_run_cost",
+            "prototype_can_estimate": [
+                "usage volume",
+                "token and estimated model cost",
+                "number of customers and models",
+                "route and provider control points",
+                "open production gaps",
+            ],
+            "customer_must_provide": [
+                "engineering day cost",
+                "current provider integration effort",
+                "risk cost of outage or wrong model route",
+                "finance-approved pricing and billing assumptions",
+            ],
+        },
+        "decision_options": [
+            {
+                "option": "Stop after demo",
+                "when_to_choose": "The customer likes the idea but has no active use case, owner, or budget.",
+                "next_step": "Keep the demo as reference material and restart discovery later.",
+            },
+            {
+                "option": "Run a small pilot",
+                "when_to_choose": "The customer has one use case, one provider path, and a sponsor who can review results.",
+                "next_step": "Use onboarding plan, pilot checklist, and scorecard.",
+            },
+            {
+                "option": "Harden for production",
+                "when_to_choose": "The pilot proves value and the customer needs real traffic, compliance, billing, and support.",
+                "next_step": "Use production backlog, launch plan, procurement pack, and operations runbook.",
+            },
+        ],
+        "not_claimed": [
+            "Guaranteed cost savings",
+            "Formal ROI",
+            "Final production price",
+            "Legal invoice or tax report",
+            "Production SLA",
+            "Security certification",
+        ],
+        "recommended_next_action": "Use this with the pilot scorecard and procurement pack to decide whether the next step is stop, pilot, or production hardening.",
+        "evidence_endpoints": [
+            "/v1/gateway/pilot-scorecard",
+            "/v1/gateway/customer-reports",
+            "/v1/gateway/commercial-policy",
+            "/v1/gateway/procurement-pack",
+            "/v1/gateway/production-backlog",
+            "/v1/gateway/launch-plan",
+        ],
+        "procurement_context": {
+            "review_tracks": [track.get("track") for track in procurement.get("review_tracks", [])],
+            "red_line_count": len(procurement.get("red_lines", [])),
+        },
     }
 
 
@@ -6205,6 +6337,7 @@ def openapi_spec(server):
         "/v1/gateway/customer-success": "Customer success account health summary",
         "/v1/gateway/commercial-policy": "Commercial policy and billing boundaries",
         "/v1/gateway/procurement-pack": "Procurement and vendor review pack",
+        "/v1/gateway/business-case": "Business case and pilot ROI discussion pack",
         "/v1/gateway/invoice-preview": "Invoice preview JSON or CSV",
         "/v1/gateway/model-usage": "Usage grouped by model",
         "/v1/gateway/request-summary": "Request summary by dimensions",
@@ -6359,6 +6492,7 @@ def postman_collection(server):
         request_item("Customer Success", "GET", "/v1/gateway/customer-success", "admin_api_key"),
         request_item("Commercial Policy", "GET", "/v1/gateway/commercial-policy", "admin_api_key"),
         request_item("Procurement Pack", "GET", "/v1/gateway/procurement-pack", "admin_api_key"),
+        request_item("Business Case", "GET", "/v1/gateway/business-case", "admin_api_key"),
         request_item("Invoice Preview", "GET", "/v1/gateway/invoice-preview", "admin_api_key"),
         request_item(
             "Route Preview",
@@ -6592,6 +6726,13 @@ def demo_bundle(server):
                 "url": f"{base_url}/v1/gateway/procurement-pack",
                 "audience": "customer sponsor, procurement, legal, IT, security, finance, and gateway owner",
                 "purpose": "Package review tracks, evidence documents, approval owners, red lines, and meeting questions for pilot or purchase review.",
+                "auth": "adminBearerAuth",
+            },
+            {
+                "name": "Business case",
+                "url": f"{base_url}/v1/gateway/business-case",
+                "audience": "business sponsor, customer sponsor, finance, procurement, and gateway owner",
+                "purpose": "Explain value hypotheses, pilot metrics, ROI inputs to collect, decision options, and what the prototype does not claim.",
                 "auth": "adminBearerAuth",
             },
             {
@@ -6835,6 +6976,10 @@ def demo_bundle(server):
                 "command": f"curl {base_url}/v1/gateway/procurement-pack -H 'Authorization: Bearer {server.admin_api_key or DEFAULT_ADMIN_API_KEY}'",
             },
             {
+                "name": "Business case",
+                "command": f"curl {base_url}/v1/gateway/business-case -H 'Authorization: Bearer {server.admin_api_key or DEFAULT_ADMIN_API_KEY}'",
+            },
+            {
                 "name": "Provider contracts",
                 "command": f"curl {base_url}/v1/gateway/provider-contracts -H 'Authorization: Bearer {server.admin_api_key or DEFAULT_ADMIN_API_KEY}'",
             },
@@ -6915,6 +7060,7 @@ def gateway_status(server):
         "customer_success": customer_success_summary(server),
         "commercial_policy": commercial_policy(server),
         "procurement_pack": procurement_pack(server),
+        "business_case": business_case(server),
         "pilot_scorecard": pilot_scorecard(server),
         "invoice_preview": invoice_preview(server),
         "production_readiness": production_readiness(server),
@@ -7762,6 +7908,9 @@ class GatewayHandler(BaseHTTPRequestHandler):
             return
         if path == "/v1/gateway/procurement-pack":
             make_json_response(self, 200, procurement_pack(self.server))
+            return
+        if path == "/v1/gateway/business-case":
+            make_json_response(self, 200, business_case(self.server))
             return
         if path == "/v1/gateway/request-activity":
             filters = {

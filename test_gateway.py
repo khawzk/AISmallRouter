@@ -180,6 +180,7 @@ class GatewayPrototypeTest(unittest.TestCase):
             "/v1/gateway/customer-success",
             "/v1/gateway/commercial-policy",
             "/v1/gateway/procurement-pack",
+            "/v1/gateway/business-case",
             "/v1/gateway/demo-bundle",
             "/v1/gateway/handoff-checklist",
             "/v1/gateway/production-readiness",
@@ -248,6 +249,7 @@ class GatewayPrototypeTest(unittest.TestCase):
         self.assertIn("Customer Success", admin_names)
         self.assertIn("Commercial Policy", admin_names)
         self.assertIn("Procurement Pack", admin_names)
+        self.assertIn("Business Case", admin_names)
         self.assertIn("Support Policy", admin_names)
         self.assertIn("Pilot Checklist", admin_names)
         self.assertIn("Pilot Scorecard", admin_names)
@@ -291,6 +293,7 @@ class GatewayPrototypeTest(unittest.TestCase):
         self.assertIn(f"{self.base_url}/v1/gateway/customer-success", entry_urls)
         self.assertIn(f"{self.base_url}/v1/gateway/commercial-policy", entry_urls)
         self.assertIn(f"{self.base_url}/v1/gateway/procurement-pack", entry_urls)
+        self.assertIn(f"{self.base_url}/v1/gateway/business-case", entry_urls)
         self.assertIn(f"{self.base_url}/v1/gateway/provider-contracts", entry_urls)
         self.assertIn(f"{self.base_url}/v1/gateway/evaluation-plan", entry_urls)
         self.assertIn(f"{self.base_url}/v1/gateway/incident-playbook", entry_urls)
@@ -1285,6 +1288,8 @@ class GatewayPrototypeTest(unittest.TestCase):
         self.assertIn("budget_rules", payload["commercial_policy"])
         self.assertIn("procurement_pack", payload)
         self.assertIn("review_tracks", payload["procurement_pack"])
+        self.assertIn("business_case", payload)
+        self.assertIn("value_hypotheses", payload["business_case"])
         self.assertIn("request_activity", payload)
         self.assertIn("audit_events", payload)
         self.assertIn("audit_event_count", payload["summary"])
@@ -2168,6 +2173,27 @@ class GatewayPrototypeTest(unittest.TestCase):
         self.assertNotIn("sk-", json.dumps(procurement))
         self.assertNotIn("provider_api_keys", json.dumps(procurement))
 
+        status, business = request_json(self.base_url, path="/v1/gateway/business-case")
+        self.assertEqual(status, 401)
+
+        status, business = request_json(self.base_url, path="/v1/gateway/business-case", api_key="dev-admin-key")
+        self.assertEqual(status, 200)
+        self.assertEqual(business["object"], "gateway.business_case")
+        self.assertIn("worth a pilot", business["plain_english"])
+        values = {item["value"] for item in business["value_hypotheses"]}
+        self.assertIn("Less integration work", values)
+        self.assertIn("Budget visibility", values)
+        self.assertIn("Clearer internal approval", values)
+        self.assertIn("requests_recorded", business["pilot_metrics"])
+        self.assertIn("engineering days", " ".join(business["roi_inputs_to_collect"]))
+        options = {item["option"] for item in business["decision_options"]}
+        self.assertIn("Run a small pilot", options)
+        self.assertIn("Guaranteed cost savings", business["not_claimed"])
+        self.assertIn("/v1/gateway/procurement-pack", business["evidence_endpoints"])
+        self.assertNotIn("DASHSCOPE_API_KEY", json.dumps(business))
+        self.assertNotIn("sk-", json.dumps(business))
+        self.assertNotIn("provider_api_keys", json.dumps(business))
+
         status, invoice = request_json(self.base_url, path="/v1/gateway/invoice-preview", api_key="dev-admin-key")
         self.assertEqual(status, 200)
         self.assertIn("totals", invoice)
@@ -2300,6 +2326,9 @@ class GatewayPrototypeTest(unittest.TestCase):
         self.assertIn("Procurement pack", html)
         self.assertIn("procurementPackList", html)
         self.assertIn("/v1/gateway/procurement-pack?admin_key=", html)
+        self.assertIn("Business case", html)
+        self.assertIn("businessCaseList", html)
+        self.assertIn("/v1/gateway/business-case?admin_key=", html)
         self.assertIn("Customer handoff package", html)
         self.assertIn("/openapi.json", html)
         self.assertIn("/postman_collection.json", html)

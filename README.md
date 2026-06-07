@@ -219,6 +219,7 @@ The current version also supports:
 - `GET /v1/gateway/customer-success`
 - `GET /v1/gateway/commercial-policy`
 - `GET /v1/gateway/procurement-pack`
+- `GET /v1/gateway/business-case`
 - `GET /v1/gateway/invoice-preview`
 - `GET /v1/gateway/request-activity`
 - `GET /v1/gateway/request-detail`
@@ -1612,6 +1613,32 @@ This is useful because real customers often need more than a working demo.
 They may need to show that the idea has a review path before they can approve a pilot or purchase discussion.
 
 The procurement pack does not replace a contract, security attestation, production SLA, final price quote, or tax invoice.
+
+## Business Case
+
+The gateway has a business case endpoint:
+
+```bash
+curl http://127.0.0.1:8787/v1/gateway/business-case \
+  -H "Authorization: Bearer dev-admin-key"
+```
+
+It helps a business sponsor explain why the gateway may be worth a pilot.
+
+It explains:
+
+- the simple value story
+- value hypotheses to test in a pilot
+- pilot metrics from local usage records
+- ROI inputs the customer must provide
+- simple decision options: stop, pilot, or production hardening
+- what the prototype does not claim
+
+This is not a formal ROI model.
+
+It does not promise guaranteed savings, final production price, production SLA, security certification, or legal billing output.
+
+It is a workshop tool for deciding whether the next step is worth doing.
 
 ## Invoice Preview
 

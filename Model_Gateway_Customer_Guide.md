@@ -94,6 +94,7 @@ The prototype supports:
 - Audit events for customer key lifecycle actions
 - Invoice preview with CSV export
 - Procurement review pack for customer internal approval
+- Business case pack for pilot value and ROI discussion
 - Provider adapter scaffolds for OpenAI and Claude
 - Automated mock regression test
 - Mock mode
@@ -1088,6 +1089,33 @@ This matters because many real customers cannot approve a pilot from a technical
 They often need a simple internal review pack.
 
 The procurement pack does not replace a signed contract, legal security attestation, production SLA, final price quote, or tax invoice.
+
+## What The Business Case Shows
+
+The prototype includes `/v1/gateway/business-case`.
+
+This endpoint helps a business sponsor explain why the gateway may be worth a pilot.
+
+It shows:
+
+- the simple value story
+- value hypotheses to test
+- pilot metrics from local usage records
+- ROI inputs the customer must provide
+- simple decision options
+- what the prototype does not claim
+
+The decision options are:
+
+- stop after demo
+- run a small pilot
+- harden for production
+
+This is not a formal ROI model.
+
+It does not promise guaranteed savings, final production price, production SLA, security certification, or legal billing output.
+
+It is a workshop tool for deciding whether the next step is worth doing.
 
 ## What Invoice Preview Shows
 
