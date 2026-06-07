@@ -1622,6 +1622,13 @@
           </article>
           <article class="handoff-card">
             <div>
+              <h3>SOW draft</h3>
+              <p>Proposed scope, deliverables, exclusions, milestones, acceptance criteria, and open contract items.</p>
+            </div>
+            <a class="btn" href="/v1/gateway/sow-draft?admin_key=__ADMIN_API_KEY__">Open SOW</a>
+          </article>
+          <article class="handoff-card">
+            <div>
               <h3>Evaluation plan</h3>
               <p>Model quality, reliability, latency, cost, safety, and fallback checks before live routing.</p>
             </div>
@@ -1847,6 +1854,16 @@
       </div>
       <div class="card-body">
         <div class="report-grid" id="alternativesPackList"></div>
+      </div>
+    </section>
+
+    <section class="card" id="sowDraft" style="margin-bottom: 18px;">
+      <div class="card-head">
+        <h2>SOW draft</h2>
+        <span>scope, deliverables, exclusions, milestones, and acceptance criteria</span>
+      </div>
+      <div class="card-body">
+        <div class="report-grid" id="sowDraftList"></div>
       </div>
     </section>
 
@@ -2175,6 +2192,7 @@
     const businessCaseList = document.getElementById("businessCaseList");
     const implementationPlanList = document.getElementById("implementationPlanList");
     const alternativesPackList = document.getElementById("alternativesPackList");
+    const sowDraftList = document.getElementById("sowDraftList");
     const invoicePreviewList = document.getElementById("invoicePreviewList");
     const activityList = document.getElementById("activityList");
     const auditList = document.getElementById("auditList");
@@ -3115,6 +3133,66 @@
         </div>
       `;
       alternativesPackList.appendChild(card);
+    });
+
+    const sowDraft = state.sow_draft || {customer_safe_summary: {}, proposed_scope: [], deliverables: [], out_of_scope_for_first_sow: [], milestones: [], acceptance_criteria: [], not_claimed: []};
+    const sowCards = [
+      {
+        title: "Customer-safe summary",
+        chip: "draft",
+        body: sowDraft.customer_safe_summary?.one_sentence || "",
+        items: [
+          sowDraft.customer_safe_summary?.best_use,
+          sowDraft.customer_safe_summary?.boundary,
+        ].filter(Boolean),
+      },
+      {
+        title: "Proposed scope",
+        chip: "scope",
+        body: sowDraft.recommended_next_action || "",
+        items: sowDraft.proposed_scope || [],
+      },
+      {
+        title: "Deliverables",
+        chip: "outputs",
+        body: "What the first customer-facing SOW can name as deliverables.",
+        items: (sowDraft.deliverables || []).map((item) => `${item.name}: ${item.description}`),
+      },
+      {
+        title: "Out of scope",
+        chip: "guardrails",
+        body: "Items that should not sneak into the first SOW.",
+        items: sowDraft.out_of_scope_for_first_sow || [],
+      },
+      {
+        title: "Milestones",
+        chip: "timeline",
+        body: "Simple stage gates for customer review.",
+        items: (sowDraft.milestones || []).map((item) => `${item.milestone}: ${item.duration}`),
+      },
+      {
+        title: "Acceptance criteria",
+        chip: "done when",
+        body: "Evidence-based checks for scope completion.",
+        items: sowDraft.acceptance_criteria || [],
+      },
+    ];
+    sowCards.forEach((item) => {
+      const card = document.createElement("article");
+      card.className = "report-card";
+      card.innerHTML = `
+        <div class="report-top">
+          <div>
+            <strong>${escapeHtml(item.title)}</strong>
+            <span>${escapeHtml(item.body)}</span>
+          </div>
+          <span class="${item.title === "Customer-safe summary" ? "chip green" : "chip"}">${escapeHtml(item.chip)}</span>
+        </div>
+        <div class="option-list">
+          ${(item.items || []).slice(0, 6).map((value) => `<span>${escapeHtml(value)}</span>`).join("")}
+        </div>
+      `;
+      sowDraftList.appendChild(card);
     });
 
     const invoicePreview = state.invoice_preview || {totals: {}, data: []};

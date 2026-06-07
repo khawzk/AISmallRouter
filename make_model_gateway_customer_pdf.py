@@ -270,6 +270,7 @@ def build():
         "Business case endpoint for value hypotheses, pilot metrics, ROI inputs, and decision options.",
         "Implementation plan endpoint for delivery phases, duration ranges, roles, risks, and acceptance evidence.",
         "Alternatives pack endpoint for direct provider, API Gateway, managed AI Gateway, OpenRouter-like, and custom gateway comparison.",
+        "SOW draft endpoint for proposed scope, deliverables, exclusions, milestones, acceptance criteria, and open contract items.",
         "Request activity endpoint with simple filters for troubleshooting.",
         "Request detail lookup using gateway.request_id returned in chat responses.",
         "Config check endpoint for demo keys and missing production settings.",
@@ -354,6 +355,7 @@ def build():
             ["Business case", "Business sponsors need to explain why a pilot is worth doing.", "Value hypotheses, pilot metrics, ROI inputs, and decision options"],
             ["Implementation plan", "Customers need to know how the idea becomes real work.", "Delivery phases, rough duration ranges, roles, risks, and acceptance evidence"],
             ["Alternatives pack", "Customers may ask why not use OpenRouter, Vercel AI Gateway, Alibaba Cloud AI Gateway, or a normal API Gateway.", "Build, buy, managed gateway, and custom gateway comparison"],
+            ["SOW draft", "Customers may need a safe project scope draft before legal contract work.", "Scope, deliverables, exclusions, milestones, acceptance criteria, and open items"],
             ["Customer onboarding", "New customers need keys, limits, and model access.", "Key issue preview creates a safe config snippet"],
             ["Key lifecycle", "Customers need key rotation and disable workflows.", "Local JSON-backed create, rotate, and disable actions"],
             ["Audit trail", "Teams need to know who changed customer access.", "Audit events for customer lifecycle actions"],
@@ -743,6 +745,26 @@ def build():
     alternatives = Table(alternatives_rows, colWidths=[2.1 * inch, 4.35 * inch])
     alternatives.setStyle(table_style())
     story.append(alternatives)
+    story.append(Spacer(1, 0.15 * inch))
+
+    story.append(Paragraph("SOW Draft", styles["H1Custom"]))
+    story.append(
+        Paragraph(
+            "/v1/gateway/sow-draft helps turn the gateway discussion into a clear project scope. It includes proposed scope, deliverables, out-of-scope items, milestones, acceptance criteria, assumptions, customer inputs, risk controls, and open items before signature. It is only a starting point and is not a signed contract, final quote, tax invoice, production SLA, security certification, or legal approval.",
+            styles["BodyCustom"],
+        )
+    )
+    sow_rows = [
+        ["Area", "Plain-English meaning"],
+        ["Scope", "What the first pilot SOW can safely include."],
+        ["Deliverables", "Prototype, technical handoff, business materials, control-plane explanation, and production planning materials."],
+        ["Out of scope", "Marketplace, full SLA, legal certification, final billing engine, many providers, and guaranteed provider metrics."],
+        ["Milestones", "Scope confirmation, prototype walkthrough, controlled pilot setup, and hardening decision."],
+        ["Acceptance", "Evidence-based checks such as API calls, route explanation, reports, and no secret exposure."],
+    ]
+    sow = Table(sow_rows, colWidths=[2.1 * inch, 4.35 * inch])
+    sow.setStyle(table_style())
+    story.append(sow)
     story.append(Spacer(1, 0.15 * inch))
 
     story.append(Paragraph("Invoice Preview", styles["H1Custom"]))

@@ -222,6 +222,7 @@ The current version also supports:
 - `GET /v1/gateway/business-case`
 - `GET /v1/gateway/implementation-plan`
 - `GET /v1/gateway/alternatives-pack`
+- `GET /v1/gateway/sow-draft`
 - `GET /v1/gateway/invoice-preview`
 - `GET /v1/gateway/request-activity`
 - `GET /v1/gateway/request-detail`
@@ -1697,6 +1698,31 @@ Useful reference docs to review before a real customer recommendation:
 - Alibaba Cloud AI Gateway docs: `https://www.alibabacloud.com/help/en/api-gateway/ai-gateway/product-overview/what-is-an-ai-gateway`
 
 This endpoint is not a live vendor benchmark, legal recommendation, final procurement decision, or promise to build a full OpenRouter clone.
+
+## SOW Draft
+
+The gateway has a Statement of Work draft endpoint:
+
+```bash
+curl http://127.0.0.1:8787/v1/gateway/sow-draft \
+  -H "Authorization: Bearer dev-admin-key"
+```
+
+It helps turn the gateway discussion into a clear project scope.
+
+It includes:
+
+- proposed scope
+- deliverables
+- out-of-scope items
+- milestones
+- acceptance criteria
+- assumptions
+- customer inputs needed
+- risk controls
+- open items before signature
+
+This is not a signed contract, final quote, tax invoice, production SLA, security certification, or legal approval.
 
 ## Invoice Preview
 

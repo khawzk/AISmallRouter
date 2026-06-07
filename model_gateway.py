@@ -88,6 +88,7 @@ ADMIN_PATHS = {
     "/v1/gateway/business-case",
     "/v1/gateway/implementation-plan",
     "/v1/gateway/alternatives-pack",
+    "/v1/gateway/sow-draft",
     "/v1/gateway/policy-presets",
     "/v1/gateway/demo-bundle",
     "/v1/gateway/handoff-checklist",
@@ -1692,6 +1693,115 @@ def alternatives_pack(server):
             "Final product recommendation",
             "Guaranteed cheapest option",
             "Complete OpenRouter clone",
+        ],
+    }
+
+
+def sow_draft(server):
+    proposal = proposal_summary(server)
+    implementation = implementation_plan(server)
+    commercial = commercial_policy(server)
+    security = security_review(server)
+    return {
+        "object": "gateway.sow_draft",
+        "title": "AISmallRouter Statement Of Work Draft",
+        "audience": "customer sponsor, delivery owner, finance/legal owner, procurement, and gateway owner",
+        "mode": "mock" if server.mock_mode else "live",
+        "plain_english": "This draft helps turn the gateway discussion into a clear project scope. It lists proposed deliverables, exclusions, milestones, acceptance evidence, assumptions, and open items.",
+        "customer_safe_summary": {
+            "one_sentence": "Use this as a starting point for a pilot SOW, not as a legal contract.",
+            "best_use": "Review it after the proposal summary, business case, alternatives pack, and implementation plan.",
+            "boundary": "This draft is not a signed agreement, final quote, tax invoice, security certification, or production SLA.",
+        },
+        "proposed_scope": [
+            "Build a private AISmallRouter-style model gateway prototype for one customer or internal pilot team.",
+            "Expose OpenAI-compatible /v1/models and /v1/chat/completions endpoints.",
+            "Support customer gateway keys, allowed models, request limits, token budgets, and cost budgets.",
+            "Use model aliases and route preview to explain public model names and upstream provider choices.",
+            "Use Alibaba Cloud Model Studio / Qwen as the first practical live provider path when live testing is needed.",
+            "Keep OpenAI, Claude, Xiaomi, and other providers as planned adapter work unless explicitly added to scope.",
+            "Provide dashboard, OpenAPI, Postman collection, customer guide PDF, and customer handoff materials.",
+        ],
+        "deliverables": [
+            {"name": "Gateway prototype", "description": "Local mock-mode gateway with model registry, customer keys, routing, fallback, usage, and logs.", "evidence": ["/", "/v1/models", "/v1/chat/completions"]},
+            {"name": "Customer technical handoff", "description": "OpenAPI contract, Postman collection, integration guide, and SDK starter.", "evidence": ["/openapi.json", "/postman_collection.json", "/v1/gateway/integration-guide", "/v1/gateway/sdk-starter"]},
+            {"name": "Business and procurement materials", "description": "Executive brief, proposal summary, business case, procurement pack, alternatives pack, and implementation plan.", "evidence": ["/v1/gateway/executive-brief", "/v1/gateway/proposal-summary", "/v1/gateway/business-case", "/v1/gateway/procurement-pack", "/v1/gateway/alternatives-pack", "/v1/gateway/implementation-plan"]},
+            {"name": "Control-plane explanation", "description": "Provider health, provider contracts, model catalog, route preview, customer reports, commercial policy, and invoice preview.", "evidence": ["/v1/gateway/provider-health", "/v1/gateway/provider-contracts", "/v1/gateway/model-catalog", "/v1/gateway/route-preview", "/v1/gateway/customer-reports", "/v1/gateway/commercial-policy", "/v1/gateway/invoice-preview"]},
+            {"name": "Production planning materials", "description": "Deployment readiness, production backlog, launch plan, migration plan, security review, data governance, and operations runbook.", "evidence": ["/v1/gateway/deployment-readiness", "/v1/gateway/production-backlog", "/v1/gateway/launch-plan", "/v1/gateway/migration-plan", "/v1/gateway/security-review", "/v1/gateway/data-governance", "/v1/gateway/operations-runbook"]},
+        ],
+        "out_of_scope_for_first_sow": [
+            "Public OpenRouter-style marketplace",
+            "Full production SLA",
+            "Legal security certification or compliance attestation",
+            "Final billing engine, tax invoice, payment collection, refund workflow, or audited billing ledger",
+            "Many live providers added at the same time",
+            "Guaranteed provider cost, latency, or availability",
+            "Production deployment without secret manager, managed storage, monitoring, rollback, and approved support process",
+        ],
+        "milestones": [
+            {"milestone": "M0: Scope confirmation", "duration": "2 to 5 working days", "acceptance": "Discovery checklist, proposal summary, and business case reviewed with named owner.", "evidence": ["/v1/gateway/discovery-checklist", "/v1/gateway/proposal-summary", "/v1/gateway/business-case"]},
+            {"milestone": "M1: Prototype walkthrough", "duration": "2 to 5 working days", "acceptance": "Dashboard, OpenAPI, Postman, mock chat, route preview, and PDF guide can be shown.", "evidence": ["/", "/openapi.json", "/postman_collection.json", "/v1/gateway/route-preview", "Model_Gateway_Customer_Guide.pdf"]},
+            {"milestone": "M2: Controlled pilot setup", "duration": "1 to 2 weeks", "acceptance": "Pilot customer key, allowed models, budgets, usage reports, and support path are ready.", "evidence": ["/v1/gateway/onboarding-plan", "/v1/gateway/pilot-checklist", "/v1/gateway/customer-reports", "/v1/gateway/support-policy"]},
+            {"milestone": "M3: Production hardening decision", "duration": "after pilot scorecard", "acceptance": "Pilot scorecard and production backlog decide stop, extend pilot, or harden for production.", "evidence": ["/v1/gateway/pilot-scorecard", "/v1/gateway/production-backlog", "/v1/gateway/implementation-plan"]},
+        ],
+        "acceptance_criteria": [
+            "Customer can call /v1/models with a customer gateway key.",
+            "Customer can call /v1/chat/completions using an OpenAI-compatible request shape.",
+            "Gateway can explain the route from public model alias to upstream model.",
+            "Admin can show usage, budget state, request activity, and invoice preview estimates.",
+            "Customer-facing materials explain business value, alternatives, procurement review, implementation plan, and production gaps.",
+            "No customer-facing endpoint exposes provider API keys or raw secrets.",
+        ],
+        "assumptions": implementation.get("estimate_assumptions", []),
+        "customer_inputs_needed": [
+            "First use case and success criteria.",
+            "Customer technical contact and business sponsor.",
+            "Allowed prompt logging and retention policy.",
+            "Budget limits and approval owner.",
+            "Provider keys or BYOK decision for live testing.",
+            "Security, procurement, finance, and legal review requirements.",
+        ],
+        "commercial_notes": {
+            "stage": (commercial.get("commercial_position") or {}).get("current_stage"),
+            "safe_message": (commercial.get("commercial_position") or {}).get("customer_safe_message"),
+            "contract_questions": commercial.get("approval_questions", []),
+        },
+        "risk_and_controls": [
+            {"risk": "Prototype mistaken for production", "control": "Show not_claimed, production backlog, launch plan, support policy, and security review."},
+            {"risk": "Scope expands to marketplace too early", "control": "Use alternatives pack and phase-one scope to keep first pilot small."},
+            {"risk": "Sensitive prompt data in logs", "control": "Use data governance and safety preview before live customer traffic."},
+            {"risk": "Unapproved provider route", "control": "Use provider contracts, route preview, audit events, and change management."},
+            {"risk": "Commercial confusion", "control": "Use commercial policy and invoice preview as estimates only."},
+        ],
+        "open_items_before_signature": [
+            "Confirm final customer name, project owner, and billing entity.",
+            "Confirm whether live Qwen testing is included.",
+            "Confirm hosting target for pilot and production.",
+            "Confirm support hours, escalation path, and incident wording.",
+            "Confirm data retention, deletion, and prompt logging rules.",
+            "Confirm payment terms, taxes, invoice fields, and legal terms outside this prototype.",
+        ],
+        "current_context": {
+            "proposal_scope_count": len(proposal.get("phase_one_scope", [])),
+            "implementation_phase_count": len(implementation.get("delivery_phases", [])),
+            "security_stage": (security.get("security_posture") or {}).get("current_stage"),
+        },
+        "recommended_next_action": "Review this draft with the customer sponsor and legal/procurement owner before turning it into a real SOW or contract.",
+        "not_claimed": [
+            "Signed legal contract",
+            "Final quote",
+            "Tax invoice",
+            "Production SLA",
+            "Security certification",
+            "Complete marketplace delivery",
+        ],
+        "evidence_endpoints": [
+            "/v1/gateway/proposal-summary",
+            "/v1/gateway/business-case",
+            "/v1/gateway/implementation-plan",
+            "/v1/gateway/alternatives-pack",
+            "/v1/gateway/commercial-policy",
+            "/v1/gateway/security-review",
         ],
     }
 
@@ -6631,6 +6741,7 @@ def openapi_spec(server):
         "/v1/gateway/business-case": "Business case and pilot ROI discussion pack",
         "/v1/gateway/implementation-plan": "Implementation estimate and delivery plan",
         "/v1/gateway/alternatives-pack": "Build, buy, managed gateway, and OpenRouter-like alternatives pack",
+        "/v1/gateway/sow-draft": "Statement of Work draft and scope guardrails",
         "/v1/gateway/invoice-preview": "Invoice preview JSON or CSV",
         "/v1/gateway/model-usage": "Usage grouped by model",
         "/v1/gateway/request-summary": "Request summary by dimensions",
@@ -6788,6 +6899,7 @@ def postman_collection(server):
         request_item("Business Case", "GET", "/v1/gateway/business-case", "admin_api_key"),
         request_item("Implementation Plan", "GET", "/v1/gateway/implementation-plan", "admin_api_key"),
         request_item("Alternatives Pack", "GET", "/v1/gateway/alternatives-pack", "admin_api_key"),
+        request_item("SOW Draft", "GET", "/v1/gateway/sow-draft", "admin_api_key"),
         request_item("Invoice Preview", "GET", "/v1/gateway/invoice-preview", "admin_api_key"),
         request_item(
             "Route Preview",
@@ -7045,6 +7157,13 @@ def demo_bundle(server):
                 "auth": "adminBearerAuth",
             },
             {
+                "name": "SOW draft",
+                "url": f"{base_url}/v1/gateway/sow-draft",
+                "audience": "customer sponsor, delivery, finance/legal, procurement, and gateway owners",
+                "purpose": "Turn the pilot idea into proposed scope, deliverables, exclusions, milestones, acceptance criteria, and open contract items.",
+                "auth": "adminBearerAuth",
+            },
+            {
                 "name": "Provider contract matrix",
                 "url": f"{base_url}/v1/gateway/provider-contracts",
                 "audience": "business and technical",
@@ -7297,6 +7416,10 @@ def demo_bundle(server):
                 "command": f"curl {base_url}/v1/gateway/alternatives-pack -H 'Authorization: Bearer {server.admin_api_key or DEFAULT_ADMIN_API_KEY}'",
             },
             {
+                "name": "SOW draft",
+                "command": f"curl {base_url}/v1/gateway/sow-draft -H 'Authorization: Bearer {server.admin_api_key or DEFAULT_ADMIN_API_KEY}'",
+            },
+            {
                 "name": "Provider contracts",
                 "command": f"curl {base_url}/v1/gateway/provider-contracts -H 'Authorization: Bearer {server.admin_api_key or DEFAULT_ADMIN_API_KEY}'",
             },
@@ -7380,6 +7503,7 @@ def gateway_status(server):
         "business_case": business_case(server),
         "implementation_plan": implementation_plan(server),
         "alternatives_pack": alternatives_pack(server),
+        "sow_draft": sow_draft(server),
         "pilot_scorecard": pilot_scorecard(server),
         "invoice_preview": invoice_preview(server),
         "production_readiness": production_readiness(server),
@@ -8236,6 +8360,9 @@ class GatewayHandler(BaseHTTPRequestHandler):
             return
         if path == "/v1/gateway/alternatives-pack":
             make_json_response(self, 200, alternatives_pack(self.server))
+            return
+        if path == "/v1/gateway/sow-draft":
+            make_json_response(self, 200, sow_draft(self.server))
             return
         if path == "/v1/gateway/request-activity":
             filters = {

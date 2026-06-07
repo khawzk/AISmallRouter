@@ -97,6 +97,7 @@ The prototype supports:
 - Business case pack for pilot value and ROI discussion
 - Implementation plan for delivery phases and owners
 - Alternatives pack for build, buy, managed gateway, and OpenRouter-like comparison
+- SOW draft for scope, deliverables, exclusions, and acceptance criteria
 - Provider adapter scaffolds for OpenAI and Claude
 - Automated mock regression test
 - Mock mode
@@ -1180,6 +1181,30 @@ Useful reference docs to review before a real customer recommendation:
 - Alibaba Cloud AI Gateway docs: `https://www.alibabacloud.com/help/en/api-gateway/ai-gateway/product-overview/what-is-an-ai-gateway`
 
 This endpoint is not a live vendor benchmark, legal recommendation, final procurement decision, or promise to build a full OpenRouter clone.
+
+## What The SOW Draft Shows
+
+The prototype includes `/v1/gateway/sow-draft`.
+
+This endpoint helps turn the gateway discussion into a clear project scope.
+
+It shows:
+
+- proposed scope
+- deliverables
+- out-of-scope items
+- milestones
+- acceptance criteria
+- assumptions
+- customer inputs needed
+- risk controls
+- open items before signature
+
+This is useful because customer projects can become confusing when scope, legal terms, billing, and production promises are mixed together too early.
+
+The SOW draft is only a starting point.
+
+It is not a signed contract, final quote, tax invoice, production SLA, security certification, or legal approval.
 
 ## What Invoice Preview Shows
 
