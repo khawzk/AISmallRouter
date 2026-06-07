@@ -223,6 +223,7 @@ The current version also supports:
 - `GET /v1/gateway/implementation-plan`
 - `GET /v1/gateway/alternatives-pack`
 - `GET /v1/gateway/sow-draft`
+- `GET /v1/gateway/workshop-agenda`
 - `GET /v1/gateway/invoice-preview`
 - `GET /v1/gateway/request-activity`
 - `GET /v1/gateway/request-detail`
@@ -1723,6 +1724,32 @@ It includes:
 - open items before signature
 
 This is not a signed contract, final quote, tax invoice, production SLA, security certification, or legal approval.
+
+## Workshop Agenda
+
+The gateway has a customer workshop agenda endpoint:
+
+```bash
+curl http://127.0.0.1:8787/v1/gateway/workshop-agenda \
+  -H "Authorization: Bearer dev-admin-key"
+```
+
+It helps run the first customer meeting.
+
+It includes:
+
+- attendees
+- pre-work
+- meeting agenda
+- questions to ask
+- demo order
+- expected outputs
+- follow-up actions
+- red flags
+
+Use it before writing a final proposal or SOW.
+
+This is a meeting guide, not a contract, quote, SLA, or production approval.
 
 ## Invoice Preview
 

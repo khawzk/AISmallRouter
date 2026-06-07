@@ -184,6 +184,7 @@ class GatewayPrototypeTest(unittest.TestCase):
             "/v1/gateway/implementation-plan",
             "/v1/gateway/alternatives-pack",
             "/v1/gateway/sow-draft",
+            "/v1/gateway/workshop-agenda",
             "/v1/gateway/demo-bundle",
             "/v1/gateway/handoff-checklist",
             "/v1/gateway/production-readiness",
@@ -256,6 +257,7 @@ class GatewayPrototypeTest(unittest.TestCase):
         self.assertIn("Implementation Plan", admin_names)
         self.assertIn("Alternatives Pack", admin_names)
         self.assertIn("SOW Draft", admin_names)
+        self.assertIn("Workshop Agenda", admin_names)
         self.assertIn("Support Policy", admin_names)
         self.assertIn("Pilot Checklist", admin_names)
         self.assertIn("Pilot Scorecard", admin_names)
@@ -303,6 +305,7 @@ class GatewayPrototypeTest(unittest.TestCase):
         self.assertIn(f"{self.base_url}/v1/gateway/implementation-plan", entry_urls)
         self.assertIn(f"{self.base_url}/v1/gateway/alternatives-pack", entry_urls)
         self.assertIn(f"{self.base_url}/v1/gateway/sow-draft", entry_urls)
+        self.assertIn(f"{self.base_url}/v1/gateway/workshop-agenda", entry_urls)
         self.assertIn(f"{self.base_url}/v1/gateway/provider-contracts", entry_urls)
         self.assertIn(f"{self.base_url}/v1/gateway/evaluation-plan", entry_urls)
         self.assertIn(f"{self.base_url}/v1/gateway/incident-playbook", entry_urls)
@@ -1305,6 +1308,8 @@ class GatewayPrototypeTest(unittest.TestCase):
         self.assertIn("alternatives", payload["alternatives_pack"])
         self.assertIn("sow_draft", payload)
         self.assertIn("deliverables", payload["sow_draft"])
+        self.assertIn("workshop_agenda", payload)
+        self.assertIn("agenda", payload["workshop_agenda"])
         self.assertIn("request_activity", payload)
         self.assertIn("audit_events", payload)
         self.assertIn("audit_event_count", payload["summary"])
@@ -2272,6 +2277,26 @@ class GatewayPrototypeTest(unittest.TestCase):
         self.assertNotIn("sk-", json.dumps(sow))
         self.assertNotIn("provider_api_keys", json.dumps(sow))
 
+        status, workshop = request_json(self.base_url, path="/v1/gateway/workshop-agenda")
+        self.assertEqual(status, 401)
+
+        status, workshop = request_json(self.base_url, path="/v1/gateway/workshop-agenda", api_key="dev-admin-key")
+        self.assertEqual(status, 200)
+        self.assertEqual(workshop["object"], "gateway.workshop_agenda")
+        self.assertIn("first customer workshop", workshop["plain_english"])
+        attendees = {item["role"] for item in workshop["attendees"]}
+        self.assertIn("Customer sponsor", attendees)
+        self.assertIn("Security or data owner", attendees)
+        topics = {item["topic"] for item in workshop["agenda"]}
+        self.assertIn("Gateway concept demo", topics)
+        self.assertIn("Pilot shape", topics)
+        self.assertIn("Confirmed first use case.", workshop["expected_outputs"])
+        self.assertIn("No named customer sponsor.", workshop["red_flags"])
+        self.assertIn("/v1/gateway/sow-draft", workshop["evidence_endpoints"])
+        self.assertNotIn("DASHSCOPE_API_KEY", json.dumps(workshop))
+        self.assertNotIn("sk-", json.dumps(workshop))
+        self.assertNotIn("provider_api_keys", json.dumps(workshop))
+
         status, invoice = request_json(self.base_url, path="/v1/gateway/invoice-preview", api_key="dev-admin-key")
         self.assertEqual(status, 200)
         self.assertIn("totals", invoice)
@@ -2416,6 +2441,9 @@ class GatewayPrototypeTest(unittest.TestCase):
         self.assertIn("SOW draft", html)
         self.assertIn("sowDraftList", html)
         self.assertIn("/v1/gateway/sow-draft?admin_key=", html)
+        self.assertIn("Workshop agenda", html)
+        self.assertIn("workshopAgendaList", html)
+        self.assertIn("/v1/gateway/workshop-agenda?admin_key=", html)
         self.assertIn("Customer handoff package", html)
         self.assertIn("/openapi.json", html)
         self.assertIn("/postman_collection.json", html)

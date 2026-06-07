@@ -98,6 +98,7 @@ The prototype supports:
 - Implementation plan for delivery phases and owners
 - Alternatives pack for build, buy, managed gateway, and OpenRouter-like comparison
 - SOW draft for scope, deliverables, exclusions, and acceptance criteria
+- Workshop agenda for the first customer meeting
 - Provider adapter scaffolds for OpenAI and Claude
 - Automated mock regression test
 - Mock mode
@@ -1205,6 +1206,29 @@ This is useful because customer projects can become confusing when scope, legal 
 The SOW draft is only a starting point.
 
 It is not a signed contract, final quote, tax invoice, production SLA, security certification, or legal approval.
+
+## What The Workshop Agenda Shows
+
+The prototype includes `/v1/gateway/workshop-agenda`.
+
+This endpoint helps run the first customer meeting.
+
+It shows:
+
+- who should attend
+- what to prepare before the meeting
+- a simple meeting agenda
+- questions to ask
+- demo order
+- expected meeting outputs
+- follow-up actions
+- red flags
+
+This is useful because many AI gateway discussions are too broad at the start.
+
+The workshop agenda helps turn the idea into one use case, one provider path, one pilot owner, and one next decision.
+
+It is a meeting guide, not a contract, quote, SLA, or production approval.
 
 ## What Invoice Preview Shows
 

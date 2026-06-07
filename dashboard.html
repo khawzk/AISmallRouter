@@ -1629,6 +1629,13 @@
           </article>
           <article class="handoff-card">
             <div>
+              <h3>Workshop agenda</h3>
+              <p>Attendees, pre-work, agenda, questions, demo order, expected outputs, and follow-up actions.</p>
+            </div>
+            <a class="btn" href="/v1/gateway/workshop-agenda?admin_key=__ADMIN_API_KEY__">Open workshop</a>
+          </article>
+          <article class="handoff-card">
+            <div>
               <h3>Evaluation plan</h3>
               <p>Model quality, reliability, latency, cost, safety, and fallback checks before live routing.</p>
             </div>
@@ -1864,6 +1871,16 @@
       </div>
       <div class="card-body">
         <div class="report-grid" id="sowDraftList"></div>
+      </div>
+    </section>
+
+    <section class="card" id="workshopAgenda" style="margin-bottom: 18px;">
+      <div class="card-head">
+        <h2>Workshop agenda</h2>
+        <span>attendees, pre-work, demo flow, questions, and follow-up</span>
+      </div>
+      <div class="card-body">
+        <div class="report-grid" id="workshopAgendaList"></div>
       </div>
     </section>
 
@@ -2193,6 +2210,7 @@
     const implementationPlanList = document.getElementById("implementationPlanList");
     const alternativesPackList = document.getElementById("alternativesPackList");
     const sowDraftList = document.getElementById("sowDraftList");
+    const workshopAgendaList = document.getElementById("workshopAgendaList");
     const invoicePreviewList = document.getElementById("invoicePreviewList");
     const activityList = document.getElementById("activityList");
     const auditList = document.getElementById("auditList");
@@ -3193,6 +3211,66 @@
         </div>
       `;
       sowDraftList.appendChild(card);
+    });
+
+    const workshopAgenda = state.workshop_agenda || {customer_safe_summary: {}, attendees: [], pre_work: [], agenda: [], questions_to_ask: [], expected_outputs: [], follow_up_actions: []};
+    const workshopCards = [
+      {
+        title: "Customer-safe summary",
+        chip: "meeting",
+        body: workshopAgenda.customer_safe_summary?.one_sentence || "",
+        items: [
+          workshopAgenda.customer_safe_summary?.best_use,
+          workshopAgenda.customer_safe_summary?.boundary,
+        ].filter(Boolean),
+      },
+      {
+        title: "Attendees",
+        chip: "roles",
+        body: "People who should be in the first customer workshop.",
+        items: (workshopAgenda.attendees || []).map((item) => `${item.role}: ${item.why_needed}`),
+      },
+      {
+        title: "Agenda",
+        chip: "flow",
+        body: workshopAgenda.recommended_next_action || "",
+        items: (workshopAgenda.agenda || []).map((item) => `${item.timebox} ${item.topic}: ${item.goal}`),
+      },
+      {
+        title: "Questions",
+        chip: "ask",
+        body: "Questions that turn a broad idea into pilot scope.",
+        items: workshopAgenda.questions_to_ask || [],
+      },
+      {
+        title: "Expected outputs",
+        chip: "outputs",
+        body: "What should be clear after the meeting.",
+        items: workshopAgenda.expected_outputs || [],
+      },
+      {
+        title: "Follow-up",
+        chip: "owners",
+        body: "Who should do what after the workshop.",
+        items: (workshopAgenda.follow_up_actions || []).map((item) => `${item.owner}: ${item.action}`),
+      },
+    ];
+    workshopCards.forEach((item) => {
+      const card = document.createElement("article");
+      card.className = "report-card";
+      card.innerHTML = `
+        <div class="report-top">
+          <div>
+            <strong>${escapeHtml(item.title)}</strong>
+            <span>${escapeHtml(item.body)}</span>
+          </div>
+          <span class="${item.title === "Customer-safe summary" ? "chip green" : "chip"}">${escapeHtml(item.chip)}</span>
+        </div>
+        <div class="option-list">
+          ${(item.items || []).slice(0, 6).map((value) => `<span>${escapeHtml(value)}</span>`).join("")}
+        </div>
+      `;
+      workshopAgendaList.appendChild(card);
     });
 
     const invoicePreview = state.invoice_preview || {totals: {}, data: []};

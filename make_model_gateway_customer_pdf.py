@@ -271,6 +271,7 @@ def build():
         "Implementation plan endpoint for delivery phases, duration ranges, roles, risks, and acceptance evidence.",
         "Alternatives pack endpoint for direct provider, API Gateway, managed AI Gateway, OpenRouter-like, and custom gateway comparison.",
         "SOW draft endpoint for proposed scope, deliverables, exclusions, milestones, acceptance criteria, and open contract items.",
+        "Workshop agenda endpoint for attendees, pre-work, meeting flow, questions, demo order, outputs, and follow-up actions.",
         "Request activity endpoint with simple filters for troubleshooting.",
         "Request detail lookup using gateway.request_id returned in chat responses.",
         "Config check endpoint for demo keys and missing production settings.",
@@ -356,6 +357,7 @@ def build():
             ["Implementation plan", "Customers need to know how the idea becomes real work.", "Delivery phases, rough duration ranges, roles, risks, and acceptance evidence"],
             ["Alternatives pack", "Customers may ask why not use OpenRouter, Vercel AI Gateway, Alibaba Cloud AI Gateway, or a normal API Gateway.", "Build, buy, managed gateway, and custom gateway comparison"],
             ["SOW draft", "Customers may need a safe project scope draft before legal contract work.", "Scope, deliverables, exclusions, milestones, acceptance criteria, and open items"],
+            ["Workshop agenda", "The first customer meeting needs structure and clear outputs.", "Attendees, pre-work, agenda, questions, demo order, outputs, and follow-up"],
             ["Customer onboarding", "New customers need keys, limits, and model access.", "Key issue preview creates a safe config snippet"],
             ["Key lifecycle", "Customers need key rotation and disable workflows.", "Local JSON-backed create, rotate, and disable actions"],
             ["Audit trail", "Teams need to know who changed customer access.", "Audit events for customer lifecycle actions"],
@@ -765,6 +767,26 @@ def build():
     sow = Table(sow_rows, colWidths=[2.1 * inch, 4.35 * inch])
     sow.setStyle(table_style())
     story.append(sow)
+    story.append(Spacer(1, 0.15 * inch))
+
+    story.append(Paragraph("Workshop Agenda", styles["H1Custom"]))
+    story.append(
+        Paragraph(
+            "/v1/gateway/workshop-agenda helps run the first customer meeting. It lists who should attend, what to prepare, agenda topics, questions to ask, demo order, expected outputs, follow-up actions, and red flags. It helps turn a broad AI gateway idea into one use case, one provider path, one pilot owner, and one next decision. It is a meeting guide, not a contract, quote, SLA, or production approval.",
+            styles["BodyCustom"],
+        )
+    )
+    workshop_rows = [
+        ["Area", "Plain-English meaning"],
+        ["Attendees", "Business, technical, security, procurement, finance, gateway, and support owners know why they are needed."],
+        ["Agenda", "Business goal, current pain, gateway demo, options, controls, pilot shape, and next steps."],
+        ["Questions", "Use case, first provider, logging, budgets, approval teams, and success criteria."],
+        ["Outputs", "Confirmed use case, owner, provider path, data answer, pilot criteria, and next artifact."],
+        ["Follow-up", "Each owner has a concrete action and evidence endpoint."],
+    ]
+    workshop = Table(workshop_rows, colWidths=[2.1 * inch, 4.35 * inch])
+    workshop.setStyle(table_style())
+    story.append(workshop)
     story.append(Spacer(1, 0.15 * inch))
 
     story.append(Paragraph("Invoice Preview", styles["H1Custom"]))

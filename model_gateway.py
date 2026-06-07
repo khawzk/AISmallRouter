@@ -89,6 +89,7 @@ ADMIN_PATHS = {
     "/v1/gateway/implementation-plan",
     "/v1/gateway/alternatives-pack",
     "/v1/gateway/sow-draft",
+    "/v1/gateway/workshop-agenda",
     "/v1/gateway/policy-presets",
     "/v1/gateway/demo-bundle",
     "/v1/gateway/handoff-checklist",
@@ -1802,6 +1803,112 @@ def sow_draft(server):
             "/v1/gateway/alternatives-pack",
             "/v1/gateway/commercial-policy",
             "/v1/gateway/security-review",
+        ],
+    }
+
+
+def workshop_agenda(server):
+    discovery = discovery_checklist(server)
+    demo = demo_bundle(server)
+    business = business_case(server)
+    sow = sow_draft(server)
+    return {
+        "object": "gateway.workshop_agenda",
+        "title": "AISmallRouter Customer Workshop Agenda",
+        "audience": "customer sponsor, solution architect, customer technical contact, security, procurement, finance, and gateway owner",
+        "mode": "mock" if server.mock_mode else "live",
+        "plain_english": "This agenda helps run the first customer workshop. It shows who should attend, what to prepare, what to demo, what questions to ask, and what follow-up should be produced.",
+        "customer_safe_summary": {
+            "one_sentence": "Use the workshop to agree the first use case, first provider path, pilot scope, review owners, and next decision.",
+            "best_use": "Run this before writing a final proposal or SOW.",
+            "boundary": "This is a meeting guide, not a contract, quote, SLA, or production approval.",
+        },
+        "attendees": [
+            {"role": "Customer sponsor", "why_needed": "Owns business outcome, budget direction, and go/no-go decision."},
+            {"role": "Customer technical contact", "why_needed": "Confirms integration shape, API constraints, and pilot test path."},
+            {"role": "Security or data owner", "why_needed": "Confirms prompt logging, retention, privacy, and key handling expectations."},
+            {"role": "Procurement or finance contact", "why_needed": "Confirms approval process, budget boundaries, and invoice expectations."},
+            {"role": "Gateway owner", "why_needed": "Explains routing, provider adapters, mock/live mode, and production gaps."},
+            {"role": "Support or operations owner", "why_needed": "Confirms incident process, escalation path, and pilot support expectation."},
+        ],
+        "pre_work": [
+            "Share the customer guide PDF before the meeting.",
+            "Share the dashboard URL and demo keys only for local demo use.",
+            "Ask the customer to bring one real use case, one technical contact, and one decision owner.",
+            "Ask whether prompts and responses may be logged during a pilot.",
+            "Ask whether live Qwen testing is needed or mock mode is enough for the first workshop.",
+        ],
+        "agenda": [
+            {"timebox": "5 min", "topic": "Business goal", "goal": "Confirm why a gateway is being discussed.", "show": ["/v1/gateway/executive-brief", "/v1/gateway/business-case"]},
+            {"timebox": "10 min", "topic": "Current integration pain", "goal": "Understand providers, apps, model use cases, and switching pain.", "show": ["/v1/gateway/discovery-checklist"]},
+            {"timebox": "10 min", "topic": "Gateway concept demo", "goal": "Show one API, model aliases, route preview, and mock chat.", "show": ["/", "/v1/models", "/v1/gateway/route-preview", "/v1/chat/completions"]},
+            {"timebox": "10 min", "topic": "Options comparison", "goal": "Compare direct provider, API Gateway, managed AI Gateway, OpenRouter-like, and custom gateway options.", "show": ["/v1/gateway/decision-guide", "/v1/gateway/alternatives-pack"]},
+            {"timebox": "10 min", "topic": "Controls and risks", "goal": "Discuss customer keys, provider keys, logs, budgets, and production gaps.", "show": ["/v1/gateway/security-review", "/v1/gateway/data-governance", "/v1/gateway/commercial-policy"]},
+            {"timebox": "10 min", "topic": "Pilot shape", "goal": "Agree first use case, first provider, pilot owner, success criteria, and stop/go decision.", "show": ["/v1/gateway/pilot-checklist", "/v1/gateway/pilot-scorecard", "/v1/gateway/implementation-plan"]},
+            {"timebox": "5 min", "topic": "Next steps", "goal": "Confirm follow-up owner and whether to produce proposal, SOW draft, or technical pilot setup.", "show": ["/v1/gateway/proposal-summary", "/v1/gateway/sow-draft"]},
+        ],
+        "questions_to_ask": [
+            "What is the first workflow that needs model access?",
+            "Which provider or model must be included first?",
+            "Is the goal cost control, provider flexibility, customer reporting, governance, or all of these?",
+            "Who owns the customer gateway key and budget limit?",
+            "Can prompts and responses be logged for support during pilot?",
+            "What is the acceptable pilot duration and traffic volume?",
+            "Which internal team must approve security, finance, legal, or procurement?",
+            "What would make the customer say the pilot worked?",
+        ],
+        "demo_order": [
+            {"step": 1, "name": "Visual dashboard", "show": "/"},
+            {"step": 2, "name": "Models with customer key", "show": "/v1/models"},
+            {"step": 3, "name": "Route preview", "show": "/v1/gateway/route-preview"},
+            {"step": 4, "name": "Mock chat", "show": "/v1/chat/completions"},
+            {"step": 5, "name": "Customer reports and budget", "show": "/v1/gateway/customer-reports"},
+            {"step": 6, "name": "Alternatives and SOW boundary", "show": "/v1/gateway/alternatives-pack and /v1/gateway/sow-draft"},
+        ],
+        "expected_outputs": [
+            "Confirmed first use case.",
+            "Confirmed first provider path.",
+            "Named customer sponsor and technical contact.",
+            "Decision on mock-only workshop or live Qwen pilot.",
+            "Initial data logging and retention answer.",
+            "Pilot success criteria.",
+            "Decision whether next output is proposal summary, SOW draft, or technical setup.",
+        ],
+        "follow_up_actions": [
+            {"owner": "Gateway owner", "action": "Send proposal summary and workshop notes.", "evidence": "/v1/gateway/proposal-summary"},
+            {"owner": "Customer sponsor", "action": "Confirm pilot owner, budget owner, and decision date.", "evidence": "/v1/gateway/business-case"},
+            {"owner": "Customer technical contact", "action": "Review OpenAPI, Postman, and integration guide.", "evidence": "/openapi.json, /postman_collection.json, /v1/gateway/integration-guide"},
+            {"owner": "Security/data owner", "action": "Review data governance and security questions.", "evidence": "/v1/gateway/data-governance, /v1/gateway/security-review"},
+            {"owner": "Finance/procurement", "action": "Review commercial policy, procurement pack, and SOW draft boundaries.", "evidence": "/v1/gateway/commercial-policy, /v1/gateway/procurement-pack, /v1/gateway/sow-draft"},
+        ],
+        "red_flags": [
+            "No named customer sponsor.",
+            "No first use case.",
+            "Customer expects full marketplace behavior in phase one.",
+            "Production traffic expected before security, data, support, and billing controls are approved.",
+            "No answer on prompt logging or data retention.",
+        ],
+        "current_context": {
+            "recommended_first_pilot": discovery.get("recommended_first_pilot"),
+            "demo_entry_points": len(demo.get("entry_points", [])),
+            "business_decision_options": [item.get("option") for item in business.get("decision_options", [])],
+            "sow_milestones": [item.get("milestone") for item in sow.get("milestones", [])],
+        },
+        "recommended_next_action": "Run this agenda with one customer champion, then turn the answers into proposal summary, SOW draft, and pilot checklist updates.",
+        "not_claimed": [
+            "Final customer decision",
+            "Signed SOW",
+            "Production approval",
+            "Security certification",
+            "Final price",
+        ],
+        "evidence_endpoints": [
+            "/v1/gateway/discovery-checklist",
+            "/v1/gateway/demo-bundle",
+            "/v1/gateway/business-case",
+            "/v1/gateway/alternatives-pack",
+            "/v1/gateway/sow-draft",
+            "/v1/gateway/pilot-checklist",
         ],
     }
 
@@ -6742,6 +6849,7 @@ def openapi_spec(server):
         "/v1/gateway/implementation-plan": "Implementation estimate and delivery plan",
         "/v1/gateway/alternatives-pack": "Build, buy, managed gateway, and OpenRouter-like alternatives pack",
         "/v1/gateway/sow-draft": "Statement of Work draft and scope guardrails",
+        "/v1/gateway/workshop-agenda": "Customer workshop agenda and meeting pack",
         "/v1/gateway/invoice-preview": "Invoice preview JSON or CSV",
         "/v1/gateway/model-usage": "Usage grouped by model",
         "/v1/gateway/request-summary": "Request summary by dimensions",
@@ -6900,6 +7008,7 @@ def postman_collection(server):
         request_item("Implementation Plan", "GET", "/v1/gateway/implementation-plan", "admin_api_key"),
         request_item("Alternatives Pack", "GET", "/v1/gateway/alternatives-pack", "admin_api_key"),
         request_item("SOW Draft", "GET", "/v1/gateway/sow-draft", "admin_api_key"),
+        request_item("Workshop Agenda", "GET", "/v1/gateway/workshop-agenda", "admin_api_key"),
         request_item("Invoice Preview", "GET", "/v1/gateway/invoice-preview", "admin_api_key"),
         request_item(
             "Route Preview",
@@ -7164,6 +7273,13 @@ def demo_bundle(server):
                 "auth": "adminBearerAuth",
             },
             {
+                "name": "Workshop agenda",
+                "url": f"{base_url}/v1/gateway/workshop-agenda",
+                "audience": "customer sponsor, technical, security, procurement, finance, support, and gateway owners",
+                "purpose": "Run the first customer workshop with attendees, pre-work, agenda, questions, demo order, expected outputs, and follow-up actions.",
+                "auth": "adminBearerAuth",
+            },
+            {
                 "name": "Provider contract matrix",
                 "url": f"{base_url}/v1/gateway/provider-contracts",
                 "audience": "business and technical",
@@ -7420,6 +7536,10 @@ def demo_bundle(server):
                 "command": f"curl {base_url}/v1/gateway/sow-draft -H 'Authorization: Bearer {server.admin_api_key or DEFAULT_ADMIN_API_KEY}'",
             },
             {
+                "name": "Workshop agenda",
+                "command": f"curl {base_url}/v1/gateway/workshop-agenda -H 'Authorization: Bearer {server.admin_api_key or DEFAULT_ADMIN_API_KEY}'",
+            },
+            {
                 "name": "Provider contracts",
                 "command": f"curl {base_url}/v1/gateway/provider-contracts -H 'Authorization: Bearer {server.admin_api_key or DEFAULT_ADMIN_API_KEY}'",
             },
@@ -7504,6 +7624,7 @@ def gateway_status(server):
         "implementation_plan": implementation_plan(server),
         "alternatives_pack": alternatives_pack(server),
         "sow_draft": sow_draft(server),
+        "workshop_agenda": workshop_agenda(server),
         "pilot_scorecard": pilot_scorecard(server),
         "invoice_preview": invoice_preview(server),
         "production_readiness": production_readiness(server),
@@ -8363,6 +8484,9 @@ class GatewayHandler(BaseHTTPRequestHandler):
             return
         if path == "/v1/gateway/sow-draft":
             make_json_response(self, 200, sow_draft(self.server))
+            return
+        if path == "/v1/gateway/workshop-agenda":
+            make_json_response(self, 200, workshop_agenda(self.server))
             return
         if path == "/v1/gateway/request-activity":
             filters = {
