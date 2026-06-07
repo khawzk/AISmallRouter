@@ -14,6 +14,73 @@ The goal is to give customers one simple API for many AI model providers.
 
 This is still a prototype, not a production OpenRouter clone.
 
+## Project Coverage
+
+This project covers the main story of a small customer-owned AI Model Gateway.
+
+It is not only an API proxy.
+
+It shows:
+
+- **Customer access**: customer API keys, allowed models, usage limits, token budgets, and cost budgets.
+- **Model routing**: public model names, upstream model mapping, fallback models, routing strategy, and route preview.
+- **Provider management**: provider records, provider health, provider contracts, OpenAI-compatible adapters, Claude-style adapter scaffolding, and Qwen first.
+- **Usage visibility**: request logs, usage records, customer reports, request activity, request detail, model usage, and customer success summary.
+- **Cost and commercial story**: cost estimate, invoice preview, commercial policy, procurement pack, business case, and SOW draft.
+- **Safety and governance**: safety preview, data governance review, security review, access matrix, audit events, and change request preview.
+- **Pilot and rollout planning**: discovery checklist, onboarding plan, pilot checklist, pilot scorecard, pilot kickoff, pilot review, production transition, launch plan, and customer expansion plan.
+- **Customer explanation material**: visual dashboard, architecture picture, demo script, FAQ, executive brief, roadmap, OpenAPI contract, Postman collection, customer guide PDF, and handoff checklist.
+
+The project does not claim to be a full production platform yet.
+
+Production still needs stronger secret management, database-backed configuration, role-based admin access, monitoring, alert routing, legal billing, SLA terms, tenant isolation tests, and deployment automation.
+
+## Non-Technical Walkthrough
+
+A non-technical person can follow the project in this order:
+
+1. Open the dashboard.
+   Look at the architecture map and routing visualization first. The key idea is: one customer API goes through gateway controls before reaching a model provider.
+
+2. Read the executive brief.
+   Use `/v1/gateway/executive-brief` to explain the business reason in simple words.
+
+3. Use the demo script.
+   Use `/v1/gateway/demo-script` as a meeting talk track. It tells the presenter what to show and what to say.
+
+4. Show route preview.
+   Use `/v1/gateway/route-preview` to explain how `smart-fast` can map to Qwen behind the scenes without spending provider credits.
+
+5. Show customer access.
+   Use `/v1/gateway/me`, `/v1/models`, and the access matrix to explain what one customer can use.
+
+6. Show usage and cost.
+   Use customer reports, customer success summary, cost estimate, and invoice preview to explain how usage can be tracked.
+
+7. Show risk and readiness.
+   Use production readiness, security review, data governance, operations runbook, and change request preview to explain what is still needed before production.
+
+8. End with next steps.
+   Use discovery checklist, proposal summary, onboarding plan, pilot checklist, and SOW draft to turn the idea into a small controlled pilot.
+
+The easiest parts for non-technical people to follow are:
+
+- the dashboard
+- layered architecture picture
+- route visualization
+- executive brief
+- demo script
+- FAQ
+- roadmap
+- discovery checklist
+- proposal summary
+- pilot checklist
+- pilot scorecard
+- customer reports
+- invoice preview
+- production readiness
+- customer guide PDF
+
 It is useful because it shows the main building blocks:
 
 - Customer keys

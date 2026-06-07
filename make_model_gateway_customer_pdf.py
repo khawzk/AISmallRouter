@@ -191,6 +191,66 @@ def build():
     ]:
         story.append(bullet(item, styles))
 
+    story.append(Paragraph("Project Coverage", styles["H1Custom"]))
+    story.append(
+        Paragraph(
+            "This project covers the main story of a small customer-owned AI Model Gateway. It is not only an API proxy. It shows how customer access, routing, providers, usage, cost, governance, pilot planning, production readiness, and customer handoff can fit together.",
+            styles["BodyCustom"],
+        )
+    )
+    coverage = Table(
+        [
+            ["Area", "What The Prototype Covers"],
+            ["Customer access", "Customer API keys, allowed models, usage limits, token budgets, and cost budgets."],
+            ["Model routing", "Public model names, upstream model mapping, fallback models, routing strategy, and route preview."],
+            ["Provider management", "Provider records, provider health, provider contracts, Qwen first, and adapter scaffolding for more providers."],
+            ["Usage visibility", "Request logs, usage records, customer reports, request activity, request detail, model usage, and customer success summary."],
+            ["Cost and commercial story", "Cost estimate, invoice preview, commercial policy, procurement pack, business case, and SOW draft."],
+            ["Safety and governance", "Safety preview, data governance review, security review, access matrix, audit events, and change request preview."],
+            ["Pilot and rollout planning", "Discovery checklist, onboarding plan, pilot checklist, scorecard, kickoff, review, production transition, launch plan, and expansion plan."],
+            ["Customer explanation material", "Dashboard, architecture picture, demo script, FAQ, executive brief, roadmap, OpenAPI, Postman, PDF guide, and handoff checklist."],
+        ],
+        colWidths=[1.75 * inch, 4.75 * inch],
+    )
+    coverage.setStyle(table_style())
+    story.append(coverage)
+    story.append(
+        Paragraph(
+            "The project does not claim to be a full production platform yet. Production still needs stronger secret management, database-backed configuration, role-based admin access, monitoring, alert routing, legal billing, SLA terms, tenant isolation tests, and deployment automation.",
+            styles["BodyCustom"],
+        )
+    )
+
+    story.append(Paragraph("Non-Technical Walkthrough", styles["H1Custom"]))
+    story.append(
+        Paragraph(
+            "A non-technical person can follow the project as a guided story. Start with the visual dashboard, then move from business explanation to route preview, customer access, usage, risk, and next steps.",
+            styles["BodyCustom"],
+        )
+    )
+    walkthrough = Table(
+        [
+            ["Step", "What To Show", "Why It Helps"],
+            ["1", "Dashboard and architecture map", "Shows the big picture before API details."],
+            ["2", "Executive brief", "Explains the business reason in simple words."],
+            ["3", "Demo script", "Gives the presenter a safe meeting talk track."],
+            ["4", "Route preview", "Shows how smart-fast can map to Qwen without spending provider credits."],
+            ["5", "Customer access", "Shows what one customer can use and what limits apply."],
+            ["6", "Reports and invoice preview", "Makes usage, cost, and customer health visible."],
+            ["7", "Readiness and governance", "Shows security, data, operations, and change-control gaps before production."],
+            ["8", "Discovery, proposal, pilot, and SOW materials", "Turns the idea into a small controlled pilot."],
+        ],
+        colWidths=[0.55 * inch, 2.25 * inch, 3.7 * inch],
+    )
+    walkthrough.setStyle(table_style())
+    story.append(walkthrough)
+    story.append(
+        Paragraph(
+            "The easiest parts for non-technical readers are the dashboard, layered architecture picture, route visualization, executive brief, demo script, FAQ, roadmap, discovery checklist, proposal summary, pilot checklist, pilot scorecard, customer reports, invoice preview, production readiness, and this customer guide PDF.",
+            styles["BodyCustom"],
+        )
+    )
+
     story.append(Paragraph("Layered Architecture", styles["H1Custom"]))
     layers = Table(
         [
