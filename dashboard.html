@@ -1608,6 +1608,13 @@
           </article>
           <article class="handoff-card">
             <div>
+              <h3>Implementation plan</h3>
+              <p>Delivery phases, rough duration ranges, roles, risks, assumptions, and acceptance evidence.</p>
+            </div>
+            <a class="btn" href="/v1/gateway/implementation-plan?admin_key=__ADMIN_API_KEY__">Open plan</a>
+          </article>
+          <article class="handoff-card">
+            <div>
               <h3>Evaluation plan</h3>
               <p>Model quality, reliability, latency, cost, safety, and fallback checks before live routing.</p>
             </div>
@@ -1813,6 +1820,16 @@
       </div>
       <div class="card-body">
         <div class="report-grid" id="businessCaseList"></div>
+      </div>
+    </section>
+
+    <section class="card" id="implementationPlan" style="margin-bottom: 18px;">
+      <div class="card-head">
+        <h2>Implementation plan</h2>
+        <span>phases, roles, risks, and acceptance evidence</span>
+      </div>
+      <div class="card-body">
+        <div class="report-grid" id="implementationPlanList"></div>
       </div>
     </section>
 
@@ -2139,6 +2156,7 @@
     const commercialPolicyList = document.getElementById("commercialPolicyList");
     const procurementPackList = document.getElementById("procurementPackList");
     const businessCaseList = document.getElementById("businessCaseList");
+    const implementationPlanList = document.getElementById("implementationPlanList");
     const invoicePreviewList = document.getElementById("invoicePreviewList");
     const activityList = document.getElementById("activityList");
     const auditList = document.getElementById("auditList");
@@ -2971,6 +2989,60 @@
         </div>
       `;
       businessCaseList.appendChild(card);
+    });
+
+    const implementationPlan = state.implementation_plan || {customer_safe_summary: {}, delivery_phases: [], role_plan: [], delivery_risks: [], not_claimed: []};
+    const implementationCards = [
+      {
+        title: "Customer-safe summary",
+        chip: "estimate",
+        body: implementationPlan.customer_safe_summary?.one_sentence || "",
+        items: [
+          implementationPlan.customer_safe_summary?.not_a_fixed_quote,
+          implementationPlan.customer_safe_summary?.best_use,
+        ].filter(Boolean),
+      },
+      {
+        title: "Delivery phases",
+        chip: "plan",
+        body: implementationPlan.recommended_next_action || "",
+        items: (implementationPlan.delivery_phases || []).map((phase) => `${phase.phase}: ${phase.typical_duration}`),
+      },
+      {
+        title: "Roles",
+        chip: "owners",
+        body: "People needed before a pilot becomes production work.",
+        items: (implementationPlan.role_plan || []).map((role) => `${role.role}: ${role.responsibility}`),
+      },
+      {
+        title: "Delivery risks",
+        chip: "watch",
+        body: "Risks to handle before live customer traffic.",
+        items: (implementationPlan.delivery_risks || []).map((risk) => `${risk.risk}: ${risk.mitigation}`),
+      },
+      {
+        title: "Do not promise",
+        chip: "boundary",
+        body: "These need contract, security, delivery, or provider approval.",
+        items: implementationPlan.not_claimed || [],
+      },
+    ];
+    implementationCards.forEach((item) => {
+      const card = document.createElement("article");
+      card.className = "report-card";
+      card.innerHTML = `
+        <div class="report-top">
+          <div>
+            <strong>${escapeHtml(item.title)}</strong>
+            <span>${escapeHtml(item.body)}</span>
+          </div>
+          <span class="${item.title === "Customer-safe summary" ? "chip green" : "chip"}">${escapeHtml(item.chip)}</span>
+        </div>
+        <div class="option-list">
+          ${(item.items || []).slice(0, 6).map((value) => `<span>${escapeHtml(value)}</span>`).join("")}
+        </div>
+      `;
+      implementationPlanList.appendChild(card);
     });
 
     const invoicePreview = state.invoice_preview || {totals: {}, data: []};

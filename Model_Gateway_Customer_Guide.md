@@ -95,6 +95,7 @@ The prototype supports:
 - Invoice preview with CSV export
 - Procurement review pack for customer internal approval
 - Business case pack for pilot value and ROI discussion
+- Implementation plan for delivery phases and owners
 - Provider adapter scaffolds for OpenAI and Claude
 - Automated mock regression test
 - Mock mode
@@ -1116,6 +1117,35 @@ This is not a formal ROI model.
 It does not promise guaranteed savings, final production price, production SLA, security certification, or legal billing output.
 
 It is a workshop tool for deciding whether the next step is worth doing.
+
+## What The Implementation Plan Shows
+
+The prototype includes `/v1/gateway/implementation-plan`.
+
+This endpoint helps a customer understand what it would take to move from idea to pilot to production.
+
+It shows:
+
+- delivery phases
+- rough duration ranges
+- main work in each phase
+- roles and owners
+- estimate assumptions
+- delivery risks
+- acceptance evidence
+- what should not be promised too early
+
+The suggested path is:
+
+- discovery and scope
+- local prototype demo
+- controlled pilot
+- production hardening
+- production launch
+
+This is not a fixed delivery quote.
+
+It does not promise a final price, guaranteed delivery date, production SLA, security certification, legal approval, or provider cost guarantee.
 
 ## What Invoice Preview Shows
 

@@ -220,6 +220,7 @@ The current version also supports:
 - `GET /v1/gateway/commercial-policy`
 - `GET /v1/gateway/procurement-pack`
 - `GET /v1/gateway/business-case`
+- `GET /v1/gateway/implementation-plan`
 - `GET /v1/gateway/invoice-preview`
 - `GET /v1/gateway/request-activity`
 - `GET /v1/gateway/request-detail`
@@ -1639,6 +1640,32 @@ This is not a formal ROI model.
 It does not promise guaranteed savings, final production price, production SLA, security certification, or legal billing output.
 
 It is a workshop tool for deciding whether the next step is worth doing.
+
+## Implementation Plan
+
+The gateway has an implementation plan endpoint:
+
+```bash
+curl http://127.0.0.1:8787/v1/gateway/implementation-plan \
+  -H "Authorization: Bearer dev-admin-key"
+```
+
+It helps a customer understand what it would take to move from idea to pilot to production.
+
+It explains:
+
+- delivery phases
+- rough duration ranges
+- main work in each phase
+- roles and owners
+- estimate assumptions
+- delivery risks
+- acceptance evidence
+- what should not be promised too early
+
+This is not a fixed delivery quote.
+
+It does not promise a final price, guaranteed delivery date, production SLA, security certification, legal approval, or provider cost guarantee.
 
 ## Invoice Preview
 

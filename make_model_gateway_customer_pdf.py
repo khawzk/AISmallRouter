@@ -268,6 +268,7 @@ def build():
         "Commercial policy endpoint for pricing assumptions, budget behavior, invoice preview limits, and exclusions.",
         "Procurement pack endpoint for vendor review tracks, evidence documents, approval owners, and red lines.",
         "Business case endpoint for value hypotheses, pilot metrics, ROI inputs, and decision options.",
+        "Implementation plan endpoint for delivery phases, duration ranges, roles, risks, and acceptance evidence.",
         "Request activity endpoint with simple filters for troubleshooting.",
         "Request detail lookup using gateway.request_id returned in chat responses.",
         "Config check endpoint for demo keys and missing production settings.",
@@ -350,6 +351,7 @@ def build():
             ["Commercial policy", "Customers need to know what is an estimate and what requires a contract.", "Pricing assumptions, budget rules, and exclusions"],
             ["Procurement pack", "Customers may need procurement, legal, IT, security, and finance review.", "Review tracks, evidence documents, approval owners, and red lines"],
             ["Business case", "Business sponsors need to explain why a pilot is worth doing.", "Value hypotheses, pilot metrics, ROI inputs, and decision options"],
+            ["Implementation plan", "Customers need to know how the idea becomes real work.", "Delivery phases, rough duration ranges, roles, risks, and acceptance evidence"],
             ["Customer onboarding", "New customers need keys, limits, and model access.", "Key issue preview creates a safe config snippet"],
             ["Key lifecycle", "Customers need key rotation and disable workflows.", "Local JSON-backed create, rotate, and disable actions"],
             ["Audit trail", "Teams need to know who changed customer access.", "Audit events for customer lifecycle actions"],
@@ -699,6 +701,26 @@ def build():
     business = Table(business_rows, colWidths=[2.1 * inch, 4.35 * inch])
     business.setStyle(table_style())
     story.append(business)
+    story.append(Spacer(1, 0.15 * inch))
+
+    story.append(Paragraph("Implementation Plan", styles["H1Custom"]))
+    story.append(
+        Paragraph(
+            "/v1/gateway/implementation-plan helps a customer understand what it would take to move from idea to pilot to production. It explains delivery phases, rough duration ranges, main work, roles, estimate assumptions, delivery risks, acceptance evidence, and what should not be promised too early. It is not a fixed delivery quote and does not promise final price, guaranteed delivery date, production SLA, security certification, legal approval, or provider cost guarantee.",
+            styles["BodyCustom"],
+        )
+    )
+    implementation_rows = [
+        ["Area", "Plain-English meaning"],
+        ["Delivery phases", "Discovery, prototype demo, controlled pilot, production hardening, and launch."],
+        ["Roles", "Business, gateway, platform, security, data, finance, legal, and customer technical owners are named."],
+        ["Assumptions", "The first pilot starts narrow: one customer team and one primary model route."],
+        ["Risks", "Provider differences, data policy, budget approval, support ownership, and scope growth are listed."],
+        ["Acceptance evidence", "Each stage points to endpoints that prove readiness or remaining gaps."],
+    ]
+    implementation = Table(implementation_rows, colWidths=[2.1 * inch, 4.35 * inch])
+    implementation.setStyle(table_style())
+    story.append(implementation)
     story.append(Spacer(1, 0.15 * inch))
 
     story.append(Paragraph("Invoice Preview", styles["H1Custom"]))

@@ -86,6 +86,7 @@ ADMIN_PATHS = {
     "/v1/gateway/commercial-policy",
     "/v1/gateway/procurement-pack",
     "/v1/gateway/business-case",
+    "/v1/gateway/implementation-plan",
     "/v1/gateway/policy-presets",
     "/v1/gateway/demo-bundle",
     "/v1/gateway/handoff-checklist",
@@ -1402,6 +1403,152 @@ def business_case(server):
             "review_tracks": [track.get("track") for track in procurement.get("review_tracks", [])],
             "red_line_count": len(procurement.get("red_lines", [])),
         },
+    }
+
+
+def implementation_plan(server):
+    readiness = production_readiness(server)
+    backlog = production_backlog(server)
+    launch = launch_plan(server)
+    migration = migration_plan(server)
+    deployment = deployment_readiness(server)
+    business = business_case(server)
+    p0_items = [
+        item.get("title")
+        for item in backlog.get("work_items", [])
+        if item.get("priority") == "P0"
+    ]
+    return {
+        "object": "gateway.implementation_plan",
+        "title": "AISmallRouter Implementation Plan",
+        "audience": "customer sponsor, delivery owner, platform owner, security owner, finance owner, and gateway owner",
+        "mode": "mock" if server.mock_mode else "live",
+        "plain_english": "This plan turns the gateway idea into delivery steps. It explains what can be done in a prototype, what a pilot needs, what production hardening needs, and which evidence should prove each stage.",
+        "customer_safe_summary": {
+            "one_sentence": "Start with a small scoped pilot, prove routing and reporting value, then harden security, operations, billing, and deployment before production traffic.",
+            "not_a_fixed_quote": "This is an implementation estimate for planning. It is not a fixed delivery contract, final price, or guaranteed timeline.",
+            "best_use": "Use this after the business case and procurement pack to decide the next funded step.",
+        },
+        "delivery_phases": [
+            {
+                "phase": "Phase 0: Discovery and scope",
+                "typical_duration": "2 to 5 working days",
+                "goal": "Confirm first use case, first provider, owner, limits, success criteria, and customer review path.",
+                "main_work": [
+                    "Run discovery checklist.",
+                    "Confirm customer sponsor and technical contact.",
+                    "Choose first model route and fallback expectation.",
+                    "Agree what data may be logged during pilot.",
+                    "Confirm pilot budget and stop conditions.",
+                ],
+                "exit_evidence": ["/v1/gateway/discovery-checklist", "/v1/gateway/proposal-summary", "/v1/gateway/business-case"],
+            },
+            {
+                "phase": "Phase 1: Local prototype demo",
+                "typical_duration": "2 to 5 working days",
+                "goal": "Show one API, model routing, mock responses, customer keys, usage records, and customer-friendly explanation materials.",
+                "main_work": [
+                    "Run mock gateway locally.",
+                    "Show dashboard, OpenAPI, Postman, and customer guide PDF.",
+                    "Use route preview and cost estimate.",
+                    "Review commercial and procurement boundaries.",
+                ],
+                "exit_evidence": ["/", "/openapi.json", "/postman_collection.json", "/v1/gateway/demo-bundle"],
+            },
+            {
+                "phase": "Phase 2: Controlled pilot",
+                "typical_duration": "1 to 2 weeks",
+                "goal": "Let one customer or internal team test a narrow workflow with clear limits and support path.",
+                "main_work": [
+                    "Issue pilot customer key.",
+                    "Set request, token, and cost budgets.",
+                    "Run integration guide or SDK starter.",
+                    "Collect request activity, usage, and customer feedback.",
+                    "Use pilot scorecard to decide stop, extend, or harden.",
+                ],
+                "exit_evidence": ["/v1/gateway/onboarding-plan", "/v1/gateway/pilot-checklist", "/v1/gateway/pilot-scorecard", "/v1/gateway/customer-reports"],
+            },
+            {
+                "phase": "Phase 3: Production hardening",
+                "typical_duration": "3 to 6 weeks for a small first production path",
+                "goal": "Replace demo shortcuts with production controls for secrets, deployment, observability, security, support, billing, and change management.",
+                "main_work": [
+                    "Move customer and provider config from local JSON to managed storage.",
+                    "Move provider secrets to a secret manager.",
+                    "Add role-based admin access and stronger audit retention.",
+                    "Connect deployment, monitoring, backup, and rollback.",
+                    "Approve billing, tax, support, and incident rules.",
+                ],
+                "exit_evidence": ["/v1/gateway/production-backlog", "/v1/gateway/security-review", "/v1/gateway/data-governance", "/v1/gateway/operations-runbook"],
+            },
+            {
+                "phase": "Phase 4: Production launch",
+                "typical_duration": "1 to 2 weeks after hardening gates pass",
+                "goal": "Roll out real traffic gradually with owners, rollback, support, and customer communication ready.",
+                "main_work": [
+                    "Run launch gates.",
+                    "Start with low traffic and limited models.",
+                    "Monitor errors, latency, budget, and provider health.",
+                    "Keep rollback and customer wording ready.",
+                    "Review launch results before expanding.",
+                ],
+                "exit_evidence": ["/v1/gateway/launch-plan", "/v1/gateway/migration-plan", "/v1/gateway/request-activity", "/v1/gateway/alerts"],
+            },
+        ],
+        "role_plan": [
+            {"role": "Business sponsor", "responsibility": "Owns use case, value, budget, and go/no-go decisions."},
+            {"role": "Gateway owner", "responsibility": "Owns routing behavior, model registry, provider adapters, and release quality."},
+            {"role": "Platform owner", "responsibility": "Owns hosting, deployment, monitoring, backups, and rollback."},
+            {"role": "Security owner", "responsibility": "Owns key handling, secret storage, audit, abuse controls, and security review."},
+            {"role": "Data/privacy owner", "responsibility": "Owns prompt logging, retention, deletion, export, and data residency decisions."},
+            {"role": "Finance/legal owner", "responsibility": "Owns pricing terms, invoice rules, tax fields, refund policy, and contract language."},
+            {"role": "Customer technical contact", "responsibility": "Owns integration testing, request examples, and pilot feedback."},
+        ],
+        "estimate_assumptions": [
+            "The first pilot uses one customer team and one primary model route.",
+            "Mock mode is accepted before live provider spend.",
+            "Alibaba Cloud Model Studio / Qwen is the first real provider path.",
+            "OpenAI, Claude, Xiaomi, or other providers are added after adapter contract review.",
+            "Production requires a real secret manager, managed storage, deployment process, and approved support policy.",
+        ],
+        "delivery_risks": [
+            {"risk": "Provider API differences", "mitigation": "Use provider contract tests before enabling live traffic."},
+            {"risk": "Unclear data policy", "mitigation": "Approve prompt logging and retention before any real customer production traffic."},
+            {"risk": "Budget rules not approved", "mitigation": "Use commercial policy and invoice preview as estimates until finance approves rules."},
+            {"risk": "No owner for production support", "mitigation": "Use support policy, operations runbook, and launch plan before go-live."},
+            {"risk": "Scope expands too early", "mitigation": "Start with one use case, one route, and one customer team."},
+        ],
+        "acceptance_evidence": [
+            {"stage": "Prototype", "evidence": ["/", "/v1/gateway/demo-bundle", "/openapi.json", "/postman_collection.json"]},
+            {"stage": "Pilot", "evidence": ["/v1/gateway/pilot-scorecard", "/v1/gateway/customer-reports", "/v1/gateway/request-activity"]},
+            {"stage": "Production hardening", "evidence": ["/v1/gateway/production-readiness", "/v1/gateway/production-backlog", "/v1/gateway/security-review"]},
+            {"stage": "Launch", "evidence": ["/v1/gateway/launch-plan", "/v1/gateway/migration-plan", "/v1/gateway/operations-runbook"]},
+        ],
+        "current_context": {
+            "production_readiness_status": readiness.get("overall_status"),
+            "launch_decision": launch.get("current_launch_decision") or launch.get("decision"),
+            "migration_stage": migration.get("stage") or migration.get("current_stage"),
+            "deployment_stage": deployment.get("stage") or deployment.get("current_stage"),
+            "p0_backlog_items": p0_items,
+            "business_case_decision_options": [item.get("option") for item in business.get("decision_options", [])],
+        },
+        "recommended_next_action": "Choose whether the next funded step is discovery, a controlled pilot, or production hardening. Do not jump to production until P0 controls are closed.",
+        "not_claimed": [
+            "Fixed implementation price",
+            "Guaranteed delivery date",
+            "Production SLA",
+            "Security certification",
+            "Legal or procurement approval",
+            "Provider cost guarantee",
+        ],
+        "evidence_endpoints": [
+            "/v1/gateway/business-case",
+            "/v1/gateway/procurement-pack",
+            "/v1/gateway/deployment-readiness",
+            "/v1/gateway/production-backlog",
+            "/v1/gateway/launch-plan",
+            "/v1/gateway/migration-plan",
+        ],
     }
 
 
@@ -6338,6 +6485,7 @@ def openapi_spec(server):
         "/v1/gateway/commercial-policy": "Commercial policy and billing boundaries",
         "/v1/gateway/procurement-pack": "Procurement and vendor review pack",
         "/v1/gateway/business-case": "Business case and pilot ROI discussion pack",
+        "/v1/gateway/implementation-plan": "Implementation estimate and delivery plan",
         "/v1/gateway/invoice-preview": "Invoice preview JSON or CSV",
         "/v1/gateway/model-usage": "Usage grouped by model",
         "/v1/gateway/request-summary": "Request summary by dimensions",
@@ -6493,6 +6641,7 @@ def postman_collection(server):
         request_item("Commercial Policy", "GET", "/v1/gateway/commercial-policy", "admin_api_key"),
         request_item("Procurement Pack", "GET", "/v1/gateway/procurement-pack", "admin_api_key"),
         request_item("Business Case", "GET", "/v1/gateway/business-case", "admin_api_key"),
+        request_item("Implementation Plan", "GET", "/v1/gateway/implementation-plan", "admin_api_key"),
         request_item("Invoice Preview", "GET", "/v1/gateway/invoice-preview", "admin_api_key"),
         request_item(
             "Route Preview",
@@ -6733,6 +6882,13 @@ def demo_bundle(server):
                 "url": f"{base_url}/v1/gateway/business-case",
                 "audience": "business sponsor, customer sponsor, finance, procurement, and gateway owner",
                 "purpose": "Explain value hypotheses, pilot metrics, ROI inputs to collect, decision options, and what the prototype does not claim.",
+                "auth": "adminBearerAuth",
+            },
+            {
+                "name": "Implementation plan",
+                "url": f"{base_url}/v1/gateway/implementation-plan",
+                "audience": "customer sponsor, delivery, platform, security, finance, and gateway owners",
+                "purpose": "Explain delivery phases, rough duration ranges, roles, risks, assumptions, and acceptance evidence.",
                 "auth": "adminBearerAuth",
             },
             {
@@ -6980,6 +7136,10 @@ def demo_bundle(server):
                 "command": f"curl {base_url}/v1/gateway/business-case -H 'Authorization: Bearer {server.admin_api_key or DEFAULT_ADMIN_API_KEY}'",
             },
             {
+                "name": "Implementation plan",
+                "command": f"curl {base_url}/v1/gateway/implementation-plan -H 'Authorization: Bearer {server.admin_api_key or DEFAULT_ADMIN_API_KEY}'",
+            },
+            {
                 "name": "Provider contracts",
                 "command": f"curl {base_url}/v1/gateway/provider-contracts -H 'Authorization: Bearer {server.admin_api_key or DEFAULT_ADMIN_API_KEY}'",
             },
@@ -7061,6 +7221,7 @@ def gateway_status(server):
         "commercial_policy": commercial_policy(server),
         "procurement_pack": procurement_pack(server),
         "business_case": business_case(server),
+        "implementation_plan": implementation_plan(server),
         "pilot_scorecard": pilot_scorecard(server),
         "invoice_preview": invoice_preview(server),
         "production_readiness": production_readiness(server),
@@ -7911,6 +8072,9 @@ class GatewayHandler(BaseHTTPRequestHandler):
             return
         if path == "/v1/gateway/business-case":
             make_json_response(self, 200, business_case(self.server))
+            return
+        if path == "/v1/gateway/implementation-plan":
+            make_json_response(self, 200, implementation_plan(self.server))
             return
         if path == "/v1/gateway/request-activity":
             filters = {
