@@ -266,6 +266,7 @@ def build():
         "Cost estimate endpoint to dry-run token estimate, estimated cost, and budget impact.",
         "Customer reports endpoint for request count, errors, token usage, and budget state.",
         "Commercial policy endpoint for pricing assumptions, budget behavior, invoice preview limits, and exclusions.",
+        "Procurement pack endpoint for vendor review tracks, evidence documents, approval owners, and red lines.",
         "Request activity endpoint with simple filters for troubleshooting.",
         "Request detail lookup using gateway.request_id returned in chat responses.",
         "Config check endpoint for demo keys and missing production settings.",
@@ -346,6 +347,7 @@ def build():
             ["Capability routing", "Requests may need streaming, tools, or other abilities.", "gateway_required_capabilities filters route candidates"],
             ["Cost estimate", "Customers need budget planning before live calls.", "Dry-run estimate for tokens, cost, and budget impact"],
             ["Commercial policy", "Customers need to know what is an estimate and what requires a contract.", "Pricing assumptions, budget rules, and exclusions"],
+            ["Procurement pack", "Customers may need procurement, legal, IT, security, and finance review.", "Review tracks, evidence documents, approval owners, and red lines"],
             ["Customer onboarding", "New customers need keys, limits, and model access.", "Key issue preview creates a safe config snippet"],
             ["Key lifecycle", "Customers need key rotation and disable workflows.", "Local JSON-backed create, rotate, and disable actions"],
             ["Audit trail", "Teams need to know who changed customer access.", "Audit events for customer lifecycle actions"],
@@ -656,6 +658,25 @@ def build():
     commercial = Table(commercial_rows, colWidths=[2.1 * inch, 4.35 * inch])
     commercial.setStyle(table_style())
     story.append(commercial)
+    story.append(Spacer(1, 0.15 * inch))
+
+    story.append(Paragraph("Procurement Pack", styles["H1Custom"]))
+    story.append(
+        Paragraph(
+            "/v1/gateway/procurement-pack helps a customer share the idea with procurement, legal, IT, security, and finance before a pilot or purchase discussion. It explains what the prototype is, what it is not, review tracks, evidence documents, approval owners, red lines, and meeting questions. It does not replace a signed contract, legal security attestation, production SLA, final price quote, or tax invoice.",
+            styles["BodyCustom"],
+        )
+    )
+    procurement_rows = [
+        ["Area", "Plain-English meaning"],
+        ["Review tracks", "Business, IT, security, data, finance, legal, and customer technical teams know what to check."],
+        ["Evidence documents", "The pack points to OpenAPI, Postman, security review, data governance, commercial policy, and the PDF guide."],
+        ["Approval owners", "Each owner knows what they must approve before production."],
+        ["Red lines", "The team knows which promises should wait for production approval."],
+    ]
+    procurement = Table(procurement_rows, colWidths=[2.1 * inch, 4.35 * inch])
+    procurement.setStyle(table_style())
+    story.append(procurement)
     story.append(Spacer(1, 0.15 * inch))
 
     story.append(Paragraph("Invoice Preview", styles["H1Custom"]))

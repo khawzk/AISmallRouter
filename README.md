@@ -218,6 +218,7 @@ The current version also supports:
 - `GET /v1/gateway/customer-reports`
 - `GET /v1/gateway/customer-success`
 - `GET /v1/gateway/commercial-policy`
+- `GET /v1/gateway/procurement-pack`
 - `GET /v1/gateway/invoice-preview`
 - `GET /v1/gateway/request-activity`
 - `GET /v1/gateway/request-detail`
@@ -1584,6 +1585,33 @@ It covers:
 This is not a legal quote, tax invoice, payment system, or audited billing ledger.
 
 It is a simple commercial explanation for demos and pilots.
+
+## Procurement Pack
+
+The gateway has a procurement pack endpoint:
+
+```bash
+curl http://127.0.0.1:8787/v1/gateway/procurement-pack \
+  -H "Authorization: Bearer dev-admin-key"
+```
+
+It helps a customer share the idea with procurement, legal, IT, security, and finance.
+
+It explains:
+
+- what this prototype is and is not
+- which internal review tracks matter
+- which evidence endpoints support each review
+- which documents are available now
+- which owners need to approve production
+- which promises should not be made too early
+- which questions to send before a procurement or pilot meeting
+
+This is useful because real customers often need more than a working demo.
+
+They may need to show that the idea has a review path before they can approve a pilot or purchase discussion.
+
+The procurement pack does not replace a contract, security attestation, production SLA, final price quote, or tax invoice.
 
 ## Invoice Preview
 

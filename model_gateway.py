@@ -84,6 +84,7 @@ ADMIN_PATHS = {
     "/v1/gateway/customer-reports",
     "/v1/gateway/customer-success",
     "/v1/gateway/commercial-policy",
+    "/v1/gateway/procurement-pack",
     "/v1/gateway/policy-presets",
     "/v1/gateway/demo-bundle",
     "/v1/gateway/handoff-checklist",
@@ -1157,6 +1158,118 @@ def commercial_policy(server):
         ],
         "next_best_action": "Use this policy with the proposal summary before discussing price or production billing with a customer.",
         "prototype_note": "This is a commercial explanation for demos and pilots. Production still needs approved pricing, legal terms, finance review, tax handling, payment records, and audited billing data.",
+    }
+
+
+def procurement_pack(server):
+    readiness = production_readiness(server)
+    security = security_review(server)
+    governance = data_governance_review(server)
+    commercial = commercial_policy(server)
+    return {
+        "object": "gateway.procurement_pack",
+        "title": "AISmallRouter Procurement And Vendor Review Pack",
+        "audience": "customer sponsor, procurement, legal, IT, security, finance, and gateway owner",
+        "mode": "mock" if server.mock_mode else "live",
+        "plain_english": "This pack helps a customer share the gateway idea with procurement, legal, IT, security, and finance before a pilot or purchase discussion. It lists what evidence exists today, what still needs approval, and which team should answer each question.",
+        "customer_safe_summary": {
+            "what_this_is": "A prototype package for internal review, pilot planning, and early vendor discussion.",
+            "what_this_is_not": "It is not a signed contract, legal security attestation, production SLA, final price quote, or tax invoice.",
+            "best_use": "Share it before a customer workshop so business, IT, security, and finance can ask the right questions early.",
+        },
+        "review_tracks": [
+            {
+                "track": "Business sponsor",
+                "question": "What problem does the gateway solve and who owns the outcome?",
+                "evidence": ["/v1/gateway/executive-brief", "/v1/gateway/proposal-summary", "/v1/gateway/roadmap"],
+                "prototype_answer": "One API can hide provider differences and make model access easier to explain.",
+                "needs_before_production": "Approved business owner, pilot success criteria, and go-live decision path.",
+            },
+            {
+                "track": "IT and platform",
+                "question": "How will the gateway be deployed, monitored, changed, and rolled back?",
+                "evidence": ["/v1/gateway/deployment-readiness", "/v1/gateway/operations-runbook", "/v1/gateway/change-management"],
+                "prototype_answer": "The demo shows config checks, runbook steps, rollout gates, and rollback guidance.",
+                "needs_before_production": "Chosen hosting option, CI/CD, secrets manager, observability, backups, and rollback owner.",
+            },
+            {
+                "track": "Security",
+                "question": "How are customer keys, provider keys, logs, and abuse risks controlled?",
+                "evidence": ["/v1/gateway/security-review", "/v1/gateway/access-matrix", "/v1/gateway/audit-events"],
+                "prototype_answer": "The demo separates customer keys from provider keys, checks admin access, and records audit events.",
+                "needs_before_production": "Threat model approval, secret rotation, WAF or API gateway policy, audit retention, and incident process.",
+            },
+            {
+                "track": "Data and privacy",
+                "question": "What data is logged and how long is it kept?",
+                "evidence": ["/v1/gateway/data-governance", "/v1/gateway/request-activity", "/v1/gateway/request-detail"],
+                "prototype_answer": "The demo explains prompt/log handling and shows request records for investigation.",
+                "needs_before_production": "Approved prompt logging policy, retention period, deletion process, and data residency decision.",
+            },
+            {
+                "track": "Finance and commercial",
+                "question": "How are budgets, estimates, invoice previews, and overage rules explained?",
+                "evidence": ["/v1/gateway/commercial-policy", "/v1/gateway/invoice-preview", "/v1/gateway/cost-estimate"],
+                "prototype_answer": "The demo can estimate usage and budget impact, but it is not a legal invoice or quote.",
+                "needs_before_production": "Final pricing, billing period, payment terms, tax fields, refund policy, and audited billing records.",
+            },
+            {
+                "track": "Customer technical team",
+                "question": "How does the customer integrate and test safely?",
+                "evidence": ["/v1/gateway/integration-guide", "/v1/gateway/sdk-starter", "/openapi.json", "/postman_collection.json"],
+                "prototype_answer": "The demo gives OpenAI-compatible requests, starter code, model access, and safe mock mode.",
+                "needs_before_production": "Production base URL, production keys, support channel, rate limits, and test acceptance path.",
+            },
+        ],
+        "document_checklist": [
+            {"document": "Customer guide PDF", "status": "available", "source": "Model_Gateway_Customer_Guide.pdf"},
+            {"document": "OpenAPI contract", "status": "available", "source": "/openapi.json"},
+            {"document": "Postman collection", "status": "available", "source": "/postman_collection.json"},
+            {"document": "Security review", "status": "prototype_available", "source": "/v1/gateway/security-review"},
+            {"document": "Data governance review", "status": "prototype_available", "source": "/v1/gateway/data-governance"},
+            {"document": "Commercial policy", "status": "prototype_available", "source": "/v1/gateway/commercial-policy"},
+            {"document": "Production SLA", "status": "not_ready", "source": "/v1/gateway/support-policy"},
+            {"document": "Signed legal terms", "status": "not_in_prototype", "source": "customer contract"},
+        ],
+        "approval_matrix": [
+            {"owner": "Business sponsor", "approves": "Pilot value, budget owner, and success criteria."},
+            {"owner": "IT/platform", "approves": "Deployment path, network access, monitoring, and rollback."},
+            {"owner": "Security", "approves": "Key handling, audit, incident process, and abuse controls."},
+            {"owner": "Data/privacy", "approves": "Prompt logging, retention, deletion, and data location."},
+            {"owner": "Finance/legal", "approves": "Pricing, invoice terms, tax fields, and contract language."},
+        ],
+        "current_risk_snapshot": {
+            "production_readiness_status": readiness.get("overall_status"),
+            "security_stage": (security.get("security_posture") or {}).get("current_stage"),
+            "data_governance_categories": len(governance.get("categories", [])),
+            "commercial_stage": (commercial.get("commercial_position") or {}).get("current_stage"),
+        },
+        "questions_to_send_before_meeting": [
+            "Who will own the pilot decision?",
+            "Which providers and models must be included first?",
+            "Can prompts and responses be logged for debugging?",
+            "What retention period is acceptable?",
+            "What budget limit should stop requests?",
+            "Who approves production access and emergency changes?",
+            "What documents does procurement or security require before approval?",
+        ],
+        "red_lines": [
+            "Do not promise production SLA until support and hosting are approved.",
+            "Do not call invoice preview a legal invoice.",
+            "Do not expose provider API keys to customers.",
+            "Do not enable prompt logging for real customers without written approval.",
+            "Do not add a new live provider without adapter tests and rollback plan.",
+        ],
+        "next_best_action": "Use this pack after the discovery checklist and proposal summary, before a pilot or procurement review meeting.",
+        "evidence_endpoints": [
+            "/v1/gateway/discovery-checklist",
+            "/v1/gateway/proposal-summary",
+            "/v1/gateway/security-review",
+            "/v1/gateway/data-governance",
+            "/v1/gateway/commercial-policy",
+            "/v1/gateway/deployment-readiness",
+            "/v1/gateway/operations-runbook",
+        ],
     }
 
 
@@ -6091,6 +6204,7 @@ def openapi_spec(server):
         "/v1/gateway/customer-usage": "Usage grouped by customer",
         "/v1/gateway/customer-success": "Customer success account health summary",
         "/v1/gateway/commercial-policy": "Commercial policy and billing boundaries",
+        "/v1/gateway/procurement-pack": "Procurement and vendor review pack",
         "/v1/gateway/invoice-preview": "Invoice preview JSON or CSV",
         "/v1/gateway/model-usage": "Usage grouped by model",
         "/v1/gateway/request-summary": "Request summary by dimensions",
@@ -6244,6 +6358,7 @@ def postman_collection(server):
         request_item("Customer Reports", "GET", "/v1/gateway/customer-reports", "admin_api_key"),
         request_item("Customer Success", "GET", "/v1/gateway/customer-success", "admin_api_key"),
         request_item("Commercial Policy", "GET", "/v1/gateway/commercial-policy", "admin_api_key"),
+        request_item("Procurement Pack", "GET", "/v1/gateway/procurement-pack", "admin_api_key"),
         request_item("Invoice Preview", "GET", "/v1/gateway/invoice-preview", "admin_api_key"),
         request_item(
             "Route Preview",
@@ -6470,6 +6585,13 @@ def demo_bundle(server):
                 "url": f"{base_url}/v1/gateway/commercial-policy",
                 "audience": "business, customer sponsor, finance, and gateway owners",
                 "purpose": "Explain pricing assumptions, budget behavior, invoice preview limits, exclusions, and production contract questions.",
+                "auth": "adminBearerAuth",
+            },
+            {
+                "name": "Procurement review pack",
+                "url": f"{base_url}/v1/gateway/procurement-pack",
+                "audience": "customer sponsor, procurement, legal, IT, security, finance, and gateway owner",
+                "purpose": "Package review tracks, evidence documents, approval owners, red lines, and meeting questions for pilot or purchase review.",
                 "auth": "adminBearerAuth",
             },
             {
@@ -6709,6 +6831,10 @@ def demo_bundle(server):
                 "command": f"curl {base_url}/v1/gateway/commercial-policy -H 'Authorization: Bearer {server.admin_api_key or DEFAULT_ADMIN_API_KEY}'",
             },
             {
+                "name": "Procurement pack",
+                "command": f"curl {base_url}/v1/gateway/procurement-pack -H 'Authorization: Bearer {server.admin_api_key or DEFAULT_ADMIN_API_KEY}'",
+            },
+            {
                 "name": "Provider contracts",
                 "command": f"curl {base_url}/v1/gateway/provider-contracts -H 'Authorization: Bearer {server.admin_api_key or DEFAULT_ADMIN_API_KEY}'",
             },
@@ -6788,6 +6914,7 @@ def gateway_status(server):
         "customer_reports": customer_reports(server),
         "customer_success": customer_success_summary(server),
         "commercial_policy": commercial_policy(server),
+        "procurement_pack": procurement_pack(server),
         "pilot_scorecard": pilot_scorecard(server),
         "invoice_preview": invoice_preview(server),
         "production_readiness": production_readiness(server),
@@ -7632,6 +7759,9 @@ class GatewayHandler(BaseHTTPRequestHandler):
             return
         if path == "/v1/gateway/commercial-policy":
             make_json_response(self, 200, commercial_policy(self.server))
+            return
+        if path == "/v1/gateway/procurement-pack":
+            make_json_response(self, 200, procurement_pack(self.server))
             return
         if path == "/v1/gateway/request-activity":
             filters = {

@@ -93,6 +93,7 @@ The prototype supports:
 - Customer key create, rotate, and disable actions
 - Audit events for customer key lifecycle actions
 - Invoice preview with CSV export
+- Procurement review pack for customer internal approval
 - Provider adapter scaffolds for OpenAI and Claude
 - Automated mock regression test
 - Mock mode
@@ -1065,6 +1066,28 @@ It covers:
 This is not a legal quote, tax invoice, payment system, or audited billing ledger.
 
 It is a simple commercial explanation for demos and pilots.
+
+## What The Procurement Pack Shows
+
+The prototype includes `/v1/gateway/procurement-pack`.
+
+This endpoint helps a customer share the idea with procurement, legal, IT, security, and finance.
+
+It explains:
+
+- what this prototype is and is not
+- which review tracks matter
+- which documents are available now
+- which endpoint can prove each point
+- who needs to approve production
+- which promises should wait for production approval
+- which questions to send before a pilot or purchase meeting
+
+This matters because many real customers cannot approve a pilot from a technical demo alone.
+
+They often need a simple internal review pack.
+
+The procurement pack does not replace a signed contract, legal security attestation, production SLA, final price quote, or tax invoice.
 
 ## What Invoice Preview Shows
 

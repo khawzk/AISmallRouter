@@ -1594,6 +1594,13 @@
           </article>
           <article class="handoff-card">
             <div>
+              <h3>Procurement pack</h3>
+              <p>Review tracks, evidence documents, approval owners, red lines, and meeting questions.</p>
+            </div>
+            <a class="btn" href="/v1/gateway/procurement-pack?admin_key=__ADMIN_API_KEY__">Open procurement</a>
+          </article>
+          <article class="handoff-card">
+            <div>
               <h3>Evaluation plan</h3>
               <p>Model quality, reliability, latency, cost, safety, and fallback checks before live routing.</p>
             </div>
@@ -1779,6 +1786,16 @@
       </div>
       <div class="card-body">
         <div class="report-grid" id="commercialPolicyList"></div>
+      </div>
+    </section>
+
+    <section class="card" id="procurementPack" style="margin-bottom: 18px;">
+      <div class="card-head">
+        <h2>Procurement pack</h2>
+        <span>vendor review tracks, evidence documents, and red lines</span>
+      </div>
+      <div class="card-body">
+        <div class="report-grid" id="procurementPackList"></div>
       </div>
     </section>
 
@@ -2103,6 +2120,7 @@
     const pilotScorecardList = document.getElementById("pilotScorecardList");
     const customerReportList = document.getElementById("customerReportList");
     const commercialPolicyList = document.getElementById("commercialPolicyList");
+    const procurementPackList = document.getElementById("procurementPackList");
     const invoicePreviewList = document.getElementById("invoicePreviewList");
     const activityList = document.getElementById("activityList");
     const auditList = document.getElementById("auditList");
@@ -2834,6 +2852,54 @@
         </div>
       `;
       commercialPolicyList.appendChild(card);
+    });
+
+    const procurementPack = state.procurement_pack || {customer_safe_summary: {}, review_tracks: [], document_checklist: [], red_lines: []};
+    const procurementCards = [
+      {
+        title: "Customer-safe summary",
+        chip: "review",
+        body: procurementPack.customer_safe_summary?.what_this_is || "",
+        items: [
+          procurementPack.customer_safe_summary?.what_this_is_not,
+          procurementPack.customer_safe_summary?.best_use,
+        ].filter(Boolean),
+      },
+      {
+        title: "Review tracks",
+        chip: "owners",
+        body: procurementPack.next_best_action || "",
+        items: (procurementPack.review_tracks || []).map((track) => `${track.track}: ${track.question}`),
+      },
+      {
+        title: "Evidence documents",
+        chip: "pack",
+        body: "Documents and endpoints to share during vendor review.",
+        items: (procurementPack.document_checklist || []).map((doc) => `${doc.document}: ${doc.status}`),
+      },
+      {
+        title: "Red lines",
+        chip: "do not promise",
+        body: "Promises that should wait for production approval.",
+        items: procurementPack.red_lines || [],
+      },
+    ];
+    procurementCards.forEach((item) => {
+      const card = document.createElement("article");
+      card.className = "report-card";
+      card.innerHTML = `
+        <div class="report-top">
+          <div>
+            <strong>${escapeHtml(item.title)}</strong>
+            <span>${escapeHtml(item.body)}</span>
+          </div>
+          <span class="${item.title === "Customer-safe summary" ? "chip green" : "chip"}">${escapeHtml(item.chip)}</span>
+        </div>
+        <div class="option-list">
+          ${(item.items || []).slice(0, 6).map((value) => `<span>${escapeHtml(value)}</span>`).join("")}
+        </div>
+      `;
+      procurementPackList.appendChild(card);
     });
 
     const invoicePreview = state.invoice_preview || {totals: {}, data: []};
