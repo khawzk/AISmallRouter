@@ -93,6 +93,7 @@ ADMIN_PATHS = {
     "/v1/gateway/decision-log",
     "/v1/gateway/follow-up-email",
     "/v1/gateway/pilot-kickoff",
+    "/v1/gateway/pilot-review",
     "/v1/gateway/policy-presets",
     "/v1/gateway/demo-bundle",
     "/v1/gateway/handoff-checklist",
@@ -2231,6 +2232,124 @@ def pilot_kickoff_pack(server):
             "/v1/gateway/sdk-starter",
             "/v1/gateway/decision-log",
             "/v1/gateway/production-readiness",
+        ],
+    }
+
+
+def pilot_review_pack(server):
+    kickoff = pilot_kickoff_pack(server)
+    scorecard = pilot_scorecard(server)
+    readiness = production_readiness(server)
+    backlog = production_backlog(server)
+    reports = customer_reports(server)
+    request_summary = db_summary(server.db_path)
+    return {
+        "object": "gateway.pilot_review",
+        "title": "AISmallRouter Pilot Review and Go/No-Go Pack",
+        "audience": "customer sponsor, customer technical contact, finance/procurement owner, security owner, support owner, and gateway owner",
+        "mode": "mock" if server.mock_mode else "live",
+        "plain_english": "This pack helps review the pilot and decide whether to stop, extend the pilot, or move toward production hardening.",
+        "customer_safe_summary": {
+            "one_sentence": "Use this at the end of a pilot to turn test results into a clear next decision.",
+            "best_use": "Run it after the pilot kickoff, pilot scorecard, customer reports, and production readiness review.",
+            "boundary": "This is a decision support pack. It is not production approval, a signed SOW, legal approval, a final quote, or a security certification.",
+        },
+        "review_inputs": [
+            {"input": "Pilot kickoff", "endpoint": "/v1/gateway/pilot-kickoff", "why": "Shows the original goals, owners, checklist, and operating rhythm."},
+            {"input": "Pilot scorecard", "endpoint": "/v1/gateway/pilot-scorecard", "why": "Shows pilot score, weak criteria, and next-best action."},
+            {"input": "Customer reports", "endpoint": "/v1/gateway/customer-reports", "why": "Shows requests, errors, token usage, and budget state."},
+            {"input": "Request activity", "endpoint": "/v1/gateway/request-activity", "why": "Shows recent success and error examples for troubleshooting."},
+            {"input": "Production readiness", "endpoint": "/v1/gateway/production-readiness", "why": "Shows demo-ready versus production-ready gaps."},
+            {"input": "Production backlog", "endpoint": "/v1/gateway/production-backlog", "why": "Turns go-live gaps into prioritized work."},
+        ],
+        "review_agenda": [
+            {"timebox": "5 min", "topic": "Original pilot goal", "question": "Did the pilot test the right use case?"},
+            {"timebox": "10 min", "topic": "Usage and reliability", "question": "Were requests successful enough to trust the next step?"},
+            {"timebox": "10 min", "topic": "Customer value", "question": "Did one API, routing, reporting, or control reduce a real customer problem?"},
+            {"timebox": "10 min", "topic": "Security and data", "question": "Are logging, retention, deletion, and key handling approved for the next stage?"},
+            {"timebox": "10 min", "topic": "Production gaps", "question": "Which P0/P1 items must be funded before live production traffic?"},
+            {"timebox": "10 min", "topic": "Decision", "question": "Should the customer stop, extend pilot, or move to production hardening?"},
+        ],
+        "decision_options": [
+            {
+                "option": "Stop",
+                "choose_when": "The customer cannot name a useful workflow, owner, or value after the pilot.",
+                "next_step": "Close the pilot, archive lessons learned, and do not promise production work.",
+            },
+            {
+                "option": "Extend pilot",
+                "choose_when": "The idea has value, but use case, data rules, quality, budget, or support process is still unclear.",
+                "next_step": "Agree a short extension with new success criteria and a new review date.",
+            },
+            {
+                "option": "Move to production hardening",
+                "choose_when": "The customer has value, owner, use case, integration path, security direction, and budget direction.",
+                "next_step": "Use production backlog, security review, data governance, commercial policy, and SOW draft for the next funded phase.",
+            },
+        ],
+        "evidence_summary": {
+            "total_requests": request_summary.get("request_count", 0),
+            "total_tokens": (request_summary.get("usage") or {}).get("total_tokens", 0),
+            "customer_count": len(reports),
+            "readiness_status": readiness.get("overall_status"),
+            "p0_backlog_count": len(backlog.get("p0_before_production", [])),
+            "scorecard_next_action": scorecard.get("next_best_action"),
+        },
+        "customer_report_snapshot": [
+            {
+                "customer": report.get("id"),
+                "budget_state": report.get("budget_state"),
+                "requests": (report.get("request_summary") or {}).get("requests", 0),
+                "errors": (report.get("request_summary") or {}).get("errors", 0),
+                "total_tokens": (report.get("budget") or {}).get("usage", {}).get("total_tokens", 0),
+            }
+            for report in reports[:5]
+        ],
+        "go_no_go_checks": [
+            {"check": "Named business sponsor", "required_for_go": True, "evidence": "/v1/gateway/decision-log"},
+            {"check": "First use case confirmed", "required_for_go": True, "evidence": "/v1/gateway/decision-log"},
+            {"check": "Customer can call gateway API", "required_for_go": True, "evidence": "/v1/gateway/integration-guide"},
+            {"check": "Usage and request visibility works", "required_for_go": True, "evidence": "/v1/gateway/customer-reports"},
+            {"check": "Prompt logging and retention answer approved", "required_for_go": True, "evidence": "/v1/gateway/data-governance"},
+            {"check": "Security P0 items identified", "required_for_go": True, "evidence": "/v1/gateway/security-review"},
+            {"check": "Production backlog estimated", "required_for_go": False, "evidence": "/v1/gateway/production-backlog"},
+            {"check": "Commercial and SOW path agreed", "required_for_go": False, "evidence": "/v1/gateway/commercial-policy and /v1/gateway/sow-draft"},
+        ],
+        "recommended_decision": {
+            "default": "extend_pilot_or_production_hardening_review",
+            "reason": "The prototype can explain the gateway and run controlled tests, but production should wait until P0 controls, data rules, support ownership, and commercial terms are approved.",
+            "customer_message": "The pilot can prove the direction. Production use needs a separate hardening and approval phase.",
+        },
+        "follow_up_outputs": [
+            "Updated decision log with stop, extend, or harden decision.",
+            "Pilot review notes sent to sponsor and technical owner.",
+            "Production backlog or extension plan agreed.",
+            "SOW draft updated if the next phase is funded work.",
+            "Security, data governance, and commercial review owners confirmed.",
+        ],
+        "not_claimed": [
+            "Production approval",
+            "Customer acceptance",
+            "Final quote",
+            "Signed contract",
+            "Security certification",
+            "Guaranteed ROI",
+            "Complete provider marketplace",
+        ],
+        "current_context": {
+            "kickoff_goal_count": len(kickoff.get("kickoff_goals", [])),
+            "scorecard_customer_count": (scorecard.get("summary") or {}).get("customers", 0),
+            "readiness_status": readiness.get("overall_status"),
+        },
+        "evidence_endpoints": [
+            "/v1/gateway/pilot-kickoff",
+            "/v1/gateway/pilot-scorecard",
+            "/v1/gateway/customer-reports",
+            "/v1/gateway/request-activity",
+            "/v1/gateway/production-readiness",
+            "/v1/gateway/production-backlog",
+            "/v1/gateway/security-review",
+            "/v1/gateway/sow-draft",
         ],
     }
 
@@ -7175,6 +7294,7 @@ def openapi_spec(server):
         "/v1/gateway/decision-log": "Customer workshop decision log",
         "/v1/gateway/follow-up-email": "Customer follow-up email and recap pack",
         "/v1/gateway/pilot-kickoff": "Customer pilot kickoff pack",
+        "/v1/gateway/pilot-review": "Customer pilot review and go/no-go pack",
         "/v1/gateway/invoice-preview": "Invoice preview JSON or CSV",
         "/v1/gateway/model-usage": "Usage grouped by model",
         "/v1/gateway/request-summary": "Request summary by dimensions",
@@ -7337,6 +7457,7 @@ def postman_collection(server):
         request_item("Decision Log", "GET", "/v1/gateway/decision-log", "admin_api_key"),
         request_item("Follow-up Email", "GET", "/v1/gateway/follow-up-email", "admin_api_key"),
         request_item("Pilot Kickoff", "GET", "/v1/gateway/pilot-kickoff", "admin_api_key"),
+        request_item("Pilot Review", "GET", "/v1/gateway/pilot-review", "admin_api_key"),
         request_item("Invoice Preview", "GET", "/v1/gateway/invoice-preview", "admin_api_key"),
         request_item(
             "Route Preview",
@@ -7629,6 +7750,13 @@ def demo_bundle(server):
                 "auth": "adminBearerAuth",
             },
             {
+                "name": "Pilot review",
+                "url": f"{base_url}/v1/gateway/pilot-review",
+                "audience": "customer sponsor, technical, finance/procurement, security, support, and gateway owners",
+                "purpose": "Review pilot evidence and decide stop, extend pilot, or move to production hardening.",
+                "auth": "adminBearerAuth",
+            },
+            {
                 "name": "Provider contract matrix",
                 "url": f"{base_url}/v1/gateway/provider-contracts",
                 "audience": "business and technical",
@@ -7901,6 +8029,10 @@ def demo_bundle(server):
                 "command": f"curl {base_url}/v1/gateway/pilot-kickoff -H 'Authorization: Bearer {server.admin_api_key or DEFAULT_ADMIN_API_KEY}'",
             },
             {
+                "name": "Pilot review",
+                "command": f"curl {base_url}/v1/gateway/pilot-review -H 'Authorization: Bearer {server.admin_api_key or DEFAULT_ADMIN_API_KEY}'",
+            },
+            {
                 "name": "Provider contracts",
                 "command": f"curl {base_url}/v1/gateway/provider-contracts -H 'Authorization: Bearer {server.admin_api_key or DEFAULT_ADMIN_API_KEY}'",
             },
@@ -7989,6 +8121,7 @@ def gateway_status(server):
         "decision_log": decision_log(server),
         "follow_up_email": follow_up_email_pack(server),
         "pilot_kickoff": pilot_kickoff_pack(server),
+        "pilot_review": pilot_review_pack(server),
         "pilot_scorecard": pilot_scorecard(server),
         "invoice_preview": invoice_preview(server),
         "production_readiness": production_readiness(server),
@@ -8860,6 +8993,9 @@ class GatewayHandler(BaseHTTPRequestHandler):
             return
         if path == "/v1/gateway/pilot-kickoff":
             make_json_response(self, 200, pilot_kickoff_pack(self.server))
+            return
+        if path == "/v1/gateway/pilot-review":
+            make_json_response(self, 200, pilot_review_pack(self.server))
             return
         if path == "/v1/gateway/request-activity":
             filters = {

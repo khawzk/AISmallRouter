@@ -1657,6 +1657,13 @@
           </article>
           <article class="handoff-card">
             <div>
+              <h3>Pilot review</h3>
+              <p>Review evidence and decide stop, extend pilot, or move to production hardening.</p>
+            </div>
+            <a class="btn" href="/v1/gateway/pilot-review?admin_key=__ADMIN_API_KEY__">Open review</a>
+          </article>
+          <article class="handoff-card">
+            <div>
               <h3>Evaluation plan</h3>
               <p>Model quality, reliability, latency, cost, safety, and fallback checks before live routing.</p>
             </div>
@@ -1932,6 +1939,16 @@
       </div>
       <div class="card-body">
         <div class="report-grid" id="pilotKickoffList"></div>
+      </div>
+    </section>
+
+    <section class="card" id="pilotReview" style="margin-bottom: 18px;">
+      <div class="card-head">
+        <h2>Pilot review</h2>
+        <span>evidence, go/no-go checks, decision options, and follow-up outputs</span>
+      </div>
+      <div class="card-body">
+        <div class="report-grid" id="pilotReviewList"></div>
       </div>
     </section>
 
@@ -2265,6 +2282,7 @@
     const decisionLogList = document.getElementById("decisionLogList");
     const followUpEmailList = document.getElementById("followUpEmailList");
     const pilotKickoffList = document.getElementById("pilotKickoffList");
+    const pilotReviewList = document.getElementById("pilotReviewList");
     const invoicePreviewList = document.getElementById("invoicePreviewList");
     const activityList = document.getElementById("activityList");
     const auditList = document.getElementById("auditList");
@@ -3511,6 +3529,79 @@
         </div>
       `;
       pilotKickoffList.appendChild(card);
+    });
+
+    const pilotReview = state.pilot_review || {review_inputs: [], review_agenda: [], decision_options: [], go_no_go_checks: [], follow_up_outputs: [], not_claimed: []};
+    const pilotReviewEvidence = pilotReview.evidence_summary || {};
+    const pilotReviewCards = [
+      {
+        title: "Customer-safe summary",
+        chip: "review",
+        body: pilotReview.customer_safe_summary?.one_sentence || "",
+        items: [
+          pilotReview.customer_safe_summary?.best_use,
+          pilotReview.customer_safe_summary?.boundary,
+        ].filter(Boolean),
+      },
+      {
+        title: "Evidence summary",
+        chip: "evidence",
+        body: pilotReview.recommended_decision?.customer_message || "",
+        items: [
+          `Requests: ${pilotReviewEvidence.total_requests || 0}`,
+          `Tokens: ${pilotReviewEvidence.total_tokens || 0}`,
+          `Readiness: ${pilotReviewEvidence.readiness_status || "unknown"}`,
+          `P0 backlog: ${pilotReviewEvidence.p0_backlog_count || 0}`,
+          pilotReviewEvidence.scorecard_next_action || "",
+        ].filter(Boolean),
+      },
+      {
+        title: "Review inputs",
+        chip: "inputs",
+        body: "Evidence to bring into the pilot review meeting.",
+        items: (pilotReview.review_inputs || []).map((item) => `${item.input}: ${item.why}`),
+      },
+      {
+        title: "Decision options",
+        chip: "decision",
+        body: "Choose one clear next step.",
+        items: (pilotReview.decision_options || []).map((item) => `${item.option}: ${item.choose_when}`),
+      },
+      {
+        title: "Go/no-go checks",
+        chip: "checks",
+        body: "Required checks before production hardening or live traffic.",
+        items: (pilotReview.go_no_go_checks || []).map((item) => `${item.required_for_go ? "Required" : "Optional"}: ${item.check}`),
+      },
+      {
+        title: "Follow-up outputs",
+        chip: "outputs",
+        body: "Artifacts to produce after the review.",
+        items: pilotReview.follow_up_outputs || [],
+      },
+      {
+        title: "Do not claim",
+        chip: "boundary",
+        body: "The review supports a decision; it does not approve production by itself.",
+        items: pilotReview.not_claimed || [],
+      },
+    ];
+    pilotReviewCards.forEach((item) => {
+      const card = document.createElement("article");
+      card.className = "report-card";
+      card.innerHTML = `
+        <div class="report-top">
+          <div>
+            <strong>${escapeHtml(item.title)}</strong>
+            <span>${escapeHtml(item.body)}</span>
+          </div>
+          <span class="${item.title === "Customer-safe summary" ? "chip green" : "chip"}">${escapeHtml(item.chip)}</span>
+        </div>
+        <div class="option-list">
+          ${(item.items || []).slice(0, 6).map((value) => `<span>${escapeHtml(value)}</span>`).join("")}
+        </div>
+      `;
+      pilotReviewList.appendChild(card);
     });
 
     const invoicePreview = state.invoice_preview || {totals: {}, data: []};

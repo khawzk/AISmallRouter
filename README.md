@@ -227,6 +227,7 @@ The current version also supports:
 - `GET /v1/gateway/decision-log`
 - `GET /v1/gateway/follow-up-email`
 - `GET /v1/gateway/pilot-kickoff`
+- `GET /v1/gateway/pilot-review`
 - `GET /v1/gateway/invoice-preview`
 - `GET /v1/gateway/request-activity`
 - `GET /v1/gateway/request-detail`
@@ -1831,6 +1832,33 @@ It includes:
 Use it after the follow-up email and decision log.
 
 This is a pilot planning pack, not production approval, a signed SOW, a final SLA, or a security certification.
+
+## Pilot Review
+
+The gateway has a pilot review endpoint:
+
+```bash
+curl http://127.0.0.1:8787/v1/gateway/pilot-review \
+  -H "Authorization: Bearer dev-admin-key"
+```
+
+It helps review a pilot and decide the next step.
+
+It includes:
+
+- review inputs
+- review meeting agenda
+- stop / extend / production hardening options
+- evidence summary
+- customer report snapshot
+- go/no-go checks
+- recommended decision wording
+- follow-up outputs
+- things not to claim
+
+Use it after the pilot kickoff and pilot scorecard.
+
+This is a decision support pack, not production approval, a signed SOW, legal approval, a final quote, or a security certification.
 
 ## Invoice Preview
 

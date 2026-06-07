@@ -275,6 +275,7 @@ def build():
         "Decision log endpoint for workshop decisions, owners, evidence, open questions, next actions, and meeting notes.",
         "Follow-up email endpoint for customer recap, links, next actions, boundaries, and internal checklist.",
         "Pilot kickoff endpoint for pilot goals, attendees, checklist, agenda, technical start, success metrics, and risks.",
+        "Pilot review endpoint for stop, extend, or production hardening decision support.",
         "Request activity endpoint with simple filters for troubleshooting.",
         "Request detail lookup using gateway.request_id returned in chat responses.",
         "Config check endpoint for demo keys and missing production settings.",
@@ -364,6 +365,7 @@ def build():
             ["Decision log", "Workshop decisions need owners and follow-up evidence.", "Decision records, open questions, next actions, status meanings, and notes template"],
             ["Follow-up email", "After a workshop, customers need a simple recap and safe next step.", "Subject options, email draft, links, actions, boundaries, and internal checklist"],
             ["Pilot kickoff", "A demo is not enough; a pilot needs owners, tests, metrics, and operating rhythm.", "Goals, attendees, checklist, agenda, technical start, success metrics, risks, and handoff"],
+            ["Pilot review", "A pilot should end with a clear decision, not another vague meeting.", "Evidence, go/no-go checks, stop/extend/harden options, and follow-up outputs"],
             ["Customer onboarding", "New customers need keys, limits, and model access.", "Key issue preview creates a safe config snippet"],
             ["Key lifecycle", "Customers need key rotation and disable workflows.", "Local JSON-backed create, rotate, and disable actions"],
             ["Audit trail", "Teams need to know who changed customer access.", "Audit events for customer lifecycle actions"],
@@ -853,6 +855,26 @@ def build():
     kickoff = Table(kickoff_rows, colWidths=[2.1 * inch, 4.35 * inch])
     kickoff.setStyle(table_style())
     story.append(kickoff)
+    story.append(Spacer(1, 0.15 * inch))
+
+    story.append(Paragraph("Pilot Review", styles["H1Custom"]))
+    story.append(
+        Paragraph(
+            "/v1/gateway/pilot-review helps review a pilot and decide whether to stop, extend the pilot, or move toward production hardening. It includes review inputs, meeting agenda, decision options, evidence summary, customer report snapshot, go/no-go checks, recommended decision wording, follow-up outputs, and things not to claim. It is decision support, not production approval, a signed SOW, legal approval, a final quote, or a security certification.",
+            styles["BodyCustom"],
+        )
+    )
+    review_rows = [
+        ["Area", "Plain-English meaning"],
+        ["Review inputs", "Pilot kickoff, scorecard, customer reports, request activity, readiness, and backlog."],
+        ["Decision options", "Stop, extend pilot, or move to production hardening."],
+        ["Go/no-go checks", "Sponsor, use case, API test, usage visibility, data rules, security P0, backlog, and commercial path."],
+        ["Recommended wording", "Pilot can prove the direction; production needs hardening and approval."],
+        ["Boundary", "Not production approval, customer acceptance, final quote, signed contract, or security certification."],
+    ]
+    review = Table(review_rows, colWidths=[2.1 * inch, 4.35 * inch])
+    review.setStyle(table_style())
+    story.append(review)
     story.append(Spacer(1, 0.15 * inch))
 
     story.append(Paragraph("Invoice Preview", styles["H1Custom"]))

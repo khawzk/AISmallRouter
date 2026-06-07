@@ -60,6 +60,7 @@ The prototype supports:
 - Customer integration guide
 - Follow-up email pack
 - Pilot kickoff pack
+- Pilot review pack
 - Operational alerts
 - Incident playbook
 - Support policy
@@ -1301,6 +1302,30 @@ This is useful because a pilot needs more than a demo.
 The kickoff pack makes the pilot small, measurable, and easier to manage.
 
 It is a pilot planning pack, not production approval, a signed SOW, a final SLA, or a security certification.
+
+## What The Pilot Review Shows
+
+The prototype includes `/v1/gateway/pilot-review`.
+
+This endpoint helps review a pilot and decide the next step.
+
+It shows:
+
+- review inputs
+- review meeting agenda
+- stop / extend / production hardening options
+- evidence summary
+- customer report snapshot
+- go/no-go checks
+- recommended decision wording
+- follow-up outputs
+- things not to claim
+
+This is useful because a pilot should end with a clear decision.
+
+The pilot review pack helps the customer choose whether to stop, extend the pilot, or move toward production hardening.
+
+It is a decision support pack, not production approval, a signed SOW, legal approval, a final quote, or a security certification.
 
 ## What Invoice Preview Shows
 
