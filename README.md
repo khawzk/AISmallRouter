@@ -226,6 +226,7 @@ The current version also supports:
 - `GET /v1/gateway/workshop-agenda`
 - `GET /v1/gateway/decision-log`
 - `GET /v1/gateway/follow-up-email`
+- `GET /v1/gateway/pilot-kickoff`
 - `GET /v1/gateway/invoice-preview`
 - `GET /v1/gateway/request-activity`
 - `GET /v1/gateway/request-detail`
@@ -1803,6 +1804,33 @@ It includes:
 Use it after the workshop agenda and decision log.
 
 This is a communication draft, not a signed contract, final quote, invoice, SLA, or security approval.
+
+## Pilot Kickoff
+
+The gateway has a pilot kickoff endpoint:
+
+```bash
+curl http://127.0.0.1:8787/v1/gateway/pilot-kickoff \
+  -H "Authorization: Bearer dev-admin-key"
+```
+
+It helps start a controlled customer pilot after the customer agrees to try the gateway.
+
+It includes:
+
+- kickoff goals
+- required attendees
+- pre-kickoff checklist
+- meeting agenda
+- technical start points
+- success metrics
+- operating rhythm
+- risks to watch
+- handoff actions after kickoff
+
+Use it after the follow-up email and decision log.
+
+This is a pilot planning pack, not production approval, a signed SOW, a final SLA, or a security certification.
 
 ## Invoice Preview
 

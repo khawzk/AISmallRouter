@@ -59,6 +59,7 @@ The prototype supports:
 - Demo bundle manifest
 - Customer integration guide
 - Follow-up email pack
+- Pilot kickoff pack
 - Operational alerts
 - Incident playbook
 - Support policy
@@ -1276,6 +1277,30 @@ This is useful because a customer may understand the demo but still need a clear
 The follow-up email turns the workshop into a simple recap and a request for the next decision.
 
 It is a communication draft, not a signed contract, final quote, invoice, SLA, or security approval.
+
+## What The Pilot Kickoff Shows
+
+The prototype includes `/v1/gateway/pilot-kickoff`.
+
+This endpoint helps start a controlled customer pilot.
+
+It shows:
+
+- kickoff goals
+- required attendees
+- pre-kickoff checklist
+- meeting agenda
+- technical start points
+- success metrics
+- operating rhythm
+- risks to watch
+- handoff actions after kickoff
+
+This is useful because a pilot needs more than a demo.
+
+The kickoff pack makes the pilot small, measurable, and easier to manage.
+
+It is a pilot planning pack, not production approval, a signed SOW, a final SLA, or a security certification.
 
 ## What Invoice Preview Shows
 

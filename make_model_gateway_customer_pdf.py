@@ -274,6 +274,7 @@ def build():
         "Workshop agenda endpoint for attendees, pre-work, meeting flow, questions, demo order, outputs, and follow-up actions.",
         "Decision log endpoint for workshop decisions, owners, evidence, open questions, next actions, and meeting notes.",
         "Follow-up email endpoint for customer recap, links, next actions, boundaries, and internal checklist.",
+        "Pilot kickoff endpoint for pilot goals, attendees, checklist, agenda, technical start, success metrics, and risks.",
         "Request activity endpoint with simple filters for troubleshooting.",
         "Request detail lookup using gateway.request_id returned in chat responses.",
         "Config check endpoint for demo keys and missing production settings.",
@@ -362,6 +363,7 @@ def build():
             ["Workshop agenda", "The first customer meeting needs structure and clear outputs.", "Attendees, pre-work, agenda, questions, demo order, outputs, and follow-up"],
             ["Decision log", "Workshop decisions need owners and follow-up evidence.", "Decision records, open questions, next actions, status meanings, and notes template"],
             ["Follow-up email", "After a workshop, customers need a simple recap and safe next step.", "Subject options, email draft, links, actions, boundaries, and internal checklist"],
+            ["Pilot kickoff", "A demo is not enough; a pilot needs owners, tests, metrics, and operating rhythm.", "Goals, attendees, checklist, agenda, technical start, success metrics, risks, and handoff"],
             ["Customer onboarding", "New customers need keys, limits, and model access.", "Key issue preview creates a safe config snippet"],
             ["Key lifecycle", "Customers need key rotation and disable workflows.", "Local JSON-backed create, rotate, and disable actions"],
             ["Audit trail", "Teams need to know who changed customer access.", "Audit events for customer lifecycle actions"],
@@ -831,6 +833,26 @@ def build():
     follow_up = Table(follow_up_rows, colWidths=[2.1 * inch, 4.35 * inch])
     follow_up.setStyle(table_style())
     story.append(follow_up)
+    story.append(Spacer(1, 0.15 * inch))
+
+    story.append(Paragraph("Pilot Kickoff", styles["H1Custom"]))
+    story.append(
+        Paragraph(
+            "/v1/gateway/pilot-kickoff helps start a controlled customer pilot after the customer agrees to try the gateway. It includes kickoff goals, required attendees, pre-kickoff checklist, meeting agenda, technical start points, success metrics, operating rhythm, risks to watch, and handoff actions after kickoff. It is a pilot planning pack, not production approval, a signed SOW, a final SLA, or a security certification.",
+            styles["BodyCustom"],
+        )
+    )
+    kickoff_rows = [
+        ["Area", "Plain-English meaning"],
+        ["Goals", "Confirm use case, owner, mock/live mode, model access, budget, data rules, and decision date."],
+        ["Attendees", "Sponsor, technical contact, security/data owner, support owner, and gateway owner."],
+        ["Technical start", "Customer gateway key, integration guide, SDK starter, OpenAPI, and Postman."],
+        ["Success metrics", "First call, route understanding, usage visibility, support traceability, and decision readiness."],
+        ["Boundary", "Not production approval, signed SOW, final SLA, security certification, or unlimited provider coverage."],
+    ]
+    kickoff = Table(kickoff_rows, colWidths=[2.1 * inch, 4.35 * inch])
+    kickoff.setStyle(table_style())
+    story.append(kickoff)
     story.append(Spacer(1, 0.15 * inch))
 
     story.append(Paragraph("Invoice Preview", styles["H1Custom"]))

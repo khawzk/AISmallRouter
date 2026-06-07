@@ -92,6 +92,7 @@ ADMIN_PATHS = {
     "/v1/gateway/workshop-agenda",
     "/v1/gateway/decision-log",
     "/v1/gateway/follow-up-email",
+    "/v1/gateway/pilot-kickoff",
     "/v1/gateway/policy-presets",
     "/v1/gateway/demo-bundle",
     "/v1/gateway/handoff-checklist",
@@ -2121,6 +2122,115 @@ def follow_up_email_pack(server):
             "/v1/gateway/demo-bundle",
             "/openapi.json",
             "/postman_collection.json",
+        ],
+    }
+
+
+def pilot_kickoff_pack(server):
+    follow_up = follow_up_email_pack(server)
+    pilot = pilot_checklist(server)
+    scorecard = pilot_scorecard(server)
+    customer = next(iter(server.customers_by_key.values()), {})
+    integration = customer_integration_guide(server, customer)
+    return {
+        "object": "gateway.pilot_kickoff",
+        "title": "AISmallRouter Pilot Kickoff Pack",
+        "audience": "customer sponsor, customer technical contact, security owner, support owner, and gateway owner",
+        "mode": "mock" if server.mock_mode else "live",
+        "plain_english": "This pack helps start a controlled pilot after the customer agrees to try the gateway. It explains who must attend, what must be ready, how the pilot will be tested, and how success will be judged.",
+        "customer_safe_summary": {
+            "one_sentence": "Use this to turn customer interest into a small, measurable pilot.",
+            "best_use": "Send it after the follow-up email when the customer has a sponsor and wants a kickoff meeting.",
+            "boundary": "This is a pilot planning pack. It is not production approval, a signed SOW, a final SLA, or a security certification.",
+        },
+        "kickoff_goals": [
+            "Confirm the first use case and customer owner.",
+            "Confirm whether the pilot stays in mock mode or includes live Qwen testing.",
+            "Confirm allowed models, customer gateway key owner, and budget limits.",
+            "Confirm prompt logging, retention, deletion, and support visibility rules.",
+            "Confirm success metrics and the decision date.",
+        ],
+        "attendees": [
+            {"role": "Customer sponsor", "decision": "Confirms business goal, budget direction, and pilot decision date."},
+            {"role": "Customer technical contact", "decision": "Confirms API test path, allowed models, and integration owner."},
+            {"role": "Security or data owner", "decision": "Confirms prompt logging, retention, deletion, and sensitive data rules."},
+            {"role": "Support owner", "decision": "Confirms pilot support path, incident wording, and response expectations."},
+            {"role": "Gateway owner", "decision": "Confirms route setup, demo keys, mock/live mode, and evidence endpoints."},
+        ],
+        "pre_kickoff_checklist": [
+            "Customer sponsor is named.",
+            "First use case is written in one sentence.",
+            "Customer technical contact can call /v1/models with a customer gateway key.",
+            "Allowed models and first provider path are agreed.",
+            "Budget limit, request limit, and pilot duration are agreed.",
+            "Data logging and retention answers are recorded.",
+            "Pilot scorecard and decision date are agreed.",
+        ],
+        "agenda": [
+            {"timebox": "5 min", "topic": "Pilot purpose", "output": "One sentence use case and success owner."},
+            {"timebox": "10 min", "topic": "Integration path", "output": "Customer key, model list, OpenAPI, Postman, SDK starter, and first test command."},
+            {"timebox": "10 min", "topic": "Routing and provider mode", "output": "Mock-only or live Qwen path, fallback expectation, and no-overpromise boundary."},
+            {"timebox": "10 min", "topic": "Data and security", "output": "Logging, retention, deletion, prompt visibility, and support access answer."},
+            {"timebox": "10 min", "topic": "Pilot operations", "output": "Support channel, incident wording, daily check, and escalation owner."},
+            {"timebox": "10 min", "topic": "Success scorecard", "output": "Metrics, acceptance signals, stop/go criteria, and decision date."},
+        ],
+        "technical_start": {
+            "customer_key_rule": "Use a gateway customer key, not a provider API key.",
+            "first_commands": (integration.get("quickstart_steps") or [])[:3],
+            "starter_artifacts": [
+                "/v1/gateway/integration-guide",
+                "/v1/gateway/sdk-starter",
+                "/openapi.json",
+                "/postman_collection.json",
+            ],
+        },
+        "success_metrics": [
+            {"metric": "First successful gateway call", "target": "Customer can call /v1/models and one chat request."},
+            {"metric": "Route explanation understood", "target": "Customer can explain public model name to upstream provider mapping."},
+            {"metric": "Usage visibility", "target": "Customer can see request count, token estimate, and budget state."},
+            {"metric": "Support traceability", "target": "Gateway owner can look up request_id and route trace for test requests."},
+            {"metric": "Decision readiness", "target": "Sponsor can decide whether to stop, extend pilot, or move to production hardening."},
+        ],
+        "operating_rhythm": [
+            {"cadence": "Kickoff day", "owner": "Gateway owner", "activity": "Run first request, route preview, and customer usage view."},
+            {"cadence": "Daily during pilot", "owner": "Support owner", "activity": "Check alerts, request activity, errors, and customer questions."},
+            {"cadence": "Mid-pilot", "owner": "Customer sponsor", "activity": "Review scorecard and open blockers."},
+            {"cadence": "End of pilot", "owner": "Customer sponsor", "activity": "Choose stop, extend, or production hardening."},
+        ],
+        "risks_to_watch": [
+            "Customer starts sending production traffic before approval.",
+            "Customer expects OpenRouter-scale provider coverage in phase one.",
+            "Prompt logging or retention answer is not approved.",
+            "Provider spend limit is unclear before live Qwen testing.",
+            "No support owner is named for pilot issues.",
+        ],
+        "handoff_after_kickoff": [
+            "Update the decision log with owner, use case, mode, data handling, and decision date.",
+            "Send the pilot scorecard and first test commands.",
+            "Confirm whether SOW draft should move to legal/procurement review.",
+            "Confirm whether production hardening backlog should be estimated.",
+        ],
+        "current_context": {
+            "follow_up_subject_options": follow_up.get("subject_options", []),
+            "pilot_checklist_phase_count": len(pilot.get("phases", [])),
+            "scorecard_recommendation": scorecard.get("next_best_action"),
+        },
+        "not_claimed": [
+            "Production approval",
+            "Signed SOW",
+            "Final SLA",
+            "Security certification",
+            "Unlimited provider coverage",
+            "Guaranteed model quality",
+        ],
+        "evidence_endpoints": [
+            "/v1/gateway/follow-up-email",
+            "/v1/gateway/pilot-checklist",
+            "/v1/gateway/pilot-scorecard",
+            "/v1/gateway/integration-guide",
+            "/v1/gateway/sdk-starter",
+            "/v1/gateway/decision-log",
+            "/v1/gateway/production-readiness",
         ],
     }
 
@@ -7064,6 +7174,7 @@ def openapi_spec(server):
         "/v1/gateway/workshop-agenda": "Customer workshop agenda and meeting pack",
         "/v1/gateway/decision-log": "Customer workshop decision log",
         "/v1/gateway/follow-up-email": "Customer follow-up email and recap pack",
+        "/v1/gateway/pilot-kickoff": "Customer pilot kickoff pack",
         "/v1/gateway/invoice-preview": "Invoice preview JSON or CSV",
         "/v1/gateway/model-usage": "Usage grouped by model",
         "/v1/gateway/request-summary": "Request summary by dimensions",
@@ -7225,6 +7336,7 @@ def postman_collection(server):
         request_item("Workshop Agenda", "GET", "/v1/gateway/workshop-agenda", "admin_api_key"),
         request_item("Decision Log", "GET", "/v1/gateway/decision-log", "admin_api_key"),
         request_item("Follow-up Email", "GET", "/v1/gateway/follow-up-email", "admin_api_key"),
+        request_item("Pilot Kickoff", "GET", "/v1/gateway/pilot-kickoff", "admin_api_key"),
         request_item("Invoice Preview", "GET", "/v1/gateway/invoice-preview", "admin_api_key"),
         request_item(
             "Route Preview",
@@ -7510,6 +7622,13 @@ def demo_bundle(server):
                 "auth": "adminBearerAuth",
             },
             {
+                "name": "Pilot kickoff",
+                "url": f"{base_url}/v1/gateway/pilot-kickoff",
+                "audience": "customer sponsor, technical, security, support, and gateway owners",
+                "purpose": "Start a controlled pilot with goals, attendees, checklist, agenda, technical start, success metrics, risks, and handoff actions.",
+                "auth": "adminBearerAuth",
+            },
+            {
                 "name": "Provider contract matrix",
                 "url": f"{base_url}/v1/gateway/provider-contracts",
                 "audience": "business and technical",
@@ -7778,6 +7897,10 @@ def demo_bundle(server):
                 "command": f"curl {base_url}/v1/gateway/follow-up-email -H 'Authorization: Bearer {server.admin_api_key or DEFAULT_ADMIN_API_KEY}'",
             },
             {
+                "name": "Pilot kickoff",
+                "command": f"curl {base_url}/v1/gateway/pilot-kickoff -H 'Authorization: Bearer {server.admin_api_key or DEFAULT_ADMIN_API_KEY}'",
+            },
+            {
                 "name": "Provider contracts",
                 "command": f"curl {base_url}/v1/gateway/provider-contracts -H 'Authorization: Bearer {server.admin_api_key or DEFAULT_ADMIN_API_KEY}'",
             },
@@ -7865,6 +7988,7 @@ def gateway_status(server):
         "workshop_agenda": workshop_agenda(server),
         "decision_log": decision_log(server),
         "follow_up_email": follow_up_email_pack(server),
+        "pilot_kickoff": pilot_kickoff_pack(server),
         "pilot_scorecard": pilot_scorecard(server),
         "invoice_preview": invoice_preview(server),
         "production_readiness": production_readiness(server),
@@ -8733,6 +8857,9 @@ class GatewayHandler(BaseHTTPRequestHandler):
             return
         if path == "/v1/gateway/follow-up-email":
             make_json_response(self, 200, follow_up_email_pack(self.server))
+            return
+        if path == "/v1/gateway/pilot-kickoff":
+            make_json_response(self, 200, pilot_kickoff_pack(self.server))
             return
         if path == "/v1/gateway/request-activity":
             filters = {
