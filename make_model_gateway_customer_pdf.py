@@ -277,6 +277,7 @@ def build():
         "Pilot kickoff endpoint for pilot goals, attendees, checklist, agenda, technical start, success metrics, and risks.",
         "Pilot review endpoint for stop, extend, or production hardening decision support.",
         "Production transition endpoint for moving from pilot review to hardening work without over-promising production readiness.",
+        "Operating review endpoint for recurring customer health, usage, incidents, budget, change, and expansion decisions.",
         "Request activity endpoint with simple filters for troubleshooting.",
         "Request detail lookup using gateway.request_id returned in chat responses.",
         "Config check endpoint for demo keys and missing production settings.",
@@ -368,6 +369,7 @@ def build():
             ["Pilot kickoff", "A demo is not enough; a pilot needs owners, tests, metrics, and operating rhythm.", "Goals, attendees, checklist, agenda, technical start, success metrics, risks, and handoff"],
             ["Pilot review", "A pilot should end with a clear decision, not another vague meeting.", "Evidence, go/no-go checks, stop/extend/harden options, and follow-up outputs"],
             ["Production transition", "Pilot success does not mean production approval.", "Transition trigger, phases, role handoff, P0 controls, SOW questions, and kickoff agenda"],
+            ["Operating review", "A gateway needs ongoing ownership after launch or limited production.", "Cadence, signals, customer snapshots, decisions, owners, and review outputs"],
             ["Customer onboarding", "New customers need keys, limits, and model access.", "Key issue preview creates a safe config snippet"],
             ["Key lifecycle", "Customers need key rotation and disable workflows.", "Local JSON-backed create, rotate, and disable actions"],
             ["Audit trail", "Teams need to know who changed customer access.", "Audit events for customer lifecycle actions"],
@@ -897,6 +899,26 @@ def build():
     transition = Table(transition_rows, colWidths=[2.1 * inch, 4.35 * inch])
     transition.setStyle(table_style())
     story.append(transition)
+    story.append(Spacer(1, 0.15 * inch))
+
+    story.append(Paragraph("Operating Review", styles["H1Custom"]))
+    story.append(
+        Paragraph(
+            "/v1/gateway/operating-review helps run weekly or monthly reviews after the gateway is being tested or used. It includes review cadence, meeting agenda, operating signals, customer snapshots, expand/hold/fix/pause decision options, owner follow-ups, review outputs, and things not to claim. It is an operating review guide, not an SLA report, legal audit, final invoice, or security certification.",
+            styles["BodyCustom"],
+        )
+    )
+    operating_rows = [
+        ["Area", "Plain-English meaning"],
+        ["Cadence", "Daily during first week, weekly during pilot or limited production, monthly after stable usage."],
+        ["Signals", "Customer health, alerts, usage totals, request count, support stage, and operating stage."],
+        ["Decisions", "Expand carefully, hold steady, fix blockers first, or pause/roll back."],
+        ["Owners", "Gateway, support, customer success, security/data, finance, and platform owners."],
+        ["Boundary", "Not an SLA report, legal audit, security certification, final invoice, or uptime guarantee."],
+    ]
+    operating = Table(operating_rows, colWidths=[2.1 * inch, 4.35 * inch])
+    operating.setStyle(table_style())
+    story.append(operating)
     story.append(Spacer(1, 0.15 * inch))
 
     story.append(Paragraph("Invoice Preview", styles["H1Custom"]))

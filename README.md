@@ -229,6 +229,7 @@ The current version also supports:
 - `GET /v1/gateway/pilot-kickoff`
 - `GET /v1/gateway/pilot-review`
 - `GET /v1/gateway/production-transition`
+- `GET /v1/gateway/operating-review`
 - `GET /v1/gateway/invoice-preview`
 - `GET /v1/gateway/request-activity`
 - `GET /v1/gateway/request-detail`
@@ -1887,6 +1888,32 @@ It includes:
 Use it after pilot review and before a formal production SOW or implementation kickoff.
 
 This is a transition plan, not production approval, a signed SOW, final price, legal approval, or security certification.
+
+## Operating Review
+
+The gateway has an operating review endpoint:
+
+```bash
+curl http://127.0.0.1:8787/v1/gateway/operating-review \
+  -H "Authorization: Bearer dev-admin-key"
+```
+
+It helps run weekly or monthly reviews after the gateway is being tested or used.
+
+It includes:
+
+- review cadence
+- meeting agenda
+- operating signals
+- customer snapshots
+- expand / hold / fix / pause decision options
+- owner follow-ups
+- review outputs
+- things not to claim
+
+Use it after production transition, launch, or a limited production start.
+
+This is an operating review guide, not an SLA report, legal audit, final invoice, or security certification.
 
 ## Invoice Preview
 

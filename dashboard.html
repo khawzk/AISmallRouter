@@ -1671,6 +1671,13 @@
           </article>
           <article class="handoff-card">
             <div>
+              <h3>Operating review</h3>
+              <p>Recurring customer health, usage, incidents, budget, changes, and expansion decisions.</p>
+            </div>
+            <a class="btn" href="/v1/gateway/operating-review?admin_key=__ADMIN_API_KEY__">Open review</a>
+          </article>
+          <article class="handoff-card">
+            <div>
               <h3>Evaluation plan</h3>
               <p>Model quality, reliability, latency, cost, safety, and fallback checks before live routing.</p>
             </div>
@@ -1966,6 +1973,16 @@
       </div>
       <div class="card-body">
         <div class="report-grid" id="productionTransitionList"></div>
+      </div>
+    </section>
+
+    <section class="card" id="operatingReview" style="margin-bottom: 18px;">
+      <div class="card-head">
+        <h2>Operating review</h2>
+        <span>customer health, usage, incidents, changes, and recurring decisions</span>
+      </div>
+      <div class="card-body">
+        <div class="report-grid" id="operatingReviewList"></div>
       </div>
     </section>
 
@@ -2301,6 +2318,7 @@
     const pilotKickoffList = document.getElementById("pilotKickoffList");
     const pilotReviewList = document.getElementById("pilotReviewList");
     const productionTransitionList = document.getElementById("productionTransitionList");
+    const operatingReviewList = document.getElementById("operatingReviewList");
     const invoicePreviewList = document.getElementById("invoicePreviewList");
     const activityList = document.getElementById("activityList");
     const auditList = document.getElementById("auditList");
@@ -3689,6 +3707,72 @@
         </div>
       `;
       productionTransitionList.appendChild(card);
+    });
+
+    const operatingReview = state.operating_review || {review_cadence: [], meeting_agenda: [], operating_signals: [], decision_options: [], owner_follow_ups: [], review_outputs: [], not_claimed: []};
+    const operatingCards = [
+      {
+        title: "Customer-safe summary",
+        chip: "review",
+        body: operatingReview.customer_safe_summary?.one_sentence || "",
+        items: [
+          operatingReview.customer_safe_summary?.best_use,
+          operatingReview.customer_safe_summary?.boundary,
+        ].filter(Boolean),
+      },
+      {
+        title: "Review cadence",
+        chip: "cadence",
+        body: operatingReview.recommended_next_action || "",
+        items: (operatingReview.review_cadence || []).map((item) => `${item.cadence}: ${item.focus}`),
+      },
+      {
+        title: "Operating signals",
+        chip: "signals",
+        body: "Signals to review before expanding traffic or changing routes.",
+        items: (operatingReview.operating_signals || []).map((item) => `${item.signal}: ${item.source}`),
+      },
+      {
+        title: "Decision options",
+        chip: "decision",
+        body: "Choose one operating decision after each review.",
+        items: (operatingReview.decision_options || []).map((item) => `${item.option}: ${item.choose_when}`),
+      },
+      {
+        title: "Owner follow-ups",
+        chip: "owners",
+        body: "Who acts after the review.",
+        items: (operatingReview.owner_follow_ups || []).map((item) => `${item.owner}: ${item.action}`),
+      },
+      {
+        title: "Review outputs",
+        chip: "outputs",
+        body: "What the team should leave the meeting with.",
+        items: operatingReview.review_outputs || [],
+      },
+      {
+        title: "Do not claim",
+        chip: "boundary",
+        body: "This review is not a compliance or finance artifact by itself.",
+        items: operatingReview.not_claimed || [],
+      },
+    ];
+    operatingCards.forEach((item) => {
+      const card = document.createElement("article");
+      card.className = "report-card";
+      card.innerHTML = `
+        <div class="report-top">
+          <div>
+            <strong>${escapeHtml(item.title)}</strong>
+            <span>${escapeHtml(item.body)}</span>
+          </div>
+          <span class="${item.title === "Customer-safe summary" ? "chip green" : "chip"}">${escapeHtml(item.chip)}</span>
+        </div>
+        <div class="option-list">
+          ${(item.items || []).slice(0, 6).map((value) => `<span>${escapeHtml(value)}</span>`).join("")}
+        </div>
+      `;
+      operatingReviewList.appendChild(card);
     });
 
     const invoicePreview = state.invoice_preview || {totals: {}, data: []};

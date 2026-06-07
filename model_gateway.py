@@ -95,6 +95,7 @@ ADMIN_PATHS = {
     "/v1/gateway/pilot-kickoff",
     "/v1/gateway/pilot-review",
     "/v1/gateway/production-transition",
+    "/v1/gateway/operating-review",
     "/v1/gateway/policy-presets",
     "/v1/gateway/demo-bundle",
     "/v1/gateway/handoff-checklist",
@@ -2491,6 +2492,126 @@ def production_transition_pack(server):
             "/v1/gateway/migration-plan",
             "/v1/gateway/launch-plan",
             "/v1/gateway/sow-draft",
+        ],
+    }
+
+
+def operating_review_pack(server):
+    transition = production_transition_pack(server)
+    runbook = operations_runbook(server)
+    success = customer_success_summary(server)
+    support = support_policy(server)
+    incidents = incident_playbook(server)
+    reports = customer_reports(server)
+    alerts = gateway_alerts(server)
+    summary = db_summary(server.db_path)
+    return {
+        "object": "gateway.operating_review",
+        "title": "AISmallRouter Operating Review Pack",
+        "audience": "customer sponsor, customer success, support owner, gateway owner, platform owner, security owner, and finance owner",
+        "mode": "mock" if server.mock_mode else "live",
+        "plain_english": "This pack helps run a regular operating review after pilot or production transition. It shows what to review, which customer signals matter, who owns follow-up, and when to expand, pause, or fix the gateway.",
+        "customer_safe_summary": {
+            "one_sentence": "Use this for weekly or monthly reviews after the gateway is being tested or used.",
+            "best_use": "Run it after production transition, launch, or a limited production start.",
+            "boundary": "This is an operating review guide. It is not an SLA report, legal audit, final invoice, or security certification.",
+        },
+        "review_cadence": [
+            {"cadence": "Daily during first week", "owner": "Support owner", "focus": "Errors, provider readiness, request spikes, budget alerts, and urgent customer blockers."},
+            {"cadence": "Weekly during pilot or limited production", "owner": "Gateway owner", "focus": "Usage, customer health, incidents, route changes, open P0/P1 items, and support follow-up."},
+            {"cadence": "Monthly after stable usage", "owner": "Customer sponsor", "focus": "Value, cost, reliability, expansion decision, commercial questions, and roadmap."},
+        ],
+        "meeting_agenda": [
+            {"timebox": "5 min", "topic": "Customer health", "question": "Which customers are healthy, at risk, or blocked?"},
+            {"timebox": "10 min", "topic": "Usage and cost", "question": "Are requests, tokens, estimated cost, and budgets within expectations?"},
+            {"timebox": "10 min", "topic": "Reliability and incidents", "question": "Were there provider, routing, latency, budget, or auth problems?"},
+            {"timebox": "10 min", "topic": "Security and data handling", "question": "Did any prompt, logging, retention, or access issue appear?"},
+            {"timebox": "10 min", "topic": "Backlog and changes", "question": "Which P0/P1 items or route/provider changes need approval?"},
+            {"timebox": "10 min", "topic": "Decision", "question": "Should the team expand usage, keep steady, pause, or fix blockers first?"},
+        ],
+        "operating_signals": [
+            {"signal": "Customer health", "source": "/v1/gateway/customer-success", "current": success.get("summary", {})},
+            {"signal": "Operational alerts", "source": "/v1/gateway/alerts", "current": alerts.get("summary", {})},
+            {"signal": "Usage totals", "source": "/v1/gateway/customer-reports", "current": summary.get("usage", {})},
+            {"signal": "Request count", "source": "/v1/gateway/request-activity", "current": summary.get("request_count", 0)},
+            {"signal": "Support stage", "source": "/v1/gateway/support-policy", "current": support.get("current_stage")},
+            {"signal": "Operating stage", "source": "/v1/gateway/operations-runbook", "current": runbook.get("operating_stage")},
+        ],
+        "customer_snapshots": [
+            {
+                "customer": report.get("id"),
+                "plan": report.get("plan"),
+                "budget_state": report.get("budget_state"),
+                "requests": (report.get("request_summary") or {}).get("requests", 0),
+                "errors": (report.get("request_summary") or {}).get("errors", 0),
+                "remaining_tokens": (report.get("budget") or {}).get("remaining_tokens"),
+                "remaining_cost": (report.get("budget") or {}).get("remaining_cost"),
+            }
+            for report in reports[:5]
+        ],
+        "decision_options": [
+            {
+                "option": "Expand carefully",
+                "choose_when": "Customer health is good, incidents are controlled, budget rules are clear, and P0 controls are closed.",
+                "next_step": "Add one more workflow, customer group, provider route, or traffic tier with change approval.",
+            },
+            {
+                "option": "Hold steady",
+                "choose_when": "Current usage is useful but more evidence or stakeholder approval is needed.",
+                "next_step": "Keep the same scope and review again after agreed usage or date.",
+            },
+            {
+                "option": "Fix blockers first",
+                "choose_when": "Alerts, incidents, security/data questions, support gaps, or cost concerns are unresolved.",
+                "next_step": "Assign owners and dates, then review again before expanding traffic.",
+            },
+            {
+                "option": "Pause or roll back",
+                "choose_when": "Customer risk, provider instability, cost exposure, or data handling concern is too high.",
+                "next_step": "Use incident playbook, migration rollback, and customer-safe communication.",
+            },
+        ],
+        "owner_follow_ups": [
+            {"owner": "Gateway owner", "action": "Review route changes, fallback behavior, request traces, and model/provider issues."},
+            {"owner": "Support owner", "action": "Review incidents, alerts, customer wording, and response expectations."},
+            {"owner": "Customer success owner", "action": "Review customer health, adoption, blockers, and expansion readiness."},
+            {"owner": "Security/data owner", "action": "Review prompt logging, retention, deletion, access, and sensitive data signals."},
+            {"owner": "Finance owner", "action": "Review estimated usage cost, budget limits, and invoice policy questions."},
+            {"owner": "Platform owner", "action": "Review deployment, backups, monitoring, latency, and rollback readiness."},
+        ],
+        "review_outputs": [
+            "Updated customer health status.",
+            "Open incidents and support follow-ups.",
+            "Approved or blocked route/provider changes.",
+            "Budget and commercial questions for finance.",
+            "Security/data questions for approval.",
+            "Decision to expand, hold steady, fix blockers, or pause.",
+        ],
+        "current_context": {
+            "transition_readiness": (transition.get("current_context") or {}).get("production_readiness_status"),
+            "alert_status": alerts.get("status"),
+            "support_stage": support.get("current_stage"),
+            "incident_scenarios": len(incidents.get("scenarios", [])),
+            "customer_count": len(reports),
+        },
+        "not_claimed": [
+            "SLA report",
+            "Legal audit",
+            "Security certification",
+            "Final invoice",
+            "Guaranteed uptime",
+            "Customer acceptance",
+        ],
+        "recommended_next_action": "Run this review weekly during pilot or limited production, then record the decision and follow-up owners.",
+        "evidence_endpoints": [
+            "/v1/gateway/production-transition",
+            "/v1/gateway/customer-success",
+            "/v1/gateway/customer-reports",
+            "/v1/gateway/alerts",
+            "/v1/gateway/operations-runbook",
+            "/v1/gateway/incident-playbook",
+            "/v1/gateway/support-policy",
+            "/v1/gateway/request-activity",
         ],
     }
 
@@ -7437,6 +7558,7 @@ def openapi_spec(server):
         "/v1/gateway/pilot-kickoff": "Customer pilot kickoff pack",
         "/v1/gateway/pilot-review": "Customer pilot review and go/no-go pack",
         "/v1/gateway/production-transition": "Production transition and hardening handoff pack",
+        "/v1/gateway/operating-review": "Recurring operating review pack",
         "/v1/gateway/invoice-preview": "Invoice preview JSON or CSV",
         "/v1/gateway/model-usage": "Usage grouped by model",
         "/v1/gateway/request-summary": "Request summary by dimensions",
@@ -7601,6 +7723,7 @@ def postman_collection(server):
         request_item("Pilot Kickoff", "GET", "/v1/gateway/pilot-kickoff", "admin_api_key"),
         request_item("Pilot Review", "GET", "/v1/gateway/pilot-review", "admin_api_key"),
         request_item("Production Transition", "GET", "/v1/gateway/production-transition", "admin_api_key"),
+        request_item("Operating Review", "GET", "/v1/gateway/operating-review", "admin_api_key"),
         request_item("Invoice Preview", "GET", "/v1/gateway/invoice-preview", "admin_api_key"),
         request_item(
             "Route Preview",
@@ -7907,6 +8030,13 @@ def demo_bundle(server):
                 "auth": "adminBearerAuth",
             },
             {
+                "name": "Operating review",
+                "url": f"{base_url}/v1/gateway/operating-review",
+                "audience": "customer sponsor, customer success, support, gateway, platform, security, and finance owners",
+                "purpose": "Run recurring reviews for customer health, usage, incidents, budget, changes, and expand/hold/fix/pause decisions.",
+                "auth": "adminBearerAuth",
+            },
+            {
                 "name": "Provider contract matrix",
                 "url": f"{base_url}/v1/gateway/provider-contracts",
                 "audience": "business and technical",
@@ -8187,6 +8317,10 @@ def demo_bundle(server):
                 "command": f"curl {base_url}/v1/gateway/production-transition -H 'Authorization: Bearer {server.admin_api_key or DEFAULT_ADMIN_API_KEY}'",
             },
             {
+                "name": "Operating review",
+                "command": f"curl {base_url}/v1/gateway/operating-review -H 'Authorization: Bearer {server.admin_api_key or DEFAULT_ADMIN_API_KEY}'",
+            },
+            {
                 "name": "Provider contracts",
                 "command": f"curl {base_url}/v1/gateway/provider-contracts -H 'Authorization: Bearer {server.admin_api_key or DEFAULT_ADMIN_API_KEY}'",
             },
@@ -8277,6 +8411,7 @@ def gateway_status(server):
         "pilot_kickoff": pilot_kickoff_pack(server),
         "pilot_review": pilot_review_pack(server),
         "production_transition": production_transition_pack(server),
+        "operating_review": operating_review_pack(server),
         "pilot_scorecard": pilot_scorecard(server),
         "invoice_preview": invoice_preview(server),
         "production_readiness": production_readiness(server),
@@ -9154,6 +9289,9 @@ class GatewayHandler(BaseHTTPRequestHandler):
             return
         if path == "/v1/gateway/production-transition":
             make_json_response(self, 200, production_transition_pack(self.server))
+            return
+        if path == "/v1/gateway/operating-review":
+            make_json_response(self, 200, operating_review_pack(self.server))
             return
         if path == "/v1/gateway/request-activity":
             filters = {

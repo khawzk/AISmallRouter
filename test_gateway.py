@@ -190,6 +190,7 @@ class GatewayPrototypeTest(unittest.TestCase):
             "/v1/gateway/pilot-kickoff",
             "/v1/gateway/pilot-review",
             "/v1/gateway/production-transition",
+            "/v1/gateway/operating-review",
             "/v1/gateway/demo-bundle",
             "/v1/gateway/handoff-checklist",
             "/v1/gateway/production-readiness",
@@ -265,6 +266,7 @@ class GatewayPrototypeTest(unittest.TestCase):
         self.assertIn("Pilot Kickoff", admin_names)
         self.assertIn("Pilot Review", admin_names)
         self.assertIn("Production Transition", admin_names)
+        self.assertIn("Operating Review", admin_names)
         self.assertIn("SOW Draft", admin_names)
         self.assertIn("Workshop Agenda", admin_names)
         self.assertIn("Decision Log", admin_names)
@@ -321,6 +323,7 @@ class GatewayPrototypeTest(unittest.TestCase):
         self.assertIn(f"{self.base_url}/v1/gateway/pilot-kickoff", entry_urls)
         self.assertIn(f"{self.base_url}/v1/gateway/pilot-review", entry_urls)
         self.assertIn(f"{self.base_url}/v1/gateway/production-transition", entry_urls)
+        self.assertIn(f"{self.base_url}/v1/gateway/operating-review", entry_urls)
         self.assertIn(f"{self.base_url}/v1/gateway/provider-contracts", entry_urls)
         self.assertIn(f"{self.base_url}/v1/gateway/evaluation-plan", entry_urls)
         self.assertIn(f"{self.base_url}/v1/gateway/incident-playbook", entry_urls)
@@ -1335,6 +1338,8 @@ class GatewayPrototypeTest(unittest.TestCase):
         self.assertIn("decision_options", payload["pilot_review"])
         self.assertIn("production_transition", payload)
         self.assertIn("transition_phases", payload["production_transition"])
+        self.assertIn("operating_review", payload)
+        self.assertIn("review_cadence", payload["operating_review"])
         self.assertIn("request_activity", payload)
         self.assertIn("audit_events", payload)
         self.assertIn("audit_event_count", payload["summary"])
@@ -2427,6 +2432,28 @@ class GatewayPrototypeTest(unittest.TestCase):
         self.assertNotIn("sk-", json.dumps(transition))
         self.assertNotIn("provider_api_keys", json.dumps(transition))
 
+        status, operating = request_json(self.base_url, path="/v1/gateway/operating-review")
+        self.assertEqual(status, 401)
+
+        status, operating = request_json(self.base_url, path="/v1/gateway/operating-review", api_key="dev-admin-key")
+        self.assertEqual(status, 200)
+        self.assertEqual(operating["object"], "gateway.operating_review")
+        self.assertIn("regular operating review", operating["plain_english"])
+        cadences = {item["cadence"] for item in operating["review_cadence"]}
+        self.assertIn("Weekly during pilot or limited production", cadences)
+        signals = {item["signal"] for item in operating["operating_signals"]}
+        self.assertIn("Customer health", signals)
+        options = {item["option"] for item in operating["decision_options"]}
+        self.assertIn("Expand carefully", options)
+        self.assertIn("Pause or roll back", options)
+        owners = {item["owner"] for item in operating["owner_follow_ups"]}
+        self.assertIn("Gateway owner", owners)
+        self.assertIn("SLA report", operating["not_claimed"])
+        self.assertIn("/v1/gateway/customer-success", operating["evidence_endpoints"])
+        self.assertNotIn("DASHSCOPE_API_KEY", json.dumps(operating))
+        self.assertNotIn("sk-", json.dumps(operating))
+        self.assertNotIn("provider_api_keys", json.dumps(operating))
+
         status, invoice = request_json(self.base_url, path="/v1/gateway/invoice-preview", api_key="dev-admin-key")
         self.assertEqual(status, 200)
         self.assertIn("totals", invoice)
@@ -2589,6 +2616,9 @@ class GatewayPrototypeTest(unittest.TestCase):
         self.assertIn("Production transition", html)
         self.assertIn("productionTransitionList", html)
         self.assertIn("/v1/gateway/production-transition?admin_key=", html)
+        self.assertIn("Operating review", html)
+        self.assertIn("operatingReviewList", html)
+        self.assertIn("/v1/gateway/operating-review?admin_key=", html)
         self.assertIn("Customer handoff package", html)
         self.assertIn("/openapi.json", html)
         self.assertIn("/postman_collection.json", html)

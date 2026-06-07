@@ -62,6 +62,7 @@ The prototype supports:
 - Pilot kickoff pack
 - Pilot review pack
 - Production transition pack
+- Operating review pack
 - Operational alerts
 - Incident playbook
 - Support policy
@@ -1351,6 +1352,29 @@ This is useful because a pilot result is not the same as production approval.
 The transition pack explains what must happen before real production traffic.
 
 It is a transition plan, not production approval, a signed SOW, final price, legal approval, or security certification.
+
+## What The Operating Review Shows
+
+The prototype includes `/v1/gateway/operating-review`.
+
+This endpoint helps run weekly or monthly reviews after the gateway is being tested or used.
+
+It shows:
+
+- review cadence
+- meeting agenda
+- operating signals
+- customer snapshots
+- expand / hold / fix / pause decision options
+- owner follow-ups
+- review outputs
+- things not to claim
+
+This is useful because a gateway needs ongoing ownership after launch or limited production.
+
+The operating review pack helps the team decide whether to expand usage, hold steady, fix blockers, or pause.
+
+It is an operating review guide, not an SLA report, legal audit, final invoice, or security certification.
 
 ## What Invoice Preview Shows
 
