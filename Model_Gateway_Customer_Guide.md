@@ -99,6 +99,7 @@ The prototype supports:
 - Alternatives pack for build, buy, managed gateway, and OpenRouter-like comparison
 - SOW draft for scope, deliverables, exclusions, and acceptance criteria
 - Workshop agenda for the first customer meeting
+- Decision log for workshop decisions and next actions
 - Provider adapter scaffolds for OpenAI and Claude
 - Automated mock regression test
 - Mock mode
@@ -1229,6 +1230,28 @@ This is useful because many AI gateway discussions are too broad at the start.
 The workshop agenda helps turn the idea into one use case, one provider path, one pilot owner, and one next decision.
 
 It is a meeting guide, not a contract, quote, SLA, or production approval.
+
+## What The Decision Log Shows
+
+The prototype includes `/v1/gateway/decision-log`.
+
+This endpoint helps record what was decided after a customer workshop.
+
+It shows:
+
+- decision records
+- owner for each decision
+- evidence endpoints
+- open questions
+- next actions
+- decision status meaning
+- meeting note template
+
+This is useful because customer decisions can disappear into chat messages or meeting memory.
+
+The decision log keeps the next step clear.
+
+It is a planning record, not a contract, legal approval, invoice, SLA, or security certification.
 
 ## What Invoice Preview Shows
 

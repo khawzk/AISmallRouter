@@ -272,6 +272,7 @@ def build():
         "Alternatives pack endpoint for direct provider, API Gateway, managed AI Gateway, OpenRouter-like, and custom gateway comparison.",
         "SOW draft endpoint for proposed scope, deliverables, exclusions, milestones, acceptance criteria, and open contract items.",
         "Workshop agenda endpoint for attendees, pre-work, meeting flow, questions, demo order, outputs, and follow-up actions.",
+        "Decision log endpoint for workshop decisions, owners, evidence, open questions, next actions, and meeting notes.",
         "Request activity endpoint with simple filters for troubleshooting.",
         "Request detail lookup using gateway.request_id returned in chat responses.",
         "Config check endpoint for demo keys and missing production settings.",
@@ -358,6 +359,7 @@ def build():
             ["Alternatives pack", "Customers may ask why not use OpenRouter, Vercel AI Gateway, Alibaba Cloud AI Gateway, or a normal API Gateway.", "Build, buy, managed gateway, and custom gateway comparison"],
             ["SOW draft", "Customers may need a safe project scope draft before legal contract work.", "Scope, deliverables, exclusions, milestones, acceptance criteria, and open items"],
             ["Workshop agenda", "The first customer meeting needs structure and clear outputs.", "Attendees, pre-work, agenda, questions, demo order, outputs, and follow-up"],
+            ["Decision log", "Workshop decisions need owners and follow-up evidence.", "Decision records, open questions, next actions, status meanings, and notes template"],
             ["Customer onboarding", "New customers need keys, limits, and model access.", "Key issue preview creates a safe config snippet"],
             ["Key lifecycle", "Customers need key rotation and disable workflows.", "Local JSON-backed create, rotate, and disable actions"],
             ["Audit trail", "Teams need to know who changed customer access.", "Audit events for customer lifecycle actions"],
@@ -787,6 +789,26 @@ def build():
     workshop = Table(workshop_rows, colWidths=[2.1 * inch, 4.35 * inch])
     workshop.setStyle(table_style())
     story.append(workshop)
+    story.append(Spacer(1, 0.15 * inch))
+
+    story.append(Paragraph("Decision Log", styles["H1Custom"]))
+    story.append(
+        Paragraph(
+            "/v1/gateway/decision-log records what was decided after a customer workshop, who owns each decision, which evidence endpoints support the decision, what remains open, and what next actions should happen. It also includes a simple meeting note template. It is a planning record, not a contract, legal approval, invoice, SLA, or security certification.",
+            styles["BodyCustom"],
+        )
+    )
+    decision_rows = [
+        ["Area", "Plain-English meaning"],
+        ["Decision records", "First use case, first provider, mock/live, build/buy, success criteria, and proposal/SOW next step."],
+        ["Open questions", "Sponsor, use case, live testing, logging, budget, approvals, and decision date."],
+        ["Next actions", "Gateway, sponsor, technical, security, and finance/procurement owners each get an action."],
+        ["Notes template", "Simple structure for sending clean meeting notes."],
+        ["Boundary", "Not customer approval, signed contract, legal acceptance, production approval, or final billing decision."],
+    ]
+    decision = Table(decision_rows, colWidths=[2.1 * inch, 4.35 * inch])
+    decision.setStyle(table_style())
+    story.append(decision)
     story.append(Spacer(1, 0.15 * inch))
 
     story.append(Paragraph("Invoice Preview", styles["H1Custom"]))

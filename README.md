@@ -224,6 +224,7 @@ The current version also supports:
 - `GET /v1/gateway/alternatives-pack`
 - `GET /v1/gateway/sow-draft`
 - `GET /v1/gateway/workshop-agenda`
+- `GET /v1/gateway/decision-log`
 - `GET /v1/gateway/invoice-preview`
 - `GET /v1/gateway/request-activity`
 - `GET /v1/gateway/request-detail`
@@ -1750,6 +1751,31 @@ It includes:
 Use it before writing a final proposal or SOW.
 
 This is a meeting guide, not a contract, quote, SLA, or production approval.
+
+## Decision Log
+
+The gateway has a customer decision log endpoint:
+
+```bash
+curl http://127.0.0.1:8787/v1/gateway/decision-log \
+  -H "Authorization: Bearer dev-admin-key"
+```
+
+It helps record what was decided after a customer workshop.
+
+It includes:
+
+- decision records
+- owner for each decision
+- evidence endpoints
+- open questions
+- next actions
+- decision status meaning
+- meeting note template
+
+Use it after the workshop agenda, together with the proposal summary or SOW draft.
+
+This is a planning record, not a contract, legal approval, invoice, SLA, or security certification.
 
 ## Invoice Preview
 

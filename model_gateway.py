@@ -90,6 +90,7 @@ ADMIN_PATHS = {
     "/v1/gateway/alternatives-pack",
     "/v1/gateway/sow-draft",
     "/v1/gateway/workshop-agenda",
+    "/v1/gateway/decision-log",
     "/v1/gateway/policy-presets",
     "/v1/gateway/demo-bundle",
     "/v1/gateway/handoff-checklist",
@@ -1909,6 +1910,125 @@ def workshop_agenda(server):
             "/v1/gateway/alternatives-pack",
             "/v1/gateway/sow-draft",
             "/v1/gateway/pilot-checklist",
+        ],
+    }
+
+
+def decision_log(server):
+    workshop = workshop_agenda(server)
+    sow = sow_draft(server)
+    business = business_case(server)
+    implementation = implementation_plan(server)
+    return {
+        "object": "gateway.decision_log",
+        "title": "AISmallRouter Decision Log",
+        "audience": "customer sponsor, project owner, delivery owner, security owner, finance owner, and gateway owner",
+        "mode": "mock" if server.mock_mode else "live",
+        "plain_english": "This log helps record what was decided after a customer workshop, what evidence supports each decision, who owns the next action, and what remains open.",
+        "customer_safe_summary": {
+            "one_sentence": "Use this after the workshop so decisions do not disappear into chat messages or meeting memory.",
+            "best_use": "Send it with the proposal summary or SOW draft after the first customer meeting.",
+            "boundary": "This is a decision record for planning. It is not a signed contract, legal approval, invoice, SLA, or security certification.",
+        },
+        "decision_records": [
+            {
+                "decision": "First use case",
+                "current_status": "needs_customer_confirmation",
+                "owner": "Customer sponsor",
+                "recommended_record": "Name one workflow that will test the gateway clearly.",
+                "evidence": ["/v1/gateway/discovery-checklist", "/v1/gateway/workshop-agenda"],
+            },
+            {
+                "decision": "First provider path",
+                "current_status": "recommended_qwen_first_if_key_available",
+                "owner": "Gateway owner and customer technical contact",
+                "recommended_record": "Use Alibaba Cloud Model Studio / Qwen first when that is the available live provider key.",
+                "evidence": ["/v1/gateway/provider-contracts", "/v1/gateway/implementation-plan"],
+            },
+            {
+                "decision": "Mock or live pilot",
+                "current_status": "mock_first",
+                "owner": "Customer sponsor and gateway owner",
+                "recommended_record": "Use mock mode for explanation; use live Qwen only after data handling and spend limits are agreed.",
+                "evidence": ["/v1/gateway/data-governance", "/v1/gateway/commercial-policy"],
+            },
+            {
+                "decision": "Build, buy, or managed gateway option",
+                "current_status": "custom_gateway_demo_with_alternatives_tracked",
+                "owner": "Customer sponsor and solution architect",
+                "recommended_record": "Continue custom AISmallRouter prototype only if private controls and customer-specific reporting matter.",
+                "evidence": ["/v1/gateway/alternatives-pack", "/v1/gateway/decision-guide"],
+            },
+            {
+                "decision": "Pilot success criteria",
+                "current_status": "needs_customer_confirmation",
+                "owner": "Business sponsor and customer technical contact",
+                "recommended_record": "Agree what score, usage, report, or technical integration proves the pilot worked.",
+                "evidence": ["/v1/gateway/pilot-checklist", "/v1/gateway/pilot-scorecard"],
+            },
+            {
+                "decision": "SOW or proposal next",
+                "current_status": "proposal_or_sow_draft_ready",
+                "owner": "Gateway owner and finance/legal owner",
+                "recommended_record": "Decide whether the next artifact is a lightweight proposal summary or a formal SOW review.",
+                "evidence": ["/v1/gateway/proposal-summary", "/v1/gateway/sow-draft"],
+            },
+        ],
+        "open_questions": [
+            "Who is the named customer sponsor?",
+            "Which workflow is the first pilot use case?",
+            "Is live Qwen testing required, or is mock mode enough for this stage?",
+            "Can prompts and responses be logged for support during pilot?",
+            "What token and cost budget should block or warn?",
+            "Who approves security, procurement, finance, and legal review?",
+            "What date should the pilot decision be made?",
+        ],
+        "next_actions": [
+            {"owner": "Gateway owner", "action": "Send workshop notes, proposal summary, SOW draft, and decision log.", "evidence": ["/v1/gateway/workshop-agenda", "/v1/gateway/proposal-summary", "/v1/gateway/sow-draft"]},
+            {"owner": "Customer sponsor", "action": "Confirm pilot use case, sponsor, budget owner, and decision date.", "evidence": ["/v1/gateway/business-case"]},
+            {"owner": "Customer technical contact", "action": "Review OpenAPI, Postman, integration guide, and SDK starter.", "evidence": ["/openapi.json", "/postman_collection.json", "/v1/gateway/integration-guide", "/v1/gateway/sdk-starter"]},
+            {"owner": "Security/data owner", "action": "Confirm logging, retention, deletion, and data handling expectations.", "evidence": ["/v1/gateway/data-governance", "/v1/gateway/security-review"]},
+            {"owner": "Finance/procurement", "action": "Review commercial policy, procurement pack, and out-of-scope items.", "evidence": ["/v1/gateway/commercial-policy", "/v1/gateway/procurement-pack", "/v1/gateway/sow-draft"]},
+        ],
+        "decision_status_meaning": {
+            "confirmed": "Customer and gateway team agreed.",
+            "needs_customer_confirmation": "The project should not move forward until the customer confirms.",
+            "recommended_qwen_first_if_key_available": "Good default for this prototype because Model Studio key is available.",
+            "mock_first": "Use mock mode until data and spend rules are approved.",
+            "proposal_or_sow_draft_ready": "The prototype has enough material to draft scope, but legal/procurement still need review.",
+        },
+        "meeting_note_template": [
+            "Date:",
+            "Customer:",
+            "Attendees:",
+            "Confirmed use case:",
+            "Confirmed provider path:",
+            "Mock/live decision:",
+            "Data logging decision:",
+            "Budget decision:",
+            "Open risks:",
+            "Next owner/action/date:",
+        ],
+        "current_context": {
+            "workshop_expected_outputs": workshop.get("expected_outputs", []),
+            "sow_milestones": [item.get("milestone") for item in sow.get("milestones", [])],
+            "business_decision_options": [item.get("option") for item in business.get("decision_options", [])],
+            "implementation_phases": [item.get("phase") for item in implementation.get("delivery_phases", [])],
+        },
+        "recommended_next_action": "After every customer workshop, fill this log and send it with the proposal summary or SOW draft.",
+        "not_claimed": [
+            "Customer approval",
+            "Signed contract",
+            "Legal acceptance",
+            "Production approval",
+            "Final billing decision",
+        ],
+        "evidence_endpoints": [
+            "/v1/gateway/workshop-agenda",
+            "/v1/gateway/proposal-summary",
+            "/v1/gateway/sow-draft",
+            "/v1/gateway/business-case",
+            "/v1/gateway/implementation-plan",
         ],
     }
 
@@ -6850,6 +6970,7 @@ def openapi_spec(server):
         "/v1/gateway/alternatives-pack": "Build, buy, managed gateway, and OpenRouter-like alternatives pack",
         "/v1/gateway/sow-draft": "Statement of Work draft and scope guardrails",
         "/v1/gateway/workshop-agenda": "Customer workshop agenda and meeting pack",
+        "/v1/gateway/decision-log": "Customer workshop decision log",
         "/v1/gateway/invoice-preview": "Invoice preview JSON or CSV",
         "/v1/gateway/model-usage": "Usage grouped by model",
         "/v1/gateway/request-summary": "Request summary by dimensions",
@@ -7009,6 +7130,7 @@ def postman_collection(server):
         request_item("Alternatives Pack", "GET", "/v1/gateway/alternatives-pack", "admin_api_key"),
         request_item("SOW Draft", "GET", "/v1/gateway/sow-draft", "admin_api_key"),
         request_item("Workshop Agenda", "GET", "/v1/gateway/workshop-agenda", "admin_api_key"),
+        request_item("Decision Log", "GET", "/v1/gateway/decision-log", "admin_api_key"),
         request_item("Invoice Preview", "GET", "/v1/gateway/invoice-preview", "admin_api_key"),
         request_item(
             "Route Preview",
@@ -7280,6 +7402,13 @@ def demo_bundle(server):
                 "auth": "adminBearerAuth",
             },
             {
+                "name": "Decision log",
+                "url": f"{base_url}/v1/gateway/decision-log",
+                "audience": "customer sponsor, project, delivery, security, finance, and gateway owners",
+                "purpose": "Record customer workshop decisions, owners, evidence, open questions, next actions, and meeting-note template.",
+                "auth": "adminBearerAuth",
+            },
+            {
                 "name": "Provider contract matrix",
                 "url": f"{base_url}/v1/gateway/provider-contracts",
                 "audience": "business and technical",
@@ -7540,6 +7669,10 @@ def demo_bundle(server):
                 "command": f"curl {base_url}/v1/gateway/workshop-agenda -H 'Authorization: Bearer {server.admin_api_key or DEFAULT_ADMIN_API_KEY}'",
             },
             {
+                "name": "Decision log",
+                "command": f"curl {base_url}/v1/gateway/decision-log -H 'Authorization: Bearer {server.admin_api_key or DEFAULT_ADMIN_API_KEY}'",
+            },
+            {
                 "name": "Provider contracts",
                 "command": f"curl {base_url}/v1/gateway/provider-contracts -H 'Authorization: Bearer {server.admin_api_key or DEFAULT_ADMIN_API_KEY}'",
             },
@@ -7625,6 +7758,7 @@ def gateway_status(server):
         "alternatives_pack": alternatives_pack(server),
         "sow_draft": sow_draft(server),
         "workshop_agenda": workshop_agenda(server),
+        "decision_log": decision_log(server),
         "pilot_scorecard": pilot_scorecard(server),
         "invoice_preview": invoice_preview(server),
         "production_readiness": production_readiness(server),
@@ -8487,6 +8621,9 @@ class GatewayHandler(BaseHTTPRequestHandler):
             return
         if path == "/v1/gateway/workshop-agenda":
             make_json_response(self, 200, workshop_agenda(self.server))
+            return
+        if path == "/v1/gateway/decision-log":
+            make_json_response(self, 200, decision_log(self.server))
             return
         if path == "/v1/gateway/request-activity":
             filters = {

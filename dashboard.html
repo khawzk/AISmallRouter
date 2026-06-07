@@ -1636,6 +1636,13 @@
           </article>
           <article class="handoff-card">
             <div>
+              <h3>Decision log</h3>
+              <p>Customer workshop decisions, owners, evidence, open questions, next actions, and notes template.</p>
+            </div>
+            <a class="btn" href="/v1/gateway/decision-log?admin_key=__ADMIN_API_KEY__">Open decisions</a>
+          </article>
+          <article class="handoff-card">
+            <div>
               <h3>Evaluation plan</h3>
               <p>Model quality, reliability, latency, cost, safety, and fallback checks before live routing.</p>
             </div>
@@ -1881,6 +1888,16 @@
       </div>
       <div class="card-body">
         <div class="report-grid" id="workshopAgendaList"></div>
+      </div>
+    </section>
+
+    <section class="card" id="decisionLog" style="margin-bottom: 18px;">
+      <div class="card-head">
+        <h2>Decision log</h2>
+        <span>decisions, owners, evidence, open questions, and next actions</span>
+      </div>
+      <div class="card-body">
+        <div class="report-grid" id="decisionLogList"></div>
       </div>
     </section>
 
@@ -2211,6 +2228,7 @@
     const alternativesPackList = document.getElementById("alternativesPackList");
     const sowDraftList = document.getElementById("sowDraftList");
     const workshopAgendaList = document.getElementById("workshopAgendaList");
+    const decisionLogList = document.getElementById("decisionLogList");
     const invoicePreviewList = document.getElementById("invoicePreviewList");
     const activityList = document.getElementById("activityList");
     const auditList = document.getElementById("auditList");
@@ -3271,6 +3289,66 @@
         </div>
       `;
       workshopAgendaList.appendChild(card);
+    });
+
+    const decisionLog = state.decision_log || {customer_safe_summary: {}, decision_records: [], open_questions: [], next_actions: [], meeting_note_template: [], not_claimed: []};
+    const decisionCards = [
+      {
+        title: "Customer-safe summary",
+        chip: "record",
+        body: decisionLog.customer_safe_summary?.one_sentence || "",
+        items: [
+          decisionLog.customer_safe_summary?.best_use,
+          decisionLog.customer_safe_summary?.boundary,
+        ].filter(Boolean),
+      },
+      {
+        title: "Decisions",
+        chip: "log",
+        body: decisionLog.recommended_next_action || "",
+        items: (decisionLog.decision_records || []).map((item) => `${item.decision}: ${item.current_status} (${item.owner})`),
+      },
+      {
+        title: "Open questions",
+        chip: "ask",
+        body: "Questions that must be answered before scope moves forward.",
+        items: decisionLog.open_questions || [],
+      },
+      {
+        title: "Next actions",
+        chip: "owners",
+        body: "Action owners after the customer workshop.",
+        items: (decisionLog.next_actions || []).map((item) => `${item.owner}: ${item.action}`),
+      },
+      {
+        title: "Notes template",
+        chip: "template",
+        body: "Simple structure for sending meeting notes.",
+        items: decisionLog.meeting_note_template || [],
+      },
+      {
+        title: "Do not claim",
+        chip: "boundary",
+        body: "Planning record only.",
+        items: decisionLog.not_claimed || [],
+      },
+    ];
+    decisionCards.forEach((item) => {
+      const card = document.createElement("article");
+      card.className = "report-card";
+      card.innerHTML = `
+        <div class="report-top">
+          <div>
+            <strong>${escapeHtml(item.title)}</strong>
+            <span>${escapeHtml(item.body)}</span>
+          </div>
+          <span class="${item.title === "Customer-safe summary" ? "chip green" : "chip"}">${escapeHtml(item.chip)}</span>
+        </div>
+        <div class="option-list">
+          ${(item.items || []).slice(0, 6).map((value) => `<span>${escapeHtml(value)}</span>`).join("")}
+        </div>
+      `;
+      decisionLogList.appendChild(card);
     });
 
     const invoicePreview = state.invoice_preview || {totals: {}, data: []};
