@@ -279,6 +279,7 @@ def build():
         "Production transition endpoint for moving from pilot review to hardening work without over-promising production readiness.",
         "Operating review endpoint for recurring customer health, usage, incidents, budget, change, and expansion decisions.",
         "Provider expansion endpoint for adding OpenAI, Claude, Xiaomi, OpenRouter-like, or other providers with gates and tests.",
+        "Customer expansion endpoint for growing one customer from pilot to more teams, workflows, models, providers, or traffic.",
         "Request activity endpoint with simple filters for troubleshooting.",
         "Request detail lookup using gateway.request_id returned in chat responses.",
         "Config check endpoint for demo keys and missing production settings.",
@@ -372,6 +373,7 @@ def build():
             ["Production transition", "Pilot success does not mean production approval.", "Transition trigger, phases, role handoff, P0 controls, SOW questions, and kickoff agenda"],
             ["Operating review", "A gateway needs ongoing ownership after launch or limited production.", "Cadence, signals, customer snapshots, decisions, owners, and review outputs"],
             ["Provider expansion", "Adding providers is governance work, not just another API URL.", "Provider candidates, approval gates, tests, phases, questions, and boundaries"],
+            ["Customer expansion", "One successful pilot should not become unlimited usage automatically.", "Stages, gates, decisions, snapshots, questions, access controls, and boundaries"],
             ["Customer onboarding", "New customers need keys, limits, and model access.", "Key issue preview creates a safe config snippet"],
             ["Key lifecycle", "Customers need key rotation and disable workflows.", "Local JSON-backed create, rotate, and disable actions"],
             ["Audit trail", "Teams need to know who changed customer access.", "Audit events for customer lifecycle actions"],
@@ -941,6 +943,26 @@ def build():
     expansion = Table(expansion_rows, colWidths=[2.1 * inch, 4.35 * inch])
     expansion.setStyle(table_style())
     story.append(expansion)
+    story.append(Spacer(1, 0.15 * inch))
+
+    story.append(Paragraph("Customer Expansion", styles["H1Custom"]))
+    story.append(
+        Paragraph(
+            "/v1/gateway/customer-expansion helps expand one customer from a small pilot to more teams, workflows, models, providers, or traffic. It includes expansion principles, stages, control gates, decisions, customer snapshot, access snapshot, customer questions, and things not to claim. It is an expansion plan, not a signed contract, unlimited usage approval, production SLA, final price, or security certification.",
+            styles["BodyCustom"],
+        )
+    )
+    customer_expansion_rows = [
+        ["Area", "Plain-English meaning"],
+        ["Principles", "Expand one dimension at a time and set budget, access, data, and support rules first."],
+        ["Stages", "Single workflow pilot, more users, more workflows, more models/providers, then broader rollout."],
+        ["Control gates", "Customer access, budget, data handling, support, quality, and provider route."],
+        ["Decisions", "Expand usage, add workflow, add provider or model, or hold/reduce scope."],
+        ["Boundary", "Not signed contract, unlimited usage approval, production SLA, final price, or security certification."],
+    ]
+    customer_expansion = Table(customer_expansion_rows, colWidths=[2.1 * inch, 4.35 * inch])
+    customer_expansion.setStyle(table_style())
+    story.append(customer_expansion)
     story.append(Spacer(1, 0.15 * inch))
 
     story.append(Paragraph("Invoice Preview", styles["H1Custom"]))

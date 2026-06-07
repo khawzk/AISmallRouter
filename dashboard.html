@@ -1685,6 +1685,13 @@
           </article>
           <article class="handoff-card">
             <div>
+              <h3>Customer expansion</h3>
+              <p>Expand one customer to more teams, workflows, models, providers, or traffic with gates.</p>
+            </div>
+            <a class="btn" href="/v1/gateway/customer-expansion?admin_key=__ADMIN_API_KEY__">Open expansion</a>
+          </article>
+          <article class="handoff-card">
+            <div>
               <h3>Evaluation plan</h3>
               <p>Model quality, reliability, latency, cost, safety, and fallback checks before live routing.</p>
             </div>
@@ -2000,6 +2007,16 @@
       </div>
       <div class="card-body">
         <div class="report-grid" id="providerExpansionList"></div>
+      </div>
+    </section>
+
+    <section class="card" id="customerExpansion" style="margin-bottom: 18px;">
+      <div class="card-head">
+        <h2>Customer expansion</h2>
+        <span>stages, gates, decisions, customer snapshots, and access controls</span>
+      </div>
+      <div class="card-body">
+        <div class="report-grid" id="customerExpansionList"></div>
       </div>
     </section>
 
@@ -2337,6 +2354,7 @@
     const productionTransitionList = document.getElementById("productionTransitionList");
     const operatingReviewList = document.getElementById("operatingReviewList");
     const providerExpansionList = document.getElementById("providerExpansionList");
+    const customerExpansionList = document.getElementById("customerExpansionList");
     const invoicePreviewList = document.getElementById("invoicePreviewList");
     const activityList = document.getElementById("activityList");
     const auditList = document.getElementById("auditList");
@@ -3857,6 +3875,72 @@
         </div>
       `;
       providerExpansionList.appendChild(card);
+    });
+
+    const customerExpansion = state.customer_expansion || {expansion_stages: [], control_gates: [], expansion_decisions: [], customer_snapshot: [], customer_questions: [], not_claimed: []};
+    const customerExpansionCards = [
+      {
+        title: "Customer-safe summary",
+        chip: "expansion",
+        body: customerExpansion.customer_safe_summary?.one_sentence || "",
+        items: [
+          customerExpansion.customer_safe_summary?.best_use,
+          customerExpansion.customer_safe_summary?.boundary,
+        ].filter(Boolean),
+      },
+      {
+        title: "Expansion principles",
+        chip: "principles",
+        body: customerExpansion.recommended_next_action || "",
+        items: customerExpansion.expansion_principles || [],
+      },
+      {
+        title: "Expansion stages",
+        chip: "stages",
+        body: "Grow the customer in controlled stages.",
+        items: (customerExpansion.expansion_stages || []).map((item) => `${item.stage}: ${item.scope}`),
+      },
+      {
+        title: "Control gates",
+        chip: "gates",
+        body: "Checks before increasing customer usage.",
+        items: (customerExpansion.control_gates || []).map((item) => `${item.gate}: ${item.owner}`),
+      },
+      {
+        title: "Expansion decisions",
+        chip: "decisions",
+        body: "Choose one clear next step.",
+        items: (customerExpansion.expansion_decisions || []).map((item) => `${item.decision}: ${item.choose_when}`),
+      },
+      {
+        title: "Customer questions",
+        chip: "questions",
+        body: "Questions to answer before changing access or limits.",
+        items: customerExpansion.customer_questions || [],
+      },
+      {
+        title: "Do not claim",
+        chip: "boundary",
+        body: "Expansion still needs limits, owners, and review dates.",
+        items: customerExpansion.not_claimed || [],
+      },
+    ];
+    customerExpansionCards.forEach((item) => {
+      const card = document.createElement("article");
+      card.className = "report-card";
+      card.innerHTML = `
+        <div class="report-top">
+          <div>
+            <strong>${escapeHtml(item.title)}</strong>
+            <span>${escapeHtml(item.body)}</span>
+          </div>
+          <span class="${item.title === "Customer-safe summary" ? "chip green" : "chip"}">${escapeHtml(item.chip)}</span>
+        </div>
+        <div class="option-list">
+          ${(item.items || []).slice(0, 6).map((value) => `<span>${escapeHtml(value)}</span>`).join("")}
+        </div>
+      `;
+      customerExpansionList.appendChild(card);
     });
 
     const invoicePreview = state.invoice_preview || {totals: {}, data: []};

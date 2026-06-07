@@ -97,6 +97,7 @@ ADMIN_PATHS = {
     "/v1/gateway/production-transition",
     "/v1/gateway/operating-review",
     "/v1/gateway/provider-expansion",
+    "/v1/gateway/customer-expansion",
     "/v1/gateway/policy-presets",
     "/v1/gateway/demo-bundle",
     "/v1/gateway/handoff-checklist",
@@ -2738,6 +2739,151 @@ def provider_expansion_pack(server):
             "/v1/gateway/alternatives-pack",
             "/v1/gateway/route-preview",
             "/v1/gateway/change-management",
+        ],
+    }
+
+
+def customer_expansion_plan(server):
+    reports = customer_reports(server)
+    success = customer_success_summary(server)
+    operating = operating_review_pack(server)
+    provider_expansion = provider_expansion_pack(server)
+    access = access_matrix(server)
+    customers = [public_customer_view(customer) for customer in server.customers_by_key.values()]
+    return {
+        "object": "gateway.customer_expansion",
+        "title": "AISmallRouter Customer Expansion Plan",
+        "audience": "customer sponsor, customer success owner, gateway owner, finance owner, support owner, and customer technical contact",
+        "mode": "mock" if server.mock_mode else "live",
+        "plain_english": "This plan explains how to expand one customer from a small pilot to more teams, use cases, models, or traffic without losing control of budget, access, support, and data rules.",
+        "customer_safe_summary": {
+            "one_sentence": "Use this when one customer wants to expand gateway usage beyond the first workflow.",
+            "best_use": "Run it after operating review shows stable usage and before adding new teams, models, providers, or traffic limits.",
+            "boundary": "This is an expansion plan. It is not a signed contract, unlimited usage approval, production SLA, final price, or security certification.",
+        },
+        "expansion_principles": [
+            "Expand one dimension at a time: user group, use case, model, provider, or traffic.",
+            "Keep customer gateway keys separate from provider keys.",
+            "Set budget and request limits before increasing traffic.",
+            "Use route preview and access matrix before changing model access.",
+            "Record every customer access, route, and provider change as an audit event.",
+            "Review customer health before every expansion step.",
+        ],
+        "expansion_stages": [
+            {
+                "stage": "1. Single workflow pilot",
+                "scope": "One customer team, one workflow, one or two public model names.",
+                "entry_gate": "Pilot kickoff complete.",
+                "exit_gate": "Pilot review shows useful value and manageable support risk.",
+            },
+            {
+                "stage": "2. More users in same workflow",
+                "scope": "Same workflow, larger customer group, same provider route.",
+                "entry_gate": "Operating review is stable and budget limit is agreed.",
+                "exit_gate": "Customer reports show usage and errors remain acceptable.",
+            },
+            {
+                "stage": "3. More workflows",
+                "scope": "Second workflow with separate success criteria and owner.",
+                "entry_gate": "Customer sponsor names business owner and data rules.",
+                "exit_gate": "Decision log confirms workflow owner, model access, and budget.",
+            },
+            {
+                "stage": "4. More models or providers",
+                "scope": "New public model aliases, fallback route, or additional provider candidate.",
+                "entry_gate": "Provider expansion gates and evaluation plan are complete.",
+                "exit_gate": "Route preview, contract tests, and low-limit live test pass.",
+            },
+            {
+                "stage": "5. Broader rollout",
+                "scope": "Multiple teams or production traffic with support and finance ownership.",
+                "entry_gate": "Production transition and launch gates are approved.",
+                "exit_gate": "Operating review cadence and owner follow-ups are active.",
+            },
+        ],
+        "control_gates": [
+            {"gate": "Customer access", "owner": "Gateway owner", "question": "Which customer key, plan, and allowed models apply?"},
+            {"gate": "Budget", "owner": "Finance owner", "question": "What token, cost, and request limits apply before more traffic?"},
+            {"gate": "Data handling", "owner": "Security/data owner", "question": "Can this workflow send prompts under approved logging and retention rules?"},
+            {"gate": "Support", "owner": "Support owner", "question": "Who answers issues when usage expands?"},
+            {"gate": "Quality", "owner": "Customer technical contact", "question": "Does the model output satisfy the workflow acceptance check?"},
+            {"gate": "Provider route", "owner": "Gateway owner", "question": "Does route preview explain the model, provider, fallback, and policy?"},
+        ],
+        "expansion_decisions": [
+            {
+                "decision": "Expand usage",
+                "choose_when": "Customer health is good, budgets are clear, support risk is low, and access rules are approved.",
+                "next_step": "Increase one limit or add one team, then review after a fixed period.",
+            },
+            {
+                "decision": "Add workflow",
+                "choose_when": "The customer has a second workflow with a named owner and measurable success criteria.",
+                "next_step": "Run discovery, route preview, data review, and pilot scorecard for the new workflow.",
+            },
+            {
+                "decision": "Add provider or model",
+                "choose_when": "The existing provider/model cannot meet quality, latency, cost, policy, or coverage needs.",
+                "next_step": "Use provider expansion and evaluation plan before enabling a customer route.",
+            },
+            {
+                "decision": "Hold or reduce scope",
+                "choose_when": "Budget, errors, data rules, support ownership, or customer value is unclear.",
+                "next_step": "Use operating review to assign blockers and decide again later.",
+            },
+        ],
+        "customer_snapshot": [
+            {
+                "customer": report.get("id"),
+                "plan": report.get("plan"),
+                "budget_state": report.get("budget_state"),
+                "requests": (report.get("request_summary") or {}).get("requests", 0),
+                "errors": (report.get("request_summary") or {}).get("errors", 0),
+                "remaining_tokens": (report.get("budget") or {}).get("remaining_tokens"),
+                "remaining_cost": (report.get("budget") or {}).get("remaining_cost"),
+            }
+            for report in reports[:5]
+        ],
+        "access_snapshot": [
+            {
+                "customer": customer.get("id"),
+                "plan": customer.get("plan"),
+                "allowed_count": customer.get("allowed_count"),
+                "blocked_count": customer.get("blocked_count"),
+            }
+            for customer in access[:5]
+        ],
+        "customer_questions": [
+            "Which team or workflow expands first?",
+            "Is this expansion more users, more use cases, more models, more providers, or more traffic?",
+            "What budget limit changes before traffic increases?",
+            "Which prompts and data are allowed in the expanded workflow?",
+            "Who owns support and escalation for the expanded usage?",
+            "What result would make the customer stop, hold, or expand again?",
+        ],
+        "current_context": {
+            "customer_count": len(customers),
+            "customer_success_summary": success.get("summary", {}),
+            "operating_review_decisions": [item.get("option") for item in operating.get("decision_options", [])],
+            "provider_expansion_candidates": [item.get("provider") for item in provider_expansion.get("provider_candidates", [])],
+        },
+        "not_claimed": [
+            "Unlimited customer usage",
+            "Signed contract",
+            "Final price",
+            "Production SLA",
+            "Security certification",
+            "Guaranteed model quality",
+            "Automatic provider marketplace expansion",
+        ],
+        "recommended_next_action": "Choose one expansion dimension, confirm owner, budget, data rules, support path, and review date, then update customer access or route config through the admin workflow.",
+        "evidence_endpoints": [
+            "/v1/gateway/customer-reports",
+            "/v1/gateway/customer-success",
+            "/v1/gateway/access-matrix",
+            "/v1/gateway/operating-review",
+            "/v1/gateway/provider-expansion",
+            "/v1/gateway/route-preview",
+            "/v1/gateway/audit-events",
         ],
     }
 
@@ -7686,6 +7832,7 @@ def openapi_spec(server):
         "/v1/gateway/production-transition": "Production transition and hardening handoff pack",
         "/v1/gateway/operating-review": "Recurring operating review pack",
         "/v1/gateway/provider-expansion": "Provider expansion governance pack",
+        "/v1/gateway/customer-expansion": "Customer expansion plan",
         "/v1/gateway/invoice-preview": "Invoice preview JSON or CSV",
         "/v1/gateway/model-usage": "Usage grouped by model",
         "/v1/gateway/request-summary": "Request summary by dimensions",
@@ -7852,6 +7999,7 @@ def postman_collection(server):
         request_item("Production Transition", "GET", "/v1/gateway/production-transition", "admin_api_key"),
         request_item("Operating Review", "GET", "/v1/gateway/operating-review", "admin_api_key"),
         request_item("Provider Expansion", "GET", "/v1/gateway/provider-expansion", "admin_api_key"),
+        request_item("Customer Expansion", "GET", "/v1/gateway/customer-expansion", "admin_api_key"),
         request_item("Invoice Preview", "GET", "/v1/gateway/invoice-preview", "admin_api_key"),
         request_item(
             "Route Preview",
@@ -8172,6 +8320,13 @@ def demo_bundle(server):
                 "auth": "adminBearerAuth",
             },
             {
+                "name": "Customer expansion",
+                "url": f"{base_url}/v1/gateway/customer-expansion",
+                "audience": "customer sponsor, customer success, gateway, finance, support, and customer technical owners",
+                "purpose": "Expand one customer from a pilot to more teams, workflows, models, providers, or traffic with gates and limits.",
+                "auth": "adminBearerAuth",
+            },
+            {
                 "name": "Provider contract matrix",
                 "url": f"{base_url}/v1/gateway/provider-contracts",
                 "audience": "business and technical",
@@ -8460,6 +8615,10 @@ def demo_bundle(server):
                 "command": f"curl {base_url}/v1/gateway/provider-expansion -H 'Authorization: Bearer {server.admin_api_key or DEFAULT_ADMIN_API_KEY}'",
             },
             {
+                "name": "Customer expansion",
+                "command": f"curl {base_url}/v1/gateway/customer-expansion -H 'Authorization: Bearer {server.admin_api_key or DEFAULT_ADMIN_API_KEY}'",
+            },
+            {
                 "name": "Provider contracts",
                 "command": f"curl {base_url}/v1/gateway/provider-contracts -H 'Authorization: Bearer {server.admin_api_key or DEFAULT_ADMIN_API_KEY}'",
             },
@@ -8552,6 +8711,7 @@ def gateway_status(server):
         "production_transition": production_transition_pack(server),
         "operating_review": operating_review_pack(server),
         "provider_expansion": provider_expansion_pack(server),
+        "customer_expansion": customer_expansion_plan(server),
         "pilot_scorecard": pilot_scorecard(server),
         "invoice_preview": invoice_preview(server),
         "production_readiness": production_readiness(server),
@@ -9435,6 +9595,9 @@ class GatewayHandler(BaseHTTPRequestHandler):
             return
         if path == "/v1/gateway/provider-expansion":
             make_json_response(self, 200, provider_expansion_pack(self.server))
+            return
+        if path == "/v1/gateway/customer-expansion":
+            make_json_response(self, 200, customer_expansion_plan(self.server))
             return
         if path == "/v1/gateway/request-activity":
             filters = {

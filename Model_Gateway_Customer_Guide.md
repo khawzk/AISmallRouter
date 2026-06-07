@@ -64,6 +64,7 @@ The prototype supports:
 - Production transition pack
 - Operating review pack
 - Provider expansion pack
+- Customer expansion pack
 - Operational alerts
 - Incident playbook
 - Support policy
@@ -1399,6 +1400,29 @@ This is useful when a customer asks for OpenAI, Claude, Xiaomi, OpenRouter-like 
 The provider expansion pack keeps the answer honest: add one provider at a time, test the contract, approve data and cost rules, then expose it to customers.
 
 It is an expansion planning pack, not a live vendor benchmark, procurement approval, provider certification, final price, or full OpenRouter clone promise.
+
+## What The Customer Expansion Shows
+
+The prototype includes `/v1/gateway/customer-expansion`.
+
+This endpoint helps expand one customer from a small pilot to more teams, workflows, models, providers, or traffic.
+
+It shows:
+
+- expansion principles
+- expansion stages
+- control gates
+- expansion decisions
+- customer snapshot
+- access snapshot
+- customer questions
+- things not to claim
+
+This is useful because one successful pilot should not automatically become unlimited usage.
+
+The customer expansion plan keeps growth controlled with clear owners, budgets, access rules, data rules, support path, and review dates.
+
+It is an expansion plan, not a signed contract, unlimited usage approval, production SLA, final price, or security certification.
 
 ## What Invoice Preview Shows
 

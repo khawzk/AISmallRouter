@@ -231,6 +231,7 @@ The current version also supports:
 - `GET /v1/gateway/production-transition`
 - `GET /v1/gateway/operating-review`
 - `GET /v1/gateway/provider-expansion`
+- `GET /v1/gateway/customer-expansion`
 - `GET /v1/gateway/invoice-preview`
 - `GET /v1/gateway/request-activity`
 - `GET /v1/gateway/request-detail`
@@ -1941,6 +1942,32 @@ It includes:
 Use it before promising OpenAI, Claude, Xiaomi, OpenRouter-like routing, or broad provider coverage.
 
 This is an expansion planning pack, not a live vendor benchmark, procurement approval, provider certification, final price, or full OpenRouter clone promise.
+
+## Customer Expansion
+
+The gateway has a customer expansion endpoint:
+
+```bash
+curl http://127.0.0.1:8787/v1/gateway/customer-expansion \
+  -H "Authorization: Bearer dev-admin-key"
+```
+
+It helps expand one customer from a small pilot to more teams, workflows, models, providers, or traffic.
+
+It includes:
+
+- expansion principles
+- expansion stages
+- control gates
+- expansion decisions
+- customer snapshot
+- access snapshot
+- customer questions
+- things not to claim
+
+Use it after operating review shows stable usage and before changing customer access, model access, budgets, or traffic limits.
+
+This is an expansion plan, not a signed contract, unlimited usage approval, production SLA, final price, or security certification.
 
 ## Invoice Preview
 
