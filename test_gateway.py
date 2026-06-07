@@ -201,6 +201,7 @@ class GatewayPrototypeTest(unittest.TestCase):
             "/v1/gateway/production-backlog",
             "/v1/gateway/launch-plan",
             "/v1/gateway/change-management",
+            "/v1/gateway/change-request-preview",
             "/v1/gateway/data-governance",
             "/v1/gateway/security-review",
             "/v1/gateway/operations-runbook",
@@ -255,6 +256,7 @@ class GatewayPrototypeTest(unittest.TestCase):
         self.assertIn("Incident Playbook", admin_names)
         self.assertIn("Launch Plan", admin_names)
         self.assertIn("Change Management", admin_names)
+        self.assertIn("Change Request Preview", admin_names)
         self.assertIn("Data Governance", admin_names)
         self.assertIn("Security Review", admin_names)
         self.assertIn("Operations Runbook", admin_names)
@@ -311,6 +313,7 @@ class GatewayPrototypeTest(unittest.TestCase):
         self.assertIn(f"{self.base_url}/v1/gateway/production-backlog", entry_urls)
         self.assertIn(f"{self.base_url}/v1/gateway/launch-plan", entry_urls)
         self.assertIn(f"{self.base_url}/v1/gateway/change-management", entry_urls)
+        self.assertIn(f"{self.base_url}/v1/gateway/change-request-preview", entry_urls)
         self.assertIn(f"{self.base_url}/v1/gateway/data-governance", entry_urls)
         self.assertIn(f"{self.base_url}/v1/gateway/security-review", entry_urls)
         self.assertIn(f"{self.base_url}/v1/gateway/operations-runbook", entry_urls)
@@ -803,6 +806,93 @@ class GatewayPrototypeTest(unittest.TestCase):
         self.assertIn(plan["current_launch_decision"], {"go", "conditional_go", "no_go"})
         self.assertIn("approval workflow", plan["prototype_note"])
         self.assertNotIn("DASHSCOPE_API_KEY", json.dumps(plan))
+
+    def test_change_request_preview_dry_runs_approval_impact(self):
+        status, payload = request_json(
+            self.base_url,
+            method="POST",
+            path="/v1/gateway/change-request-preview",
+            api_key="dev-gateway-key",
+            payload={"change_type": "model_route_change", "target_id": "smart-fast"},
+        )
+        self.assertEqual(status, 401)
+        self.assertEqual(payload["error"]["code"], "invalid_admin_key")
+
+        status, missing = request_json(
+            self.base_url,
+            method="POST",
+            path="/v1/gateway/change-request-preview",
+            api_key="dev-admin-key",
+            payload={"target_id": "smart-fast"},
+        )
+        self.assertEqual(status, 400)
+        self.assertEqual(missing["error"]["code"], "missing_change_type")
+
+        status, bad_type = request_json(
+            self.base_url,
+            method="POST",
+            path="/v1/gateway/change-request-preview",
+            api_key="dev-admin-key",
+            payload={"change_type": "unknown_change"},
+        )
+        self.assertEqual(status, 400)
+        self.assertEqual(bad_type["error"]["code"], "unknown_change_type")
+
+        status, route_preview = request_json(
+            self.base_url,
+            method="POST",
+            path="/v1/gateway/change-request-preview",
+            api_key="dev-admin-key",
+            payload={
+                "change_type": "model_route_change",
+                "action": "update fallback models",
+                "target_id": "smart-fast",
+            },
+        )
+        self.assertEqual(status, 200)
+        self.assertEqual(route_preview["object"], "gateway.change_request_preview")
+        self.assertFalse(route_preview["would_apply"])
+        self.assertTrue(route_preview["preview_only"])
+        self.assertEqual(route_preview["risk_level"], "high")
+        self.assertEqual(route_preview["approval_owner"], "Technical owner")
+        self.assertIn("smart-fast", {item["id"] for item in route_preview["affected_models"]})
+        self.assertIn("dev", {item["id"] for item in route_preview["affected_customers"]})
+        self.assertIn("/v1/gateway/route-preview", route_preview["evidence_endpoints"])
+        self.assertIn("not automatic approval", route_preview["customer_safe_summary"]["boundary"])
+        self.assertNotIn("DASHSCOPE_API_KEY", json.dumps(route_preview))
+        self.assertNotIn("sk-", json.dumps(route_preview))
+        self.assertNotIn("provider_api_keys", json.dumps(route_preview))
+
+        status, provider_preview = request_json(
+            self.base_url,
+            method="POST",
+            path="/v1/gateway/change-request-preview",
+            api_key="dev-admin-key",
+            payload={
+                "change_type": "provider_change",
+                "action": "disable provider",
+                "target_id": "dashscope",
+            },
+        )
+        self.assertEqual(status, 200)
+        self.assertEqual(provider_preview["approval_owner"], "Gateway owner")
+        self.assertEqual(provider_preview["affected_provider"]["id"], "dashscope")
+        self.assertIn("smart-fast", {item["id"] for item in provider_preview["affected_models"]})
+
+        status, customer_preview = request_json(
+            self.base_url,
+            method="POST",
+            path="/v1/gateway/change-request-preview",
+            api_key="dev-admin-key",
+            payload={
+                "change_type": "customer_access_change",
+                "action": "rotate customer key",
+                "target_id": "dev",
+            },
+        )
+        self.assertEqual(status, 200)
+        self.assertEqual(customer_preview["approval_owner"], "Customer success owner")
+        self.assertIn("dev", {item["id"] for item in customer_preview["affected_customers"]})
 
     def test_data_governance_explains_privacy_and_retention_gaps(self):
         status, payload = request_json(self.base_url, path="/v1/gateway/data-governance", api_key="dev-gateway-key")
@@ -1372,6 +1462,8 @@ class GatewayPrototypeTest(unittest.TestCase):
         self.assertIn("gates", payload["launch_plan"])
         self.assertIn("change_management", payload)
         self.assertIn("change_types", payload["change_management"])
+        self.assertIn("change_request_preview", payload)
+        self.assertFalse(payload["change_request_preview"]["would_apply"])
         self.assertIn("data_governance", payload)
         self.assertIn("categories", payload["data_governance"])
         self.assertIn("security_review", payload)
@@ -2599,6 +2691,9 @@ class GatewayPrototypeTest(unittest.TestCase):
         self.assertIn("Change management", html)
         self.assertIn("changeManagementList", html)
         self.assertIn("/v1/gateway/change-management?admin_key=", html)
+        self.assertIn("Change request preview", html)
+        self.assertIn("changeRequestPreviewList", html)
+        self.assertIn("state.change_request_preview", html)
         self.assertIn("Data governance", html)
         self.assertIn("dataGovernanceList", html)
         self.assertIn("/v1/gateway/data-governance?admin_key=", html)

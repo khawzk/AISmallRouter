@@ -280,6 +280,7 @@ def build():
         "Operating review endpoint for recurring customer health, usage, incidents, budget, change, and expansion decisions.",
         "Provider expansion endpoint for adding OpenAI, Claude, Xiaomi, OpenRouter-like, or other providers with gates and tests.",
         "Customer expansion endpoint for growing one customer from pilot to more teams, workflows, models, providers, or traffic.",
+        "Change request preview endpoint for dry-run impact, approval owner, evidence, and rollback before saving a change.",
         "Request activity endpoint with simple filters for troubleshooting.",
         "Request detail lookup using gateway.request_id returned in chat responses.",
         "Config check endpoint for demo keys and missing production settings.",
@@ -374,6 +375,7 @@ def build():
             ["Operating review", "A gateway needs ongoing ownership after launch or limited production.", "Cadence, signals, customer snapshots, decisions, owners, and review outputs"],
             ["Provider expansion", "Adding providers is governance work, not just another API URL.", "Provider candidates, approval gates, tests, phases, questions, and boundaries"],
             ["Customer expansion", "One successful pilot should not become unlimited usage automatically.", "Stages, gates, decisions, snapshots, questions, access controls, and boundaries"],
+            ["Change request preview", "Config changes can affect customers, budget, support, and fallback.", "Dry-run impact, approval owner, checklist, evidence, and rollback path"],
             ["Customer onboarding", "New customers need keys, limits, and model access.", "Key issue preview creates a safe config snippet"],
             ["Key lifecycle", "Customers need key rotation and disable workflows.", "Local JSON-backed create, rotate, and disable actions"],
             ["Audit trail", "Teams need to know who changed customer access.", "Audit events for customer lifecycle actions"],
@@ -1103,6 +1105,27 @@ def build():
             styles["BodyCustom"],
         )
     )
+
+    story.append(Paragraph("Change Request Preview", styles["H1Custom"]))
+    story.append(
+        Paragraph(
+            "/v1/gateway/change-request-preview previews one planned customer, provider, or model route change before saving it. It returns would_apply=false, risk level, approval owner, affected provider, affected models or customers, before-change checklist, after-change validation, rollback path, and evidence endpoints. This helps a customer understand that a gateway needs change control. It is not automatic approval, automatic rollback, config version history, or a production change workflow.",
+            styles["BodyCustom"],
+        )
+    )
+    preview_table = Table(
+        [
+            ["Preview Output", "Simple Meaning"],
+            ["would_apply=false", "The endpoint explains the change but does not save it."],
+            ["risk level", "Shows whether the change is low, medium, or high risk."],
+            ["approval owner", "Shows who should approve before the change happens."],
+            ["affected models or customers", "Shows who or what may be impacted."],
+            ["rollback path", "Shows how the team would recover if the change causes a problem."],
+        ],
+        colWidths=[2.0 * inch, 4.5 * inch],
+    )
+    preview_table.setStyle(table_style())
+    story.append(preview_table)
 
     story.append(Paragraph("Data Governance Review", styles["H1Custom"]))
     story.append(

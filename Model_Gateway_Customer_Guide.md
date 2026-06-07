@@ -97,6 +97,7 @@ The prototype supports:
 - Capability routing control
 - Local safety preview
 - Customer key issue preview
+- Change request preview
 - Customer key create, rotate, and disable actions
 - Audit events for customer key lifecycle actions
 - Invoice preview with CSV export
@@ -1722,6 +1723,27 @@ It includes:
 This is not automatic rollback yet.
 
 It is a simple operating plan for safer demos, pilots, and production discussions.
+
+## What The Change Request Preview Shows
+
+The prototype includes `/v1/gateway/change-request-preview`.
+
+This endpoint previews one planned customer, provider, or model route change before saving it.
+
+It includes:
+
+- preview-only flag
+- risk level
+- approval owner
+- affected provider, models, or customers
+- before-change checklist
+- after-change validation
+- rollback path
+- evidence endpoints
+
+This helps a non-technical customer understand that a model gateway needs change control.
+
+It is not automatic approval, automatic rollback, config version history, or a production change workflow.
 
 ## What The Data Governance Review Shows
 

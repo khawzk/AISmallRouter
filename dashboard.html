@@ -1328,6 +1328,16 @@
       </div>
     </section>
 
+    <section class="card" id="changeRequestPreview" style="margin-bottom: 18px;">
+      <div class="card-head">
+        <h2>Change request preview</h2>
+        <span>dry-run impact, approval owner, evidence, and rollback before saving</span>
+      </div>
+      <div class="card-body">
+        <div class="launch-grid" id="changeRequestPreviewList"></div>
+      </div>
+    </section>
+
     <section class="card" id="dataGovernance" style="margin-bottom: 18px;">
       <div class="card-head">
         <h2>Data governance</h2>
@@ -1563,6 +1573,13 @@
               <p>Approval checklist, rollback paths, and evidence endpoints for config changes.</p>
             </div>
             <a class="btn" href="/v1/gateway/change-management?admin_key=__ADMIN_API_KEY__">Open changes</a>
+          </article>
+          <article class="handoff-card">
+            <div>
+              <h3>Change request preview</h3>
+              <p>Dry-run one customer, provider, or model route change before saving it.</p>
+            </div>
+            <a class="btn" href="#changeRequestPreview">View preview</a>
           </article>
           <article class="handoff-card">
             <div>
@@ -2325,6 +2342,7 @@
     const launchSummary = document.getElementById("launchSummary");
     const launchGateList = document.getElementById("launchGateList");
     const changeManagementList = document.getElementById("changeManagementList");
+    const changeRequestPreviewList = document.getElementById("changeRequestPreviewList");
     const dataGovernanceList = document.getElementById("dataGovernanceList");
     const securityReviewList = document.getElementById("securityReviewList");
     const operationsRunbookList = document.getElementById("operationsRunbookList");
@@ -2617,6 +2635,53 @@
         changeManagementList.appendChild(card);
       });
     }
+
+    const changeRequestPreview = state.change_request_preview || {};
+    const changePreviewCards = [
+      {
+        title: "Preview only",
+        badge: changeRequestPreview.preview_only ? "no save" : "unknown",
+        body: changeRequestPreview.customer_safe_summary?.one_sentence || changeRequestPreview.plain_english || "",
+        items: [
+          `Would apply: ${changeRequestPreview.would_apply === false ? "false" : "unknown"}`,
+          `Change type: ${changeRequestPreview.change_type || ""}`,
+          `Target: ${changeRequestPreview.target_id || ""}`,
+        ],
+      },
+      {
+        title: "Risk and owner",
+        badge: changeRequestPreview.risk_level || "",
+        body: changeRequestPreview.approval_owner || "",
+        items: changeRequestPreview.risk_reasons || [],
+      },
+      {
+        title: "Before approval",
+        badge: "checklist",
+        body: changeRequestPreview.recommended_next_action || "",
+        items: changeRequestPreview.before_change || [],
+      },
+      {
+        title: "Rollback path",
+        badge: "recovery",
+        body: changeRequestPreview.rollback_path || "",
+        items: changeRequestPreview.evidence_endpoints || [],
+      },
+    ];
+    changePreviewCards.forEach((item) => {
+      const card = document.createElement("article");
+      card.className = "readiness-card " + (item.badge === "high" ? "needs_work" : "ready");
+      card.innerHTML = `
+        <div class="readiness-title">
+          <strong>${escapeHtml(item.title)}</strong>
+          <span class="chip">${escapeHtml(item.badge || "")}</span>
+        </div>
+        <p>${escapeHtml(item.body || "")}</p>
+        <div class="option-list">
+          ${(item.items || []).slice(0, 4).map((entry) => `<span>${escapeHtml(entry || "")}</span>`).join("")}
+        </div>
+      `;
+      changeRequestPreviewList.appendChild(card);
+    });
 
     const dataGovernance = state.data_governance || {categories: []};
     if ((dataGovernance.categories || []).length === 0) {

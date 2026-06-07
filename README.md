@@ -205,6 +205,7 @@ The current version also supports:
 - `POST /v1/gateway/route-preview`
 - `POST /v1/gateway/cost-estimate`
 - `POST /v1/gateway/key-issue-preview`
+- `POST /v1/gateway/change-request-preview`
 - `POST /v1/gateway/customers`
 - `POST /v1/gateway/customers/rotate-key`
 - `POST /v1/gateway/customers/disable`
@@ -615,6 +616,38 @@ It includes:
 This is not automatic rollback yet.
 
 It is a simple operating plan for safer demos, pilots, and production discussions.
+
+## Change Request Preview
+
+The gateway also has a preview endpoint for one planned change:
+
+```bash
+curl http://127.0.0.1:8787/v1/gateway/change-request-preview \
+  -H "Authorization: Bearer dev-admin-key" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "change_type": "model_route_change",
+    "action": "update fallback models",
+    "target_id": "smart-fast"
+  }'
+```
+
+It explains the impact before anything is saved.
+
+It includes:
+
+- preview-only flag
+- risk level
+- approval owner
+- affected provider, models, or customers
+- before-change checklist
+- after-change validation
+- rollback path
+- evidence endpoints
+
+This is not a production approval workflow.
+
+It does not save the change, approve the change, keep version history, or run automatic rollback.
 
 For production, change the key with `GATEWAY_ADMIN_API_KEY`.
 

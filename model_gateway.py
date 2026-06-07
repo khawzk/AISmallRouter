@@ -5062,6 +5062,99 @@ def change_management_plan(server):
     }
 
 
+def change_request_preview(server, payload):
+    change_type = (payload.get("change_type") or "").strip()
+    action = (payload.get("action") or "").strip()
+    target_id = (payload.get("target_id") or "").strip()
+    if not change_type:
+        raise GatewayError("change_type is required.", "missing_change_type", 400)
+    plan = change_management_plan(server)
+    change_by_type = {item["type"]: item for item in plan["change_types"]}
+    change = change_by_type.get(change_type)
+    if not change:
+        raise GatewayError(
+            "Unknown change_type.",
+            "unknown_change_type",
+            400,
+            {"allowed_change_types": sorted(change_by_type)},
+        )
+
+    affected_models = []
+    affected_customers = []
+    affected_provider = None
+    if change_type == "provider_change" and target_id:
+        affected_provider = {provider["id"]: provider for provider in provider_status(server)}.get(target_id)
+        affected_models = [
+            {
+                "id": public_name,
+                "provider": model.get("provider"),
+                "enabled": model.get("enabled", True),
+                "fallback_models": model.get("fallback_models", []),
+            }
+            for public_name, model in sorted(server.models.items())
+            if model.get("provider") == target_id
+        ]
+    elif change_type == "model_route_change" and target_id:
+        model = server.models.get(target_id)
+        if model:
+            affected_models = [
+                {
+                    "id": target_id,
+                    "provider": model.get("provider"),
+                    "enabled": model.get("enabled", True),
+                    "fallback_models": model.get("fallback_models", []),
+                }
+            ]
+            affected_customers = [
+                public_customer_view(customer)
+                for customer in server.customers_by_key.values()
+                if "*" in customer.get("allowed_models", []) or target_id in customer.get("allowed_models", [])
+            ]
+    elif change_type == "customer_access_change" and target_id:
+        affected_customers = [
+            public_customer_view(customer)
+            for customer in server.customers_by_key.values()
+            if customer.get("id") == target_id
+        ]
+
+    risk_reasons = [
+        f"Risk level is {change['risk_level']}.",
+        f"Approval owner is {change['approval_owner']}.",
+    ]
+    if change_type == "provider_change" and affected_models:
+        risk_reasons.append(f"{len(affected_models)} public model route(s) currently use this provider.")
+    if change_type == "model_route_change" and affected_customers:
+        risk_reasons.append(f"{len(affected_customers)} customer record(s) can currently use this public model.")
+    if change_type == "customer_access_change" and affected_customers:
+        risk_reasons.append("This change affects one customer key or model access policy.")
+
+    return {
+        "object": "gateway.change_request_preview",
+        "plain_english": "This preview explains what a customer, provider, or model route change means before anyone saves it.",
+        "would_apply": False,
+        "preview_only": True,
+        "change_type": change_type,
+        "action": action or "not_provided",
+        "target_id": target_id or "not_provided",
+        "risk_level": change["risk_level"],
+        "approval_owner": change["approval_owner"],
+        "before_change": change["before_change"],
+        "after_change": change["after_change"],
+        "rollback_path": change["rollback_path"],
+        "risk_reasons": risk_reasons,
+        "affected_provider": affected_provider,
+        "affected_models": affected_models,
+        "affected_customers": affected_customers,
+        "approval_checklist": plan["approval_checklist"],
+        "evidence_endpoints": plan["evidence_endpoints"],
+        "customer_safe_summary": {
+            "one_sentence": "We can preview the impact and approval path before changing customer access, provider settings, or model routes.",
+            "boundary": "This is not automatic approval, automatic rollback, config version history, or a production change workflow.",
+        },
+        "recommended_next_action": "Review this preview with the approval owner, then use the matching lifecycle endpoint only if the change is approved.",
+    }
+
+
 def data_governance_review(server):
     config = gateway_config_check(server)
     categories = [
@@ -7719,6 +7812,14 @@ def openapi_spec(server):
                 "responses": {"200": json_response("Generated key preview and config snippet.")},
             }
         },
+        "/v1/gateway/change-request-preview": {
+            "post": {
+                "summary": "Preview a customer, provider, or model route change without saving",
+                "security": admin_security,
+                "requestBody": json_request("change_type, action, and target_id."),
+                "responses": {"200": json_response("Change impact, approval owner, checklist, rollback, and evidence.")},
+            }
+        },
         "/v1/gateway/customers": {
             "get": {
                 "summary": "List customer records",
@@ -8034,6 +8135,17 @@ def postman_collection(server):
             },
         ),
         request_item(
+            "Change Request Preview",
+            "POST",
+            "/v1/gateway/change-request-preview",
+            "admin_api_key",
+            {
+                "change_type": "model_route_change",
+                "action": "update fallback models",
+                "target_id": "smart-fast",
+            },
+        ),
+        request_item(
             "Create Customer",
             "POST",
             "/v1/gateway/customers",
@@ -8192,6 +8304,14 @@ def demo_bundle(server):
                 "audience": "gateway owner, support, and customer technical",
                 "purpose": "Show change approval checklist, rollback paths, and evidence endpoints.",
                 "auth": "adminBearerAuth",
+            },
+            {
+                "name": "Change request preview",
+                "url": f"{base_url}/v1/gateway/change-request-preview",
+                "audience": "gateway owner, support, and customer technical",
+                "purpose": "Preview one customer, provider, or model route change before saving it.",
+                "auth": "adminBearerAuth",
+                "method": "POST",
             },
             {
                 "name": "Data governance review",
@@ -8465,8 +8585,8 @@ def demo_bundle(server):
             {
                 "step": 5,
                 "title": "Show control plane",
-                "show": "/v1/gateway/status, /v1/gateway/production-readiness, /v1/gateway/deployment-readiness, /v1/gateway/launch-plan, and /v1/gateway/data-governance",
-                "talk_track": "Admin views show provider health, customer usage, alerts, readiness, deployment checks, launch gates, data governance, audit events, and invoice preview.",
+                "show": "/v1/gateway/status, /v1/gateway/production-readiness, /v1/gateway/deployment-readiness, /v1/gateway/launch-plan, /v1/gateway/change-request-preview, and /v1/gateway/data-governance",
+                "talk_track": "Admin views show provider health, customer usage, alerts, readiness, deployment checks, launch gates, change request preview, data governance, audit events, and invoice preview.",
             },
             {
                 "step": 6,
@@ -8541,6 +8661,10 @@ def demo_bundle(server):
             {
                 "name": "Change management",
                 "command": f"curl {base_url}/v1/gateway/change-management -H 'Authorization: Bearer {server.admin_api_key or DEFAULT_ADMIN_API_KEY}'",
+            },
+            {
+                "name": "Change request preview",
+                "command": f"curl {base_url}/v1/gateway/change-request-preview -H 'Authorization: Bearer {server.admin_api_key or DEFAULT_ADMIN_API_KEY}' -H 'Content-Type: application/json' -d '{{\"change_type\":\"model_route_change\",\"action\":\"update fallback models\",\"target_id\":\"smart-fast\"}}'",
             },
             {
                 "name": "Data governance",
@@ -8720,6 +8844,14 @@ def gateway_status(server):
         "production_backlog": production_backlog(server),
         "launch_plan": launch_plan(server),
         "change_management": change_management_plan(server),
+        "change_request_preview": change_request_preview(
+            server,
+            {
+                "change_type": "model_route_change",
+                "action": "update fallback models",
+                "target_id": "smart-fast",
+            },
+        ),
         "data_governance": data_governance_review(server),
         "security_review": security_review(server),
         "operations_runbook": operations_runbook(server),
@@ -9696,6 +9828,17 @@ class GatewayHandler(BaseHTTPRequestHandler):
                 return
             try:
                 make_json_response(self, 200, key_issue_preview(self.server, payload))
+            except GatewayError as exc:
+                make_error(self, exc.status, exc.message, exc.code, exc.details)
+            return
+        if path == "/v1/gateway/change-request-preview":
+            if not self.authenticate_admin():
+                return
+            payload = self.read_json_body()
+            if payload is None:
+                return
+            try:
+                make_json_response(self, 200, change_request_preview(self.server, payload))
             except GatewayError as exc:
                 make_error(self, exc.status, exc.message, exc.code, exc.details)
             return
