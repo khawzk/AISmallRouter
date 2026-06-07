@@ -189,6 +189,7 @@ class GatewayPrototypeTest(unittest.TestCase):
             "/v1/gateway/follow-up-email",
             "/v1/gateway/pilot-kickoff",
             "/v1/gateway/pilot-review",
+            "/v1/gateway/production-transition",
             "/v1/gateway/demo-bundle",
             "/v1/gateway/handoff-checklist",
             "/v1/gateway/production-readiness",
@@ -263,6 +264,7 @@ class GatewayPrototypeTest(unittest.TestCase):
         self.assertIn("Follow-up Email", admin_names)
         self.assertIn("Pilot Kickoff", admin_names)
         self.assertIn("Pilot Review", admin_names)
+        self.assertIn("Production Transition", admin_names)
         self.assertIn("SOW Draft", admin_names)
         self.assertIn("Workshop Agenda", admin_names)
         self.assertIn("Decision Log", admin_names)
@@ -318,6 +320,7 @@ class GatewayPrototypeTest(unittest.TestCase):
         self.assertIn(f"{self.base_url}/v1/gateway/follow-up-email", entry_urls)
         self.assertIn(f"{self.base_url}/v1/gateway/pilot-kickoff", entry_urls)
         self.assertIn(f"{self.base_url}/v1/gateway/pilot-review", entry_urls)
+        self.assertIn(f"{self.base_url}/v1/gateway/production-transition", entry_urls)
         self.assertIn(f"{self.base_url}/v1/gateway/provider-contracts", entry_urls)
         self.assertIn(f"{self.base_url}/v1/gateway/evaluation-plan", entry_urls)
         self.assertIn(f"{self.base_url}/v1/gateway/incident-playbook", entry_urls)
@@ -1330,6 +1333,8 @@ class GatewayPrototypeTest(unittest.TestCase):
         self.assertIn("kickoff_goals", payload["pilot_kickoff"])
         self.assertIn("pilot_review", payload)
         self.assertIn("decision_options", payload["pilot_review"])
+        self.assertIn("production_transition", payload)
+        self.assertIn("transition_phases", payload["production_transition"])
         self.assertIn("request_activity", payload)
         self.assertIn("audit_events", payload)
         self.assertIn("audit_event_count", payload["summary"])
@@ -2401,6 +2406,27 @@ class GatewayPrototypeTest(unittest.TestCase):
         self.assertNotIn("sk-", json.dumps(review))
         self.assertNotIn("provider_api_keys", json.dumps(review))
 
+        status, transition = request_json(self.base_url, path="/v1/gateway/production-transition")
+        self.assertEqual(status, 401)
+
+        status, transition = request_json(self.base_url, path="/v1/gateway/production-transition", api_key="dev-admin-key")
+        self.assertEqual(status, 200)
+        self.assertEqual(transition["object"], "gateway.production_transition")
+        self.assertIn("production hardening", transition["plain_english"])
+        phase_names = {item["phase"] for item in transition["transition_phases"]}
+        self.assertIn("1. Confirm production scope", phase_names)
+        self.assertIn("2. Close P0 controls", phase_names)
+        roles = {item["role"] for item in transition["role_handoff"]}
+        self.assertIn("Customer sponsor", roles)
+        self.assertIn("Security/data owner", roles)
+        self.assertGreaterEqual(len(transition["p0_before_live_traffic"]), 1)
+        self.assertIn("Which workflow is included in first production scope?", transition["customer_questions_before_sow"])
+        self.assertIn("Production approval", transition["not_claimed"])
+        self.assertIn("/v1/gateway/production-backlog", transition["evidence_endpoints"])
+        self.assertNotIn("DASHSCOPE_API_KEY", json.dumps(transition))
+        self.assertNotIn("sk-", json.dumps(transition))
+        self.assertNotIn("provider_api_keys", json.dumps(transition))
+
         status, invoice = request_json(self.base_url, path="/v1/gateway/invoice-preview", api_key="dev-admin-key")
         self.assertEqual(status, 200)
         self.assertIn("totals", invoice)
@@ -2560,6 +2586,9 @@ class GatewayPrototypeTest(unittest.TestCase):
         self.assertIn("Pilot review", html)
         self.assertIn("pilotReviewList", html)
         self.assertIn("/v1/gateway/pilot-review?admin_key=", html)
+        self.assertIn("Production transition", html)
+        self.assertIn("productionTransitionList", html)
+        self.assertIn("/v1/gateway/production-transition?admin_key=", html)
         self.assertIn("Customer handoff package", html)
         self.assertIn("/openapi.json", html)
         self.assertIn("/postman_collection.json", html)

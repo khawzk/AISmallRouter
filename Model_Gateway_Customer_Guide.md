@@ -61,6 +61,7 @@ The prototype supports:
 - Follow-up email pack
 - Pilot kickoff pack
 - Pilot review pack
+- Production transition pack
 - Operational alerts
 - Incident playbook
 - Support policy
@@ -1326,6 +1327,30 @@ This is useful because a pilot should end with a clear decision.
 The pilot review pack helps the customer choose whether to stop, extend the pilot, or move toward production hardening.
 
 It is a decision support pack, not production approval, a signed SOW, legal approval, a final quote, or a security certification.
+
+## What The Production Transition Shows
+
+The prototype includes `/v1/gateway/production-transition`.
+
+This endpoint helps move from a successful pilot review into production hardening.
+
+It shows:
+
+- transition trigger
+- hardening phases
+- role handoff
+- P0 controls before live traffic
+- P1 items for limited production
+- customer questions before SOW
+- internal kickoff agenda
+- customer-safe message
+- things not to claim
+
+This is useful because a pilot result is not the same as production approval.
+
+The transition pack explains what must happen before real production traffic.
+
+It is a transition plan, not production approval, a signed SOW, final price, legal approval, or security certification.
 
 ## What Invoice Preview Shows
 

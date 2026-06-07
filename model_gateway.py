@@ -94,6 +94,7 @@ ADMIN_PATHS = {
     "/v1/gateway/follow-up-email",
     "/v1/gateway/pilot-kickoff",
     "/v1/gateway/pilot-review",
+    "/v1/gateway/production-transition",
     "/v1/gateway/policy-presets",
     "/v1/gateway/demo-bundle",
     "/v1/gateway/handoff-checklist",
@@ -2349,6 +2350,146 @@ def pilot_review_pack(server):
             "/v1/gateway/production-readiness",
             "/v1/gateway/production-backlog",
             "/v1/gateway/security-review",
+            "/v1/gateway/sow-draft",
+        ],
+    }
+
+
+def production_transition_pack(server):
+    review = pilot_review_pack(server)
+    implementation = implementation_plan(server)
+    backlog = production_backlog(server)
+    readiness = production_readiness(server)
+    launch = launch_plan(server)
+    migration = migration_plan(server)
+    deployment = deployment_readiness(server)
+    p0_items = [item for item in backlog.get("work_items", []) if item.get("priority") == "P0"]
+    p1_items = [item for item in backlog.get("work_items", []) if item.get("priority") == "P1"]
+    return {
+        "object": "gateway.production_transition",
+        "title": "AISmallRouter Production Transition Pack",
+        "audience": "customer sponsor, delivery owner, platform owner, security owner, support owner, finance/procurement owner, and gateway owner",
+        "mode": "mock" if server.mock_mode else "live",
+        "plain_english": "This pack explains how to move from a successful pilot review into production hardening work without pretending the prototype is already production-ready.",
+        "customer_safe_summary": {
+            "one_sentence": "Use this when the pilot review says the next step is production hardening.",
+            "best_use": "Send it after pilot review and before a formal production SOW, implementation kickoff, or procurement review.",
+            "boundary": "This is a transition plan. It is not production approval, a signed SOW, final price, legal approval, or security certification.",
+        },
+        "transition_trigger": {
+            "when_to_use": "The customer sees enough value to fund hardening, but production controls are not approved yet.",
+            "decision_source": "/v1/gateway/pilot-review",
+            "recommended_message": "The pilot can prove the direction. Production use needs a separate hardening and approval phase.",
+        },
+        "transition_phases": [
+            {
+                "phase": "1. Confirm production scope",
+                "owner": "Customer sponsor and gateway owner",
+                "goal": "Choose the first production workflow, customer group, provider route, and traffic limit.",
+                "evidence": ["/v1/gateway/pilot-review", "/v1/gateway/decision-log", "/v1/gateway/sow-draft"],
+            },
+            {
+                "phase": "2. Close P0 controls",
+                "owner": "Security, platform, support, and gateway owners",
+                "goal": "Finish secrets, storage, data governance, monitoring, and change control before live traffic.",
+                "evidence": ["/v1/gateway/production-backlog", "/v1/gateway/security-review", "/v1/gateway/data-governance"],
+            },
+            {
+                "phase": "3. Prepare deployment and migration",
+                "owner": "Platform owner and customer technical contact",
+                "goal": "Choose hosting, environment, rollback, customer cutover, and first traffic path.",
+                "evidence": ["/v1/gateway/deployment-readiness", "/v1/gateway/migration-plan"],
+            },
+            {
+                "phase": "4. Approve launch gates",
+                "owner": "Sponsor, support, security, finance, and gateway owners",
+                "goal": "Confirm support, billing, security, data, provider, and customer communication gates.",
+                "evidence": ["/v1/gateway/launch-plan", "/v1/gateway/commercial-policy", "/v1/gateway/support-policy"],
+            },
+            {
+                "phase": "5. Limited production start",
+                "owner": "Gateway owner and support owner",
+                "goal": "Start with low traffic, named owners, monitoring, rollback, and customer wording ready.",
+                "evidence": ["/v1/gateway/operations-runbook", "/v1/gateway/incident-playbook", "/v1/gateway/request-activity"],
+            },
+        ],
+        "role_handoff": [
+            {"role": "Customer sponsor", "owns": "Production value, funding approval, scope boundaries, and go/no-go decision."},
+            {"role": "Customer technical contact", "owns": "Application cutover, test traffic, rollout feedback, and integration evidence."},
+            {"role": "Gateway owner", "owns": "Model routes, provider adapters, fallback behavior, release quality, and route explanation."},
+            {"role": "Platform owner", "owns": "Hosting, managed storage, backups, deployment, environment config, and rollback."},
+            {"role": "Security/data owner", "owns": "Secrets, data handling, prompt logging, retention, deletion, and access controls."},
+            {"role": "Support owner", "owns": "Monitoring, alerts, incident response, customer wording, and support cadence."},
+            {"role": "Finance/procurement owner", "owns": "Commercial terms, billing rules, invoice wording, tax fields, and procurement gate."},
+        ],
+        "p0_before_live_traffic": [
+            {
+                "id": item.get("id"),
+                "title": item.get("title"),
+                "owner": item.get("owner"),
+                "done_when": item.get("done_when"),
+            }
+            for item in p0_items
+        ],
+        "p1_for_limited_production": [
+            {
+                "id": item.get("id"),
+                "title": item.get("title"),
+                "owner": item.get("owner"),
+                "done_when": item.get("done_when"),
+            }
+            for item in p1_items[:6]
+        ],
+        "customer_questions_before_sow": [
+            "Which workflow is included in first production scope?",
+            "Which customer apps or users can send first traffic?",
+            "Which provider and model routes are approved?",
+            "What traffic limit, token budget, and spend limit apply?",
+            "Who approves prompt logging, retention, deletion, and support access?",
+            "What support hours, escalation path, and incident wording are expected?",
+            "What commercial terms must be agreed before production traffic?",
+        ],
+        "internal_kickoff_agenda": [
+            {"timebox": "10 min", "topic": "Pilot decision recap", "output": "Confirm why production hardening is justified."},
+            {"timebox": "15 min", "topic": "P0 backlog ownership", "output": "Assign owners and dates for each P0 item."},
+            {"timebox": "15 min", "topic": "Architecture and deployment", "output": "Confirm storage, secrets, hosting, rollback, and environments."},
+            {"timebox": "15 min", "topic": "Security, data, and support", "output": "Confirm approval owners and open risks."},
+            {"timebox": "10 min", "topic": "Commercial and SOW path", "output": "Confirm what becomes funded scope and what stays out of scope."},
+            {"timebox": "10 min", "topic": "Launch gate plan", "output": "Confirm gate owners and next review date."},
+        ],
+        "customer_message": [
+            "The pilot showed enough direction to discuss production hardening.",
+            "The prototype is not production-ready by itself.",
+            "The next phase should close secrets, storage, monitoring, data governance, support, billing, and launch gates.",
+            "Production traffic should start small, with named owners, rollback, and customer communication ready.",
+        ],
+        "current_context": {
+            "pilot_review_default": (review.get("recommended_decision") or {}).get("default"),
+            "production_readiness_status": readiness.get("overall_status"),
+            "implementation_phases": [item.get("phase") for item in implementation.get("delivery_phases", [])],
+            "p0_count": len(p0_items),
+            "launch_decision": launch.get("current_launch_decision") or launch.get("decision"),
+            "migration_stage": migration.get("stage") or migration.get("current_stage"),
+            "deployment_stage": deployment.get("stage") or deployment.get("current_stage"),
+        },
+        "not_claimed": [
+            "Production approval",
+            "Signed SOW",
+            "Final price",
+            "Legal approval",
+            "Security certification",
+            "Production SLA",
+            "Guaranteed launch date",
+        ],
+        "recommended_next_action": "Use this pack to run an internal production hardening kickoff, then update the SOW draft and production backlog with named owners and dates.",
+        "evidence_endpoints": [
+            "/v1/gateway/pilot-review",
+            "/v1/gateway/implementation-plan",
+            "/v1/gateway/production-backlog",
+            "/v1/gateway/production-readiness",
+            "/v1/gateway/deployment-readiness",
+            "/v1/gateway/migration-plan",
+            "/v1/gateway/launch-plan",
             "/v1/gateway/sow-draft",
         ],
     }
@@ -7295,6 +7436,7 @@ def openapi_spec(server):
         "/v1/gateway/follow-up-email": "Customer follow-up email and recap pack",
         "/v1/gateway/pilot-kickoff": "Customer pilot kickoff pack",
         "/v1/gateway/pilot-review": "Customer pilot review and go/no-go pack",
+        "/v1/gateway/production-transition": "Production transition and hardening handoff pack",
         "/v1/gateway/invoice-preview": "Invoice preview JSON or CSV",
         "/v1/gateway/model-usage": "Usage grouped by model",
         "/v1/gateway/request-summary": "Request summary by dimensions",
@@ -7458,6 +7600,7 @@ def postman_collection(server):
         request_item("Follow-up Email", "GET", "/v1/gateway/follow-up-email", "admin_api_key"),
         request_item("Pilot Kickoff", "GET", "/v1/gateway/pilot-kickoff", "admin_api_key"),
         request_item("Pilot Review", "GET", "/v1/gateway/pilot-review", "admin_api_key"),
+        request_item("Production Transition", "GET", "/v1/gateway/production-transition", "admin_api_key"),
         request_item("Invoice Preview", "GET", "/v1/gateway/invoice-preview", "admin_api_key"),
         request_item(
             "Route Preview",
@@ -7757,6 +7900,13 @@ def demo_bundle(server):
                 "auth": "adminBearerAuth",
             },
             {
+                "name": "Production transition",
+                "url": f"{base_url}/v1/gateway/production-transition",
+                "audience": "customer sponsor, delivery, platform, security, support, finance/procurement, and gateway owners",
+                "purpose": "Move from pilot review to production hardening with phases, role handoff, P0 controls, customer questions, and kickoff agenda.",
+                "auth": "adminBearerAuth",
+            },
+            {
                 "name": "Provider contract matrix",
                 "url": f"{base_url}/v1/gateway/provider-contracts",
                 "audience": "business and technical",
@@ -8033,6 +8183,10 @@ def demo_bundle(server):
                 "command": f"curl {base_url}/v1/gateway/pilot-review -H 'Authorization: Bearer {server.admin_api_key or DEFAULT_ADMIN_API_KEY}'",
             },
             {
+                "name": "Production transition",
+                "command": f"curl {base_url}/v1/gateway/production-transition -H 'Authorization: Bearer {server.admin_api_key or DEFAULT_ADMIN_API_KEY}'",
+            },
+            {
                 "name": "Provider contracts",
                 "command": f"curl {base_url}/v1/gateway/provider-contracts -H 'Authorization: Bearer {server.admin_api_key or DEFAULT_ADMIN_API_KEY}'",
             },
@@ -8122,6 +8276,7 @@ def gateway_status(server):
         "follow_up_email": follow_up_email_pack(server),
         "pilot_kickoff": pilot_kickoff_pack(server),
         "pilot_review": pilot_review_pack(server),
+        "production_transition": production_transition_pack(server),
         "pilot_scorecard": pilot_scorecard(server),
         "invoice_preview": invoice_preview(server),
         "production_readiness": production_readiness(server),
@@ -8996,6 +9151,9 @@ class GatewayHandler(BaseHTTPRequestHandler):
             return
         if path == "/v1/gateway/pilot-review":
             make_json_response(self, 200, pilot_review_pack(self.server))
+            return
+        if path == "/v1/gateway/production-transition":
+            make_json_response(self, 200, production_transition_pack(self.server))
             return
         if path == "/v1/gateway/request-activity":
             filters = {

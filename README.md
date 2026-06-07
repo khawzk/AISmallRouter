@@ -228,6 +228,7 @@ The current version also supports:
 - `GET /v1/gateway/follow-up-email`
 - `GET /v1/gateway/pilot-kickoff`
 - `GET /v1/gateway/pilot-review`
+- `GET /v1/gateway/production-transition`
 - `GET /v1/gateway/invoice-preview`
 - `GET /v1/gateway/request-activity`
 - `GET /v1/gateway/request-detail`
@@ -1859,6 +1860,33 @@ It includes:
 Use it after the pilot kickoff and pilot scorecard.
 
 This is a decision support pack, not production approval, a signed SOW, legal approval, a final quote, or a security certification.
+
+## Production Transition
+
+The gateway has a production transition endpoint:
+
+```bash
+curl http://127.0.0.1:8787/v1/gateway/production-transition \
+  -H "Authorization: Bearer dev-admin-key"
+```
+
+It helps move from a successful pilot review into production hardening.
+
+It includes:
+
+- transition trigger
+- hardening phases
+- role handoff
+- P0 controls before live traffic
+- P1 items for limited production
+- customer questions before SOW
+- internal kickoff agenda
+- customer-safe message
+- things not to claim
+
+Use it after pilot review and before a formal production SOW or implementation kickoff.
+
+This is a transition plan, not production approval, a signed SOW, final price, legal approval, or security certification.
 
 ## Invoice Preview
 

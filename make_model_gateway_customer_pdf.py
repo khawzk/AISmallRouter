@@ -276,6 +276,7 @@ def build():
         "Follow-up email endpoint for customer recap, links, next actions, boundaries, and internal checklist.",
         "Pilot kickoff endpoint for pilot goals, attendees, checklist, agenda, technical start, success metrics, and risks.",
         "Pilot review endpoint for stop, extend, or production hardening decision support.",
+        "Production transition endpoint for moving from pilot review to hardening work without over-promising production readiness.",
         "Request activity endpoint with simple filters for troubleshooting.",
         "Request detail lookup using gateway.request_id returned in chat responses.",
         "Config check endpoint for demo keys and missing production settings.",
@@ -366,6 +367,7 @@ def build():
             ["Follow-up email", "After a workshop, customers need a simple recap and safe next step.", "Subject options, email draft, links, actions, boundaries, and internal checklist"],
             ["Pilot kickoff", "A demo is not enough; a pilot needs owners, tests, metrics, and operating rhythm.", "Goals, attendees, checklist, agenda, technical start, success metrics, risks, and handoff"],
             ["Pilot review", "A pilot should end with a clear decision, not another vague meeting.", "Evidence, go/no-go checks, stop/extend/harden options, and follow-up outputs"],
+            ["Production transition", "Pilot success does not mean production approval.", "Transition trigger, phases, role handoff, P0 controls, SOW questions, and kickoff agenda"],
             ["Customer onboarding", "New customers need keys, limits, and model access.", "Key issue preview creates a safe config snippet"],
             ["Key lifecycle", "Customers need key rotation and disable workflows.", "Local JSON-backed create, rotate, and disable actions"],
             ["Audit trail", "Teams need to know who changed customer access.", "Audit events for customer lifecycle actions"],
@@ -875,6 +877,26 @@ def build():
     review = Table(review_rows, colWidths=[2.1 * inch, 4.35 * inch])
     review.setStyle(table_style())
     story.append(review)
+    story.append(Spacer(1, 0.15 * inch))
+
+    story.append(Paragraph("Production Transition", styles["H1Custom"]))
+    story.append(
+        Paragraph(
+            "/v1/gateway/production-transition helps move from a successful pilot review into production hardening. It includes the transition trigger, hardening phases, role handoff, P0 controls before live traffic, P1 items for limited production, customer questions before SOW, internal kickoff agenda, customer-safe message, and things not to claim. It is a transition plan, not production approval, a signed SOW, final price, legal approval, or security certification.",
+            styles["BodyCustom"],
+        )
+    )
+    transition_rows = [
+        ["Area", "Plain-English meaning"],
+        ["Trigger", "Use when the pilot has value but production controls are not approved yet."],
+        ["Phases", "Confirm scope, close P0 controls, prepare deployment, approve gates, and start limited traffic."],
+        ["Role handoff", "Sponsor, technical, gateway, platform, security/data, support, and finance owners."],
+        ["P0 controls", "Secrets, storage, data governance, monitoring, and change control before live traffic."],
+        ["Boundary", "Not production approval, signed SOW, final price, legal approval, security certification, or SLA."],
+    ]
+    transition = Table(transition_rows, colWidths=[2.1 * inch, 4.35 * inch])
+    transition.setStyle(table_style())
+    story.append(transition)
     story.append(Spacer(1, 0.15 * inch))
 
     story.append(Paragraph("Invoice Preview", styles["H1Custom"]))

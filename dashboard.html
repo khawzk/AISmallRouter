@@ -1664,6 +1664,13 @@
           </article>
           <article class="handoff-card">
             <div>
+              <h3>Production transition</h3>
+              <p>Move from pilot review to hardening phases, owners, P0 controls, and launch gates.</p>
+            </div>
+            <a class="btn" href="/v1/gateway/production-transition?admin_key=__ADMIN_API_KEY__">Open transition</a>
+          </article>
+          <article class="handoff-card">
+            <div>
               <h3>Evaluation plan</h3>
               <p>Model quality, reliability, latency, cost, safety, and fallback checks before live routing.</p>
             </div>
@@ -1949,6 +1956,16 @@
       </div>
       <div class="card-body">
         <div class="report-grid" id="pilotReviewList"></div>
+      </div>
+    </section>
+
+    <section class="card" id="productionTransition" style="margin-bottom: 18px;">
+      <div class="card-head">
+        <h2>Production transition</h2>
+        <span>hardening phases, role handoff, P0 controls, and customer questions</span>
+      </div>
+      <div class="card-body">
+        <div class="report-grid" id="productionTransitionList"></div>
       </div>
     </section>
 
@@ -2283,6 +2300,7 @@
     const followUpEmailList = document.getElementById("followUpEmailList");
     const pilotKickoffList = document.getElementById("pilotKickoffList");
     const pilotReviewList = document.getElementById("pilotReviewList");
+    const productionTransitionList = document.getElementById("productionTransitionList");
     const invoicePreviewList = document.getElementById("invoicePreviewList");
     const activityList = document.getElementById("activityList");
     const auditList = document.getElementById("auditList");
@@ -3602,6 +3620,75 @@
         </div>
       `;
       pilotReviewList.appendChild(card);
+    });
+
+    const productionTransition = state.production_transition || {transition_phases: [], role_handoff: [], p0_before_live_traffic: [], customer_questions_before_sow: [], internal_kickoff_agenda: [], not_claimed: []};
+    const transitionCards = [
+      {
+        title: "Customer-safe summary",
+        chip: "transition",
+        body: productionTransition.customer_safe_summary?.one_sentence || "",
+        items: [
+          productionTransition.customer_safe_summary?.best_use,
+          productionTransition.customer_safe_summary?.boundary,
+        ].filter(Boolean),
+      },
+      {
+        title: "Transition trigger",
+        chip: "trigger",
+        body: productionTransition.transition_trigger?.recommended_message || "",
+        items: [
+          productionTransition.transition_trigger?.when_to_use,
+          `Decision source: ${productionTransition.transition_trigger?.decision_source || ""}`,
+        ].filter(Boolean),
+      },
+      {
+        title: "Transition phases",
+        chip: "phases",
+        body: productionTransition.recommended_next_action || "",
+        items: (productionTransition.transition_phases || []).map((item) => `${item.phase}: ${item.goal}`),
+      },
+      {
+        title: "Role handoff",
+        chip: "owners",
+        body: "Who owns what after the pilot review.",
+        items: (productionTransition.role_handoff || []).map((item) => `${item.role}: ${item.owns}`),
+      },
+      {
+        title: "P0 before live traffic",
+        chip: "P0",
+        body: "Must be closed before production customer traffic.",
+        items: (productionTransition.p0_before_live_traffic || []).map((item) => `${item.id}: ${item.title} (${item.owner})`),
+      },
+      {
+        title: "Customer questions before SOW",
+        chip: "questions",
+        body: "Answers needed before formal scope or production work.",
+        items: productionTransition.customer_questions_before_sow || [],
+      },
+      {
+        title: "Do not claim",
+        chip: "boundary",
+        body: "The transition plan prepares hardening; it does not approve production.",
+        items: productionTransition.not_claimed || [],
+      },
+    ];
+    transitionCards.forEach((item) => {
+      const card = document.createElement("article");
+      card.className = "report-card";
+      card.innerHTML = `
+        <div class="report-top">
+          <div>
+            <strong>${escapeHtml(item.title)}</strong>
+            <span>${escapeHtml(item.body)}</span>
+          </div>
+          <span class="${item.title === "Customer-safe summary" ? "chip green" : "chip"}">${escapeHtml(item.chip)}</span>
+        </div>
+        <div class="option-list">
+          ${(item.items || []).slice(0, 6).map((value) => `<span>${escapeHtml(value)}</span>`).join("")}
+        </div>
+      `;
+      productionTransitionList.appendChild(card);
     });
 
     const invoicePreview = state.invoice_preview || {totals: {}, data: []};
